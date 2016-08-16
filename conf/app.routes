@@ -1,0 +1,3 @@
+# microservice specific routes
+
+GET        /hello-world             uk.gov.hmrc.emailverification.controllers.MicroserviceHelloWorld.hello
