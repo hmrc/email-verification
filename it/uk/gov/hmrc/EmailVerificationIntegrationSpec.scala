@@ -12,7 +12,7 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
 
   "email verification" should {
 
-    "send the verification email to the specified address successfully" in new Setup{
+    "send the verification email to the specified address successfully" in new Setup {
       Given("The email service is running")
       stubSendEmailRequest(202)
 
@@ -23,7 +23,7 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
       response.status shouldBe 204
 
       Then("an email is sent")
-      verifyEmailSent(emailToVerify, templateId, Map("name" -> "Mr Joe Bloggs"))
+      verifyEmailSent(emailToVerify, templateId, params)
     }
 
     "return 500 if email sending fails" in new Setup {
@@ -52,13 +52,14 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
   trait Setup {
     val emailToVerify = "example@domain.com"
     val templateId = "my-lovely-template"
+    val params = Map("name2" -> "Mr Joe Bloggs")
+    val paramsJsonStr = Json.toJson(params).toString()
+
     val request =
       s"""{
           |  "email": "$emailToVerify",
           |  "templateId": "$templateId",
-          |  "templateParameters": {
-          |    "name": "Mr Joe Bloggs"
-          |  },
+          |  "templateParameters": $paramsJsonStr,
           |  "linkExpiryDuration" : "P2D",
           |  "continueUrl" : "http://some/url"
           |}""".stripMargin

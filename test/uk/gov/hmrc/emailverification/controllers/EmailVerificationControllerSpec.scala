@@ -19,7 +19,6 @@ package uk.gov.hmrc.emailverification.controllers
 import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
@@ -34,22 +33,6 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
   "requestVerification" should {
     "return 204" in new Setup {
-      val templateId = "my-template"
-      val recipient = "user@example.com"
-      val params = Map("name2" -> "Mr Joe Bloggs2")
-      val paramsJsonStr = Json.toJson(params).toString()
-
-      val validRequest = Json.parse(
-        s"""{
-            |  "email": "$recipient",
-            |  "templateId": "$templateId",
-            |  "templateParameters": $paramsJsonStr,
-            |  "linkExpiryDuration" : "P2D",
-            |  "continueUrl" : "http://some/url"
-            |}""".stripMargin
-      )
-
-
       when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
         .thenReturn(Future.successful(HttpResponse(202)))
 
@@ -68,6 +51,22 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     val underTest = new EmailVerificationController {
       override val emailConnector = emailConnectorMock
     }
+
+    val templateId = "my-template"
+    val recipient = "user@example.com"
+    val params = Map("name2" -> "Mr Joe Bloggs")
+    val paramsJsonStr = Json.toJson(params).toString()
+
+    val validRequest = Json.parse(
+      s"""{
+          |  "email": "$recipient",
+          |  "templateId": "$templateId",
+          |  "templateParameters": $paramsJsonStr,
+          |  "linkExpiryDuration" : "P2D",
+          |  "continueUrl" : "http://some/url"
+          |}""".stripMargin
+    )
+
   }
 
 
