@@ -1,14 +1,13 @@
 package uk.gov.hmrc
 
-import _root_.play.api.Play.current
-import _root_.play.api.libs.ws.WS
 import _root_.play.api.libs.json.Json
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.GivenWhenThen
-import support.WireMockHelper
-import uk.gov.hmrc.play.it._
+import support.{IntegrationBaseSpec, WireMockConfig, WireMockHelper}
 
-class EmailVerificationIntegrationSpec extends ServiceSpec with GivenWhenThen with WireMockHelper {
+class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "EmailVerificationIntegrationSpec",
+  extraConfig = Map("microservice.services.email.port" -> WireMockConfig.stubPort.toString))
+  with GivenWhenThen with WireMockHelper {
 
 
   "email verification" should {
@@ -21,29 +20,30 @@ class EmailVerificationIntegrationSpec extends ServiceSpec with GivenWhenThen wi
       expectSendEmailRequest()
 
       When("a client submits a verification request")
-      val request = s"""{
-                      |  "email": "$emailToVerify",
-                      |  "templateId": "$templateId",
-                      |  "templateParameters": {
-                      |    "name": "Mr Joe Bloggs"
-                      |  },
-                      |  "linkExpiryDuration" : "P2D",
-                      |  "continueUrl" : "http://some/url"
-                      |}""".stripMargin
+      val request =
+        s"""{
+            |  "email": "$emailToVerify",
+            |  "templateId": "$templateId",
+            |  "templateParameters": {
+            |    "name": "Mr Joe Bloggs"
+            |  },
+            |  "linkExpiryDuration" : "P2D",
+            |  "continueUrl" : "http://some/url"
+            |}""".stripMargin
 
       val response = await(appClient("/email-verifications").post(Json.parse(request)))
       response.status shouldBe 204
 
       Then("an email is sent")
-      verifyEmailSent(emailToVerify, templateId, "name" -> "Mr Joe Bloggs")
+      verifyEmailSent(emailToVerify, templateId, Map("name" -> "Mr Joe Bloggs"))
     }
   }
 
-  def verifyEmailSent(to: String, templateId: String, params: (String, String)*): Unit = {
+  def verifyEmailSent(to: String, templateId: String, params: Map[String, String]): Unit = {
     val json = Json.obj(
       "to" -> Seq(to),
       "templateId" -> templateId,
-      "parameters" -> Json.toJson(params.toMap)
+      "parameters" -> Json.toJson(params)
     )
 
     verify(1, postRequestedFor(urlEqualTo("/send-templated-email"))
@@ -51,11 +51,8 @@ class EmailVerificationIntegrationSpec extends ServiceSpec with GivenWhenThen wi
 
   }
 
-  def expectSendEmailRequest() = stubFor(post(urlEqualTo("/email/send-templated-email"))
+  def expectSendEmailRequest() = stubFor(post(urlEqualTo("/send-templated-email"))
     .willReturn(aResponse()
       .withStatus(202)))
-
-  def appClient(path: String) = WS.url(resource(s"/email-verification$path"))
-  override val server = new IntegrationServer(getClass.getSimpleName.takeRight(30))
 
 }

@@ -16,28 +16,57 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
+import org.mockito.Matchers.{eq => eqTo, _}
+import org.mockito.Mockito._
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.mock.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
+import uk.gov.hmrc.emailverification.MockitoSugarRush
+import uk.gov.hmrc.emailverification.connectors.EmailConnector
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication {
+import scala.concurrent.Future
+
+class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication with MockitoSugarRush with ScalaFutures {
 
   "requestVerification" should {
-    "return 204" in {
+    "return 204" in new Setup {
+      val templateId = "my-template"
+      val recipient = "user@example.com"
+      val params = Map("name2" -> "Mr Joe Bloggs2")
+      val paramsJsonStr = Json.toJson(params).toString()
+
       val validRequest = Json.parse(
-        """{
-          |  "email": "example@domain.com",
-          |  "templateId": "my-lovely-template",
-          |  "templateParameters": {
-          |    "name": "Mr Joe Bloggs"
-          |  },
-          |  "linkExpiryDuration" : "P2D",
-          |  "continueUrl" : "http://some/url"
-          |}""".stripMargin
+        s"""{
+            |  "email": "$recipient",
+            |  "templateId": "$templateId",
+            |  "templateParameters": $paramsJsonStr,
+            |  "linkExpiryDuration" : "P2D",
+            |  "continueUrl" : "http://some/url"
+            |}""".stripMargin
       )
-      val result = EmailVerificationController.requestVerification()(FakeRequest().withBody(validRequest))
+
+
+      when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
+        .thenReturn(Future.successful(HttpResponse(202)))
+
+      val result = await(underTest.requestVerification()(FakeRequest().withBody(validRequest)))
+
+      verify(emailConnectorMock).sendEmail(eqTo(recipient), eqTo(templateId), eqTo(params))(any[HeaderCarrier])
+
       status(result) shouldBe Status.NO_CONTENT
+
+    }
+  }
+
+  trait Setup {
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val emailConnectorMock: EmailConnector = mock[EmailConnector]
+    val underTest = new EmailVerificationController {
+      override val emailConnector = emailConnectorMock
     }
   }
 

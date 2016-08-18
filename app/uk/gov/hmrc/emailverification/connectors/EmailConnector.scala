@@ -33,8 +33,8 @@ trait EmailConnector {
 
   def http: WSPost
 
-  def sendEmail(to: String, templateId: String, params: (String, String)*)(implicit hc: HeaderCarrier) =
-    http.POST(s"$serviceUrl/send-templated-email", SendEmailRequest(Seq(to), templateId, params.toMap))
+  def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier) =
+    http.POST(s"$serviceUrl/send-templated-email", SendEmailRequest(Seq(to), templateId, params))
 }
 
 object EmailConnector extends EmailConnector with ServicesConfig {

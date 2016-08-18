@@ -33,9 +33,9 @@ class EmailConnectorSpec extends UnitSpec with MockitoSugarRush with ScalaFuture
     "return a valid token when logging in with a valid username and password" in new Setup {
       when(httpMock.POST[SendEmailRequest, HttpResponse](eqTo(sendEmailUrl), any(), any())(any(), any(), any[HeaderCarrier])).thenReturn(Future.successful(HttpResponse(202)))
 
-      val result = await(connector.sendEmail(recipient, templateId, params: _*))
+      val result = await(connector.sendEmail(recipient, templateId, params))
 
-      verify(httpMock).POST(eqTo(sendEmailUrl), eqTo(SendEmailRequest(Seq(recipient), templateId, params.toMap)), any())(any(), any(), any[HeaderCarrier])
+      verify(httpMock).POST(eqTo(sendEmailUrl), eqTo(SendEmailRequest(Seq(recipient), templateId, params)), any())(any(), any(), any[HeaderCarrier])
     }
   }
 
@@ -44,7 +44,7 @@ class EmailConnectorSpec extends UnitSpec with MockitoSugarRush with ScalaFuture
     val httpMock: WSHttp = mock[WSHttp]
     val url = "http://somewhere"
     val sendEmailUrl = s"$url/send-templated-email"
-    val params = Seq("p1" -> "v1")
+    val params = Map("p1" -> "v1")
     val templateId = "my-template"
     val recipient = "user@example.com"
 
