@@ -16,28 +16,25 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
-import org.joda.time.Duration
-import org.joda.time.format.{ISOPeriodFormat, PeriodFormatter, PeriodFormatterBuilder}
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import uk.gov.hmrc.emailverification.controllers.controllers.EmailVerificationController
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
-
 
 class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication {
 
   "requestVerification" should {
     "return 204" in {
-      val validRequest = Json.parse("""{
-                                      |  "email": "example@domain.com",
-                                      |  "templateId": "my-lovely-template",
-                                      |  "templateParameters": {
-                                      |    "name": "Mr Joe Bloggs"
-                                      |  },
-                                      |  "linkExpiryDuration" : "P2D",
-                                      |  "continueUrl" : "http://some/url"
-                                      |}""".stripMargin
+      val validRequest = Json.parse(
+        """{
+          |  "email": "example@domain.com",
+          |  "templateId": "my-lovely-template",
+          |  "templateParameters": {
+          |    "name": "Mr Joe Bloggs"
+          |  },
+          |  "linkExpiryDuration" : "P2D",
+          |  "continueUrl" : "http://some/url"
+          |}""".stripMargin
       )
       val result = EmailVerificationController.requestVerification()(FakeRequest().withBody(validRequest))
       status(result) shouldBe Status.NO_CONTENT

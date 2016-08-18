@@ -16,28 +16,29 @@
 
 package uk.gov.hmrc.emailverification.connectors
 
-import play.api.libs.json.{Json, Writes}
-import uk.gov.hmrc.emailverification.WSHttp
+import config.WSHttp
+import play.api.libs.json.Json
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost}
-
-trait EmailConnector {
-  val serviceUrl: String
-  def http: HttpPost
-
-  def sendEmail(to: String, templateId: String, params: (String, String)*)(implicit hc: HeaderCarrier) = post(SendEmailRequest(Seq(to), templateId, params.toMap))
-
-  private def post(payload: SendEmailRequest)(implicit hc: HeaderCarrier) = http.POST(s"$serviceUrl/send-templated-email", payload)
-}
-
-object EmailConnector extends EmailConnector with ServicesConfig {
-  lazy val serviceUrl = baseUrl("email")
-  override def http = WSHttp
-}
-
+import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.http.ws.WSPost
 
 case class SendEmailRequest(to: Seq[String], templateId: String, parameters: Map[String, String])
 
 object SendEmailRequest {
-  implicit val sendEmailRequestFmt: Writes[SendEmailRequest] = Json.writes[SendEmailRequest]
+  implicit val writes = Json.writes[SendEmailRequest]
+}
+
+trait EmailConnector {
+  val serviceUrl: String
+
+  def http: WSPost
+
+  def sendEmail(to: String, templateId: String, params: (String, String)*)(implicit hc: HeaderCarrier) =
+    http.POST(s"$serviceUrl/send-templated-email", SendEmailRequest(Seq(to), templateId, params.toMap))
+}
+
+object EmailConnector extends EmailConnector with ServicesConfig {
+  lazy val serviceUrl = baseUrl("email")
+
+  override def http = WSHttp
 }

@@ -5,10 +5,10 @@ import _root_.play.api.libs.ws.WS
 import _root_.play.api.libs.json.Json
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.GivenWhenThen
-import support.WiremockHelper
+import support.WireMockHelper
 import uk.gov.hmrc.play.it._
 
-class EmailVerificationIntegrationSpec extends ServiceSpec with GivenWhenThen with WiremockHelper {
+class EmailVerificationIntegrationSpec extends ServiceSpec with GivenWhenThen with WireMockHelper {
 
 
   "email verification" should {

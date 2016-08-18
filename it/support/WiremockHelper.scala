@@ -10,7 +10,7 @@ object WireMockConfig {
   val stubHost = "localhost"
 }
 
-trait WiremockHelper extends BeforeAndAfterAll with BeforeAndAfterEach {
+trait WireMockHelper extends BeforeAndAfterAll with BeforeAndAfterEach {
   self: Suite =>
   lazy val wireMockServer = new WireMockServer(wireMockConfig().port(stubPort))
   val stubPort = WireMockConfig.stubPort
