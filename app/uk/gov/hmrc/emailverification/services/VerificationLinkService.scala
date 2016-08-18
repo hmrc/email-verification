@@ -18,9 +18,10 @@ package uk.gov.hmrc.emailverification.services
 
 import java.util.UUID
 
+import config.config.AppConfig
 import org.joda.time.DateTime
 import play.api.libs.json.{Json, Writes}
-import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
+import uk.gov.hmrc.crypto.{ApplicationCrypto, CryptoWithKeysFromConfig, PlainText}
 import uk.gov.hmrc.emailverification.controllers.EmailVerificationRequest
 
 
@@ -39,6 +40,11 @@ trait VerificationLinkService {
     Json.toJson(verificationData).toString()
   }
 
+  def createVerificationUrl(verificationToken: String) = {
+    val encryptedVerificationToken = new String(crypto.encrypt(PlainText(verificationToken)).toBase64)
+    s"$emailVerificationFrontendUrl/verification?token=$encryptedVerificationToken"
+  }
+
   def createNonce = UUID.randomUUID().toString
 
   def currentTime = DateTime.now()
@@ -48,8 +54,8 @@ trait VerificationLinkService {
 
 object VerificationLinkService extends VerificationLinkService {
 
-  override val emailVerificationFrontendUrl: String = ???
+  override lazy val emailVerificationFrontendUrl = AppConfig.emailVerificationFrontendUrl
 
-  override def crypto = ???
+  override def crypto = CryptoWithKeysFromConfig(baseConfigKey = "token.encryption")
 
 }

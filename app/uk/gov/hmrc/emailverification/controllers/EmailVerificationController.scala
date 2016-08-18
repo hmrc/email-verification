@@ -39,7 +39,7 @@ trait EmailVerificationController extends BaseController {
   def requestVerification() = Action.async(parse.json) { implicit httpRequest =>
     withJsonBody[EmailVerificationRequest] { request =>
       val paramsWithVerificationLink = request.templateParameters +
-        ("verificationLink" -> verificationLinkService.createVerificationTokenValue(request))
+        ("verificationLink" -> verificationLinkService.createVerificationUrl(verificationLinkService.createVerificationTokenValue(request)))
 
       emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink) map (_ => NoContent)
 
