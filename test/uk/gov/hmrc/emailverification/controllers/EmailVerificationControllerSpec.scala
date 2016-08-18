@@ -39,7 +39,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
       val verificationLink = "verificationLink"
 
-      when(verificationLinkServiceMock.createVericationLink()).thenReturn(verificationLink)
+      when(verificationLinkServiceMock.createVerificationTokenValue(any())).thenReturn(verificationLink)
 
       val result = await(underTest.requestVerification()(FakeRequest().withBody(validRequest)))
 
@@ -56,7 +56,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     val verificationLinkServiceMock: VerificationLinkService = mock[VerificationLinkService]
     val underTest = new EmailVerificationController {
       override val emailConnector = emailConnectorMock
-      override val verificationLinkService  = verificationLinkServiceMock
+      override val verificationLinkService = verificationLinkServiceMock
     }
 
     val templateId = "my-template"

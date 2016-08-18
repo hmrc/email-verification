@@ -66,7 +66,7 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
   trait Setup {
     val emailToVerify = "example@domain.com"
     val templateId = "my-lovely-template"
-    val templateParams = Map("name2" -> "Mr Joe Bloggs")
+    val templateParams = Map("name" -> "Mr Joe Bloggs")
     val paramsJsonStr = Json.toJson(templateParams).toString()
     val paramsWithVerificationLink = templateParams + ("verificationLink" -> "")
 

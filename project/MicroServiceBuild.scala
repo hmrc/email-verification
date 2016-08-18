@@ -23,6 +23,7 @@ private object AppDependencies {
   private val pegdownVersion = "1.6.0"
 
   private val playReactivemongoVersion = "4.8.0"
+  private val hmrcCryptoVersion = "3.1.0"
 
   val compile = Seq(
     ws,
@@ -32,7 +33,8 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
-    "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion
+    "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
+    "uk.gov.hmrc" %% "crypto" % hmrcCryptoVersion
   )
 
   trait TestDependencies {
