@@ -12,30 +12,24 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
 
   "email verification" should {
 
-    "send the verification email to the specified address" in {
-
-      val emailToVerify = "example@domain.com"
-      val templateId = "my-lovely-template"
+    "send the verification email to the specified address successfully" in new Setup{
       Given("The email service is running")
-      expectSendEmailRequest()
+      stubSendEmailRequest(202)
 
       When("a client submits a verification request")
-      val request =
-        s"""{
-            |  "email": "$emailToVerify",
-            |  "templateId": "$templateId",
-            |  "templateParameters": {
-            |    "name": "Mr Joe Bloggs"
-            |  },
-            |  "linkExpiryDuration" : "P2D",
-            |  "continueUrl" : "http://some/url"
-            |}""".stripMargin
+
 
       val response = await(appClient("/email-verifications").post(Json.parse(request)))
       response.status shouldBe 204
 
       Then("an email is sent")
       verifyEmailSent(emailToVerify, templateId, Map("name" -> "Mr Joe Bloggs"))
+    }
+
+    "return 500 if email sending fails" in new Setup {
+      stubSendEmailRequest(500)
+      val response = await(appClient("/email-verifications").post(Json.parse(request)))
+      response.status shouldBe 502
     }
   }
 
@@ -51,8 +45,23 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
 
   }
 
-  def expectSendEmailRequest() = stubFor(post(urlEqualTo("/send-templated-email"))
+  def stubSendEmailRequest(status: Int) = stubFor(post(urlEqualTo("/send-templated-email"))
     .willReturn(aResponse()
-      .withStatus(202)))
+      .withStatus(status)))
+
+  trait Setup {
+    val emailToVerify = "example@domain.com"
+    val templateId = "my-lovely-template"
+    val request =
+      s"""{
+          |  "email": "$emailToVerify",
+          |  "templateId": "$templateId",
+          |  "templateParameters": {
+          |    "name": "Mr Joe Bloggs"
+          |  },
+          |  "linkExpiryDuration" : "P2D",
+          |  "continueUrl" : "http://some/url"
+          |}""".stripMargin
+  }
 
 }
