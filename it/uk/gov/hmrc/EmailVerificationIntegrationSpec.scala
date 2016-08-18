@@ -18,7 +18,6 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
 
       When("a client submits a verification request")
 
-
       val response = await(appClient("/email-verifications").post(Json.parse(request)))
       response.status shouldBe 204
 
@@ -26,21 +25,37 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
       verifyEmailSent(emailToVerify, templateId, params)
     }
 
-    "return 500 if email sending fails" in new Setup {
+    "send the verification email 2 times if verification was called 2 times for the same recipient email" in new Setup {
+      Given("The email service is running")
+      stubSendEmailRequest(202)
+
+      When("a client submits a verification request")
+
+      val firstResponse = await(appClient("/email-verifications").post(Json.parse(request)))
+      firstResponse.status shouldBe 204
+
+      val secondResponse = await(appClient("/email-verifications").post(Json.parse(request)))
+      secondResponse.status shouldBe 204
+
+      Then("an email is sent 2 times")
+      verifyEmailSent(emailToVerify, templateId, params, expectedTimes = 2)
+    }
+
+    "return 502 error if email sending fails" in new Setup {
       stubSendEmailRequest(500)
       val response = await(appClient("/email-verifications").post(Json.parse(request)))
       response.status shouldBe 502
     }
   }
 
-  def verifyEmailSent(to: String, templateId: String, params: Map[String, String]): Unit = {
+  def verifyEmailSent(to: String, templateId: String, params: Map[String, String], expectedTimes: Int = 1): Unit = {
     val json = Json.obj(
       "to" -> Seq(to),
       "templateId" -> templateId,
       "parameters" -> Json.toJson(params)
     )
 
-    verify(1, postRequestedFor(urlEqualTo("/send-templated-email"))
+    verify(expectedTimes, postRequestedFor(urlEqualTo("/send-templated-email"))
       .withRequestBody(equalTo(json.toString())))
 
   }
