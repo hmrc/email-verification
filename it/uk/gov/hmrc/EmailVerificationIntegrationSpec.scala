@@ -9,7 +9,6 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
   extraConfig = Map("microservice.services.email.port" -> WireMockConfig.stubPort.toString))
   with GivenWhenThen with WireMockHelper {
 
-
   "email verification" should {
 
     "send the verification email to the specified address successfully" in new Setup {
@@ -22,7 +21,7 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
       response.status shouldBe 204
 
       Then("an email is sent")
-      verifyEmailSent(emailToVerify, templateId, params)
+      verifyEmailSent(emailToVerify, templateId, paramsWithVerificationLink)
     }
 
     "send the verification email 2 times if verification was called 2 times for the same recipient email" in new Setup {
@@ -38,7 +37,7 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
       secondResponse.status shouldBe 204
 
       Then("an email is sent 2 times")
-      verifyEmailSent(emailToVerify, templateId, params, expectedTimes = 2)
+      verifyEmailSent(emailToVerify, templateId, paramsWithVerificationLink, expectedTimes = 2)
     }
 
     "return 502 error if email sending fails" in new Setup {
@@ -67,8 +66,9 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
   trait Setup {
     val emailToVerify = "example@domain.com"
     val templateId = "my-lovely-template"
-    val params = Map("name2" -> "Mr Joe Bloggs")
-    val paramsJsonStr = Json.toJson(params).toString()
+    val templateParams = Map("name2" -> "Mr Joe Bloggs")
+    val paramsJsonStr = Json.toJson(templateParams).toString()
+    val paramsWithVerificationLink = templateParams + ("verificationLink" -> "")
 
     val request =
       s"""{
