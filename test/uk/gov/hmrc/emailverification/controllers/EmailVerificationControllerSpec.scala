@@ -36,17 +36,13 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     "send email containing verificationLink param and return 204" in new Setup {
       when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
         .thenReturn(Future.successful(HttpResponse(202)))
-
       val verificationLink = "verificationLink"
-
-      when(verificationLinkServiceMock.createVerificationUrl(any())).thenReturn(verificationLink)
+      when(verificationLinkServiceMock.verificationLinkFor(any[EmailVerificationRequest])).thenReturn(verificationLink)
 
       val result = await(underTest.requestVerification()(FakeRequest().withBody(validRequest)))
 
-      verify(emailConnectorMock).sendEmail(eqTo(recipient), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any[HeaderCarrier])
-
       status(result) shouldBe Status.NO_CONTENT
-
+      verify(emailConnectorMock).sendEmail(eqTo(recipient), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any[HeaderCarrier])
     }
   }
 
@@ -61,9 +57,8 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
     val templateId = "my-template"
     val recipient = "user@example.com"
-    val params = Map("name2" -> "Mr Joe Bloggs")
+    val params = Map("name" -> "Mr Joe Bloggs")
     val paramsJsonStr = Json.toJson(params).toString()
-
 
     val validRequest = Json.parse(
       s"""{
@@ -74,8 +69,6 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
           |  "continueUrl" : "http://some/url"
           |}""".stripMargin
     )
-
   }
-
 
 }

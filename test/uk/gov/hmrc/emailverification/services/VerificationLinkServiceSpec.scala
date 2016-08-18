@@ -36,17 +36,19 @@ class VerificationLinkServiceSpec extends UnitSpec with MockitoSugar {
 
       val verificationRequest = EmailVerificationRequest(emailToVerify, templateId, templateParams, Period.parse("P1D"), continueUrl)
 
-      val expectedJson =
+      val jsonToken = Json.parse(
         s"""{
             |  "nonce":"fixedNonce",
             |  "email":"example@domain.com",
             |  "expiration":"2016-08-19T12:45:11.631+0100",
             |  "continueUrl":"http://continue-url.com"
-            |}""".stripMargin
+            |}""".stripMargin).toString()
+      val cryptedJsonToken = Crypted(jsonToken)
+      val base64CryptedJsonToken = new String(cryptedJsonToken.toBase64)
 
-      when(cryptoMock.encrypt(PlainText(expectedJson))).thenReturn(Crypted(expectedJson))
+      when(cryptoMock.encrypt(PlainText(jsonToken))).thenReturn(cryptedJsonToken)
 
-      underTest.createVerificationTokenValue(verificationRequest) shouldBe Json.parse(expectedJson).toString()
+      underTest.verificationLinkFor(verificationRequest) shouldBe s"http://email-verification-frontend.url/verification?token=$base64CryptedJsonToken"
     }
   }
 
@@ -60,7 +62,7 @@ class VerificationLinkServiceSpec extends UnitSpec with MockitoSugar {
     val underTest = new VerificationLinkService {
       override val emailVerificationFrontendUrl = frontendUrl
 
-      override def crypto: CryptoWithKeysFromConfig = cryptoMock
+      override val crypto: CryptoWithKeysFromConfig = cryptoMock
 
       override def createNonce = fixedNonce
 

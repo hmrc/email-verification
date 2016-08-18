@@ -22,8 +22,8 @@ import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 object EmailVerificationController extends EmailVerificationController {
   override val emailConnector = EmailConnector
@@ -39,7 +39,7 @@ trait EmailVerificationController extends BaseController {
   def requestVerification() = Action.async(parse.json) { implicit httpRequest =>
     withJsonBody[EmailVerificationRequest] { request =>
       val paramsWithVerificationLink = request.templateParameters +
-        ("verificationLink" -> verificationLinkService.createVerificationUrl(verificationLinkService.createVerificationTokenValue(request)))
+        ("verificationLink" -> verificationLinkService.verificationLinkFor(request))
 
       emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink) map (_ => NoContent)
 

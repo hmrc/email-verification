@@ -75,7 +75,7 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
 
     val verificationLink = (emailSendRequestJson \ "parameters" \ "verificationLink").as[String]
 
-    val decryptedTokenJson = decryptToJson(verificationLink.split("=")(1))
+    val decryptedTokenJson = decryptToJson(verificationLink.split("token=")(1))
 
     (decryptedTokenJson \ "email").as[String] shouldBe emailToVerify
     (decryptedTokenJson \ "continueUrl").as[String] shouldBe continueUrl
