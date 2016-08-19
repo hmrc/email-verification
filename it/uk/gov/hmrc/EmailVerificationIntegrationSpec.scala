@@ -19,7 +19,7 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
   val templateParams = Map("name" -> "Mr Joe Bloggs")
   val continueUrl = "http://some/url"
 
-  lazy val crypto = CryptoWithKeysFromConfig("token.encryption")
+  lazy val crypto = CryptoWithKeysFromConfig("application.secret")
 
   "email verification" should {
 
@@ -80,8 +80,6 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
     (decryptedTokenJson \ "email").as[String] shouldBe emailToVerify
     (decryptedTokenJson \ "continueUrl").as[String] shouldBe continueUrl
   }
-
-
 
   def decryptToJson(encrypted: String) = {
     val base64DecodedEncrypted = fromBase64(encrypted)
