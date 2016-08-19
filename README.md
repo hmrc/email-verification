@@ -10,9 +10,11 @@ Preconditions:
 
 ```sbt test it:test```
 
-email-verification is a service to provide a verification flow that starts by creating a verification and sending out an email with verification link,
-verifying the email address by clicking on the link in the email.
-Endpoints are provided to start verification, verify email and retrieve verification status for a given email.
+email-verification is a service to support a verification flow that starts by creating a verification for an email address and sending out an email with verification link.
+
+Users can verify the email address by clicking on the link in the email.
+
+Endpoints are provided to trigger a verification email, verify email by clicking the link and retrieve a verification status for a given email address.
 
 # How to build
 
