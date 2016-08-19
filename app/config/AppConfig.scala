@@ -16,8 +16,6 @@
 
 package config
 
-package config
-
 import play.api.Play.{configuration, current}
 import uk.gov.hmrc.play.config.ServicesConfig
 
@@ -26,7 +24,7 @@ trait AppConfig {
 }
 
 object AppConfig extends AppConfig with ServicesConfig {
-  override val emailVerificationFrontendUrl = getConfig("emailVerificationFrontendUrl")
+  override val emailVerificationFrontendUrl = getConfigValueFor("emailVerificationFrontendUrl")
 
-  private def getConfig(key: String) = configuration.getString(key).getOrElse(throw new Exception(s"Missing configuration key: $key"))
+  private def getConfigValueFor(key: String) = configuration.getString(key).getOrElse(throw new Exception(s"Missing configuration key: $key"))
 }
