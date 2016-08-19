@@ -50,6 +50,7 @@ Create a new verification
 ```
 
 The template identified by ```templateId``` must contain a parameter named ```verificationLink```
+```linkExpiryDuration``` is the validity in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) format
 
 ### Response with
 
