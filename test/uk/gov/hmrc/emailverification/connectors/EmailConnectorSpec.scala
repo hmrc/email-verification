@@ -49,7 +49,7 @@ class EmailConnectorSpec extends UnitSpec with MockitoSugarRush with ScalaFuture
     val recipient = "user@example.com"
 
     val connector = new EmailConnector {
-      override def http = httpMock
+      override val http = httpMock
 
       override val serviceUrl = url
     }

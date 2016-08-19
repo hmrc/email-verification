@@ -50,6 +50,6 @@ trait EmailVerificationController extends BaseController {
 case class EmailVerificationRequest(email: String, templateId: String, templateParameters: Map[String, String], linkExpiryDuration: Period, continueUrl: String)
 
 object EmailVerificationRequest {
-  implicit val durationReads: Reads[Period] = JsPath.read[String].map(ISOPeriodFormat.standard().parsePeriod)
+  implicit val periodReads: Reads[Period] = JsPath.read[String].map(ISOPeriodFormat.standard().parsePeriod)
   implicit val reads: Reads[EmailVerificationRequest] = Json.reads[EmailVerificationRequest]
 }
