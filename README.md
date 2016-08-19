@@ -49,6 +49,8 @@ Create a new verification
 }
 ```
 
+The template identified by ```templateId``` must contain a parameter named ```verificationLink```
+
 ### Response with
 
     | Status    |  Description                      |
