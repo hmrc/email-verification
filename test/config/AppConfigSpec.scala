@@ -15,7 +15,6 @@
  */
 
 package config
-import config.AppConfig
 import play.api.test.{FakeApplication, TestServer}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 

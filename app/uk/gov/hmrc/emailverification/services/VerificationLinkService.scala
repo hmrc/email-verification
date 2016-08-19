@@ -18,7 +18,7 @@ package uk.gov.hmrc.emailverification.services
 
 import java.util.UUID
 
-import config.config.AppConfig
+import config.AppConfig
 import org.joda.time.DateTime
 import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.crypto.{CryptoWithKeysFromConfig, PlainText}
