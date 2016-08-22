@@ -1,3 +1,3 @@
 # microservice specific routes
 
-POST        /request-verification             uk.gov.hmrc.emailverification.controllers.EmailVerificationController.requestVerification
+POST        /request-verifications             uk.gov.hmrc.emailverification.controllers.EmailVerificationController.requestVerification

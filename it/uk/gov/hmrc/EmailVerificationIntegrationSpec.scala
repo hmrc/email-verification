@@ -29,7 +29,7 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
 
       When("a client submits a verification request")
 
-      val response = await(appClient("/request-verification").post(Json.parse(request)))
+      val response = await(appClient("/request-verifications").post(Json.parse(request)))
       response.status shouldBe 204
 
       Then("an email is sent")
@@ -40,7 +40,7 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
     "return 502 error if email sending fails" in new Setup {
       val body = "some-5xx-message"
       stubSendEmailRequest(500, body)
-      val response = await(appClient("/request-verification").post(Json.parse(request)))
+      val response = await(appClient("/request-verifications").post(Json.parse(request)))
       response.status shouldBe 502
       response.body should include (body)
     }
@@ -48,7 +48,7 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
     "return 400 error if email sending fails with 400" in new Setup {
       val body = "some-400-message"
       stubSendEmailRequest(400, body)
-      val response = await(appClient("/request-verification").post(Json.parse(request)))
+      val response = await(appClient("/request-verifications").post(Json.parse(request)))
       response.status shouldBe 400
       response.body should include (body)
     }
@@ -56,7 +56,7 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
     "return 400 error if email sending fails with 4xx" in new Setup {
       val body = "some-4xx-message"
       stubSendEmailRequest(401, body)
-      val response = await(appClient("/request-verification").post(Json.parse(request)))
+      val response = await(appClient("/request-verifications").post(Json.parse(request)))
       response.status shouldBe 400
       response.body should include (body)
     }
