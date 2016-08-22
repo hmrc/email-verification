@@ -38,15 +38,19 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
     }
 
     "return 502 error if email sending fails" in new Setup {
-      stubSendEmailRequest(500)
+      val body = "some-5xx-message"
+      stubSendEmailRequest(500, body)
       val response = await(appClient("/request-verification").post(Json.parse(request)))
       response.status shouldBe 502
+      response.body should include (body)
     }
 
     "return 400 error if email sending fails with 400" in new Setup {
-      stubSendEmailRequest(400)
+      val body = "some-4xx-message"
+      stubSendEmailRequest(400, body)
       val response = await(appClient("/request-verification").post(Json.parse(request)))
       response.status shouldBe 400
+      response.body should include (body)
     }
   }
 
@@ -74,6 +78,10 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
   private val emailMatchingStrategy = urlEqualTo("/send-templated-email")
   private val emailEventStub = postRequestedFor(emailMatchingStrategy)
 
+  def stubSendEmailRequest(status: Int, body: String) =
+    stubFor(post(emailMatchingStrategy).willReturn(aResponse()
+      .withStatus(status)
+      .withBody(body)))
 
   def stubSendEmailRequest(status: Int) =
     stubFor(post(emailMatchingStrategy).willReturn(aResponse()

@@ -25,7 +25,7 @@ import play.api.test.FakeRequest
 import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
@@ -34,10 +34,10 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
   "requestVerification" should {
     "send email containing verificationLink param and return 204" in new Setup {
-      when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
-        .thenReturn(Future.successful(HttpResponse(202)))
       val verificationLink = "verificationLink"
       when(verificationLinkServiceMock.verificationLinkFor(any[EmailVerificationRequest])).thenReturn(verificationLink)
+      when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
+        .thenReturn(Future.successful(HttpResponse(202)))
 
       val result = await(underTest.requestVerification()(FakeRequest().withBody(validRequest)))
 
