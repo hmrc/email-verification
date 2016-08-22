@@ -64,9 +64,9 @@ class VerificationLinkServiceSpec extends UnitSpec with MockitoSugar {
 
       override val crypto: CryptoWithKeysFromConfig = cryptoMock
 
-      override def createNonce = fixedNonce
+      override val createNonce = fixedNonce
 
-      override def currentTime = fixedTime
+      override val currentTime = fixedTime
     }
   }
 
