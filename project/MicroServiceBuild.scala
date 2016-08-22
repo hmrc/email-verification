@@ -1,7 +1,4 @@
 import sbt._
-import uk.gov.hmrc.SbtAutoBuildPlugin
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-import uk.gov.hmrc.versioning.SbtGitVersioning
 
 object MicroServiceBuild extends Build with MicroService {
 
@@ -26,18 +23,18 @@ private object AppDependencies {
   private val pegdownVersion = "1.6.0"
 
   private val playReactivemongoVersion = "4.8.0"
+  private val hmrcCryptoVersion = "3.1.0"
 
   val compile = Seq(
-    "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
-
     ws,
+    "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
     "uk.gov.hmrc" %% "play-authorisation" % playAuthVersion,
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
     "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
-    "uk.gov.hmrc" %% "domain" % domainVersion
+    "uk.gov.hmrc" %% "crypto" % hmrcCryptoVersion
   )
 
   trait TestDependencies {
@@ -65,7 +62,8 @@ private object AppDependencies {
         "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
         "org.scalatest" %% "scalatest" % scalaTestVersion % scope,
         "org.pegdown" % "pegdown" % pegdownVersion % scope,
-        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope
+        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+        "com.github.tomakehurst" % "wiremock" % "1.58" % scope
       )
     }.test
   }

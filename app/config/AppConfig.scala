@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.emailverification.controllers
+package config
 
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import play.api.mvc._
-import scala.concurrent.Future
+import play.api.Play.{configuration, current}
+import uk.gov.hmrc.play.config.ServicesConfig
 
-object MicroserviceHelloWorld extends MicroserviceHelloWorld
+trait AppConfig {
+  val emailVerificationFrontendUrl: String
+}
 
-trait MicroserviceHelloWorld extends BaseController {
+object AppConfig extends AppConfig with ServicesConfig {
+  override val emailVerificationFrontendUrl = getConfigValueFor("emailVerificationFrontendUrl")
 
-	def hello() = Action.async { implicit request =>
-		Future.successful(Ok("Hello world"))
-	}
+  private def getConfigValueFor(key: String) = configuration.getString(key).getOrElse(throw new Exception(s"Missing configuration key: $key"))
 }
