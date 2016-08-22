@@ -43,21 +43,19 @@ trait EmailVerificationController extends BaseController {
   def newToken: String
 
   def requestVerification() = Action.async(parse.json) { implicit httpRequest =>
-    def recovery: PartialFunction[Throwable, Result] = {
-      case ex: Upstream4xxResponse => BadRequest(ex.message)
-    }
-
     withJsonBody[EmailVerificationRequest] { request =>
       val token = newToken
-      tokenRepo.insert(token, request.email, request.linkExpiryDuration)
+      tokenRepo.insert(token, request.email, request.linkExpiryDuration).flatMap(_ => {
+        val paramsWithVerificationLink = request.templateParameters +
+          ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
 
-      val paramsWithVerificationLink = request.templateParameters +
-        ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
-
-      val sendResponse = emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink)
-
-      sendResponse map (_ => NoContent) recover recovery
+        emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink)
+      }) map (_ => NoContent) recover recovery
     }
+  }
+
+  private def recovery: PartialFunction[Throwable, Result] = {
+    case ex: Upstream4xxResponse => BadRequest(ex.message)
   }
 }
 

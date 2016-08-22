@@ -22,8 +22,9 @@ import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
 import play.api.libs.json.Json
-import play.api.mvc.{Request, RequestHeader}
+import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
+import reactivemongo.api.commands.WriteResult
 import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository
@@ -41,12 +42,25 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
       when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
         .thenReturn(Future.successful(HttpResponse(202)))
+      when(tokenRepoMock.insert(any(), any(), any())(any())).thenReturn(Future.successful(mock[WriteResult]))
 
       val result = await(controller.requestVerification()(FakeRequest().withBody(validRequest)))
 
       status(result) shouldBe Status.NO_CONTENT
       verify(tokenRepoMock).insert(token, recipient, Period.days(2))
       verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
+    }
+
+
+    "blow up when mongo fails" in new Setup {
+      when(tokenRepoMock.insert(any(), any(), any())(any())).thenReturn(Future.failed(new RuntimeException("lp0 on fire !!!")))
+
+      intercept[Exception] {
+        await(controller.requestVerification()(FakeRequest().withBody(validRequest)))
+      }
+
+      verify(tokenRepoMock).insert(token, recipient, Period.days(2))
+      verifyZeroInteractions(emailConnectorMock, verificationLinkServiceMock)
     }
   }
 
