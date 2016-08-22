@@ -8,22 +8,22 @@ object MicroServiceBuild extends Build with MicroService {
 }
 
 private object AppDependencies {
+
   import play.PlayImport._
   import play.core.PlayVersion
 
   private val microserviceBootstrapVersion = "4.4.0"
   private val playAuthVersion = "3.3.0"
   private val playHealthVersion = "1.1.0"
-  private val playJsonLoggerVersion = "2.1.1"  
+  private val playJsonLoggerVersion = "2.1.1"
   private val playUrlBindersVersion = "1.1.0"
   private val playConfigVersion = "2.1.0"
   private val domainVersion = "3.7.0"
-  private val hmrcTestVersion = "1.8.0"
-  private val scalaTestVersion = "2.2.6"
   private val pegdownVersion = "1.6.0"
 
   private val playReactivemongoVersion = "4.8.0"
   private val hmrcCryptoVersion = "3.1.0"
+  private val mongoLibsVersion = "4.8.0"
 
   val compile = Seq(
     ws,
@@ -34,40 +34,23 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
     "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
-    "uk.gov.hmrc" %% "crypto" % hmrcCryptoVersion
+    "uk.gov.hmrc" %% "crypto" % hmrcCryptoVersion,
+    "uk.gov.hmrc" %% "simple-reactivemongo" % mongoLibsVersion,
+    "uk.gov.hmrc" %% "play-reactivemongo" % mongoLibsVersion
   )
 
-  trait TestDependencies {
-    lazy val scope: String = "test"
-    lazy val test : Seq[ModuleID] = ???
+
+  object TestDependencies {
+    def apply(scope: String) = Seq(
+      "uk.gov.hmrc" %% "hmrctest" % "1.8.0" % scope,
+      "org.scalatest" %% "scalatest" % "2.2.6" % scope,
+      "org.pegdown" % "pegdown" % pegdownVersion % scope,
+      "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+      "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope,
+      "com.github.tomakehurst" % "wiremock" % "1.58" % scope
+    )
   }
 
-  object Test {
-    def apply() = new TestDependencies {
-      override lazy val test = Seq(
-        "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
-        "org.scalatest" %% "scalatest" % scalaTestVersion % scope,
-        "org.pegdown" % "pegdown" % pegdownVersion % scope,
-        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope
-      )
-    }.test
-  }
-
-  object IntegrationTest {
-    def apply() = new TestDependencies {
-
-      override lazy val scope: String = "it"
-
-      override lazy val test = Seq(
-        "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
-        "org.scalatest" %% "scalatest" % scalaTestVersion % scope,
-        "org.pegdown" % "pegdown" % pegdownVersion % scope,
-        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-        "com.github.tomakehurst" % "wiremock" % "1.58" % scope
-      )
-    }.test
-  }
-
-  def apply() = compile ++ Test() ++ IntegrationTest()
+  def apply() = compile ++ TestDependencies("test") ++ TestDependencies("it")
 }
 
