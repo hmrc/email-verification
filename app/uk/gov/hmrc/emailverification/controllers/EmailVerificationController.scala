@@ -16,15 +16,18 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
+import java.util.UUID
+
 import org.joda.time.Period
 import org.joda.time.format.ISOPeriodFormat
 import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
+import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.play.http.Upstream4xxResponse
-import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 case class EmailVerificationRequest(email: String, templateId: String, templateParameters: Map[String, String], linkExpiryDuration: Period, continueUrl: String)
 
@@ -34,10 +37,10 @@ object EmailVerificationRequest {
 }
 
 trait EmailVerificationController extends BaseController {
-
   def emailConnector: EmailConnector
-
   def verificationLinkService: VerificationLinkService
+  def tokenRepo: VerificationTokenMongoRepository
+  def newToken: String
 
   def requestVerification() = Action.async(parse.json) { implicit httpRequest =>
     def recovery: PartialFunction[Throwable, Result] = {
@@ -45,8 +48,11 @@ trait EmailVerificationController extends BaseController {
     }
 
     withJsonBody[EmailVerificationRequest] { request =>
+      val token = newToken
+      tokenRepo.insert(token, request.email, request.linkExpiryDuration)
+
       val paramsWithVerificationLink = request.templateParameters +
-        ("verificationLink" -> verificationLinkService.verificationLinkFor(request))
+        ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
 
       val sendResponse = emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink)
 
@@ -58,4 +64,6 @@ trait EmailVerificationController extends BaseController {
 object EmailVerificationController extends EmailVerificationController {
   override lazy val emailConnector = EmailConnector
   override lazy val verificationLinkService = VerificationLinkService
+  override lazy val tokenRepo = VerificationTokenMongoRepository()
+  override def newToken = UUID.randomUUID().toString
 }

@@ -1,5 +1,7 @@
 package uk.gov.hmrc
 
+import java.util.UUID
+
 import _root_.play.api.libs.json.Json
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
@@ -73,8 +75,9 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
 
     val decryptedTokenJson = decryptToJson(verificationLink.split("token=")(1))
 
-    (decryptedTokenJson \ "email").as[String] shouldBe emailToVerify
     (decryptedTokenJson \ "continueUrl").as[String] shouldBe continueUrl
+    val token = (decryptedTokenJson \ "token").asOpt[String] map UUID.fromString
+    token.isDefined shouldBe true
   }
 
   def decryptToJson(encrypted: String) = {

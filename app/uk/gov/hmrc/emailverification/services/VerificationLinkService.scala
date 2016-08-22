@@ -16,40 +16,26 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import java.util.UUID
-
 import config.AppConfig
-import org.joda.time.DateTime
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.Json
 import uk.gov.hmrc.crypto.{CryptoWithKeysFromConfig, PlainText}
-import uk.gov.hmrc.emailverification.controllers.EmailVerificationRequest
 
 
-case class VerificationToken(nonce: String, email: String, expiration: DateTime, continueUrl: String)
+case class VerificationToken(token: String, continueUrl: String)
 
 object VerificationToken {
-  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
   implicit val writes = Json.writes[VerificationToken]
-
-  def from(req: EmailVerificationRequest, createNonce: String, currentTime: DateTime) = {
-    new VerificationToken(createNonce, req.email, currentTime.plus(req.linkExpiryDuration), req.continueUrl)
-  }
 }
 
 trait VerificationLinkService {
   def emailVerificationFrontendUrl: String
-
   def crypto: CryptoWithKeysFromConfig
 
-  def createNonce: String = UUID.randomUUID().toString
+  def verificationLinkFor(token: String, continueUrl: String) = s"$emailVerificationFrontendUrl/verification?token=${encryptedVerificationToken(token, continueUrl)}"
 
-  def currentTime: DateTime = DateTime.now()
-
-  def verificationLinkFor(req: EmailVerificationRequest) = s"$emailVerificationFrontendUrl/verification?token=${encryptedVerificationToken(req)}"
-
-  private def encryptedVerificationToken(req: EmailVerificationRequest) = {
+  private def encryptedVerificationToken(token: String, continueUrl: String) = {
     def encrypt(value: String) = new String(crypto.encrypt(PlainText(value)).toBase64)
-    def tokenAsJson = Json.toJson(VerificationToken.from(req, createNonce, currentTime))
+    def tokenAsJson = Json.toJson(VerificationToken(token, continueUrl))
     encrypt(tokenAsJson.toString())
   }
 }
@@ -57,8 +43,4 @@ trait VerificationLinkService {
 object VerificationLinkService extends VerificationLinkService {
   override lazy val emailVerificationFrontendUrl = AppConfig.emailVerificationFrontendUrl
   override lazy val crypto = CryptoWithKeysFromConfig(baseConfigKey = "application.secret")
-
-  override def createNonce = UUID.randomUUID().toString
-
-  override def currentTime = DateTime.now()
 }

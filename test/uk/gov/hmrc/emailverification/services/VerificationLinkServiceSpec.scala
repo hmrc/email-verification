@@ -17,15 +17,14 @@
 package uk.gov.hmrc.emailverification.services
 
 import org.joda.time.{DateTime, Period}
-import org.mockito.Matchers.{eq => eqTo}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.Json
 import uk.gov.hmrc.crypto.{Crypted, CryptoWithKeysFromConfig, PlainText}
+import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.controllers.EmailVerificationRequest
 import uk.gov.hmrc.play.test.UnitSpec
 
-class VerificationLinkServiceSpec extends UnitSpec with MockitoSugar {
+class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
   "createVerificationLink" should {
     "create encrypted verification Link" in new Setup {
       val emailToVerify = "example@domain.com"
@@ -38,35 +37,28 @@ class VerificationLinkServiceSpec extends UnitSpec with MockitoSugar {
 
       val jsonToken = Json.parse(
         s"""{
-            |  "nonce":"fixedNonce",
-            |  "email":"example@domain.com",
-            |  "expiration":"2016-08-19T12:45:11.631+0100",
-            |  "continueUrl":"http://continue-url.com"
+            |  "token":"$token",
+            |  "continueUrl": "$continueUrl"
             |}""".stripMargin).toString()
       val cryptedJsonToken = Crypted(jsonToken)
       val base64CryptedJsonToken = new String(cryptedJsonToken.toBase64)
 
       when(cryptoMock.encrypt(PlainText(jsonToken))).thenReturn(cryptedJsonToken)
 
-      underTest.verificationLinkFor(verificationRequest) shouldBe s"http://email-verification-frontend.url/verification?token=$base64CryptedJsonToken"
+      underTest.verificationLinkFor(token, continueUrl) shouldBe s"http://email-verification-frontend.url/verification?token=$base64CryptedJsonToken"
     }
   }
 
   trait Setup {
     val frontendUrl = "http://email-verification-frontend.url"
     val encryptedTokenData = "encryptedTokenData"
-    val fixedNonce = "fixedNonce"
+    val token = "fixedNonce"
     val fixedTime = DateTime.parse("2016-08-18T12:45:11.631+0100")
 
     val cryptoMock = mock[CryptoWithKeysFromConfig]
     val underTest = new VerificationLinkService {
       override val emailVerificationFrontendUrl = frontendUrl
-
       override val crypto: CryptoWithKeysFromConfig = cryptoMock
-
-      override val createNonce = fixedNonce
-
-      override val currentTime = fixedTime
     }
   }
 
