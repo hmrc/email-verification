@@ -29,9 +29,9 @@ object SendEmailRequest {
 }
 
 trait EmailConnector {
-  val serviceUrl: String
+  def serviceUrl: String
 
-  val http: WSPost
+  def http: WSPost
 
   def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier) =
     http.POST(s"$serviceUrl/send-templated-email", SendEmailRequest(Seq(to), templateId, params))
@@ -40,5 +40,5 @@ trait EmailConnector {
 object EmailConnector extends EmailConnector with ServicesConfig {
   override lazy val serviceUrl = baseUrl("email")
 
-  override val http = WSHttp
+  override lazy val http = WSHttp
 }

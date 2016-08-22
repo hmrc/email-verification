@@ -46,8 +46,16 @@ class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "E
     }
 
     "return 400 error if email sending fails with 400" in new Setup {
-      val body = "some-4xx-message"
+      val body = "some-400-message"
       stubSendEmailRequest(400, body)
+      val response = await(appClient("/request-verification").post(Json.parse(request)))
+      response.status shouldBe 400
+      response.body should include (body)
+    }
+
+    "return 400 error if email sending fails with 4xx" in new Setup {
+      val body = "some-4xx-message"
+      stubSendEmailRequest(401, body)
       val response = await(appClient("/request-verification").post(Json.parse(request)))
       response.status shouldBe 400
       response.body should include (body)

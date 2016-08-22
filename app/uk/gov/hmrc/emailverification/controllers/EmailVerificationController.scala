@@ -22,12 +22,15 @@ import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
+import uk.gov.hmrc.play.http.Upstream4xxResponse
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
-object EmailVerificationController extends EmailVerificationController {
-  override val emailConnector = EmailConnector
-  override val verificationLinkService = VerificationLinkService
+case class EmailVerificationRequest(email: String, templateId: String, templateParameters: Map[String, String], linkExpiryDuration: Period, continueUrl: String)
+
+object EmailVerificationRequest {
+  implicit val periodReads: Reads[Period] = JsPath.read[String].map(ISOPeriodFormat.standard().parsePeriod)
+  implicit val reads: Reads[EmailVerificationRequest] = Json.reads[EmailVerificationRequest]
 }
 
 trait EmailVerificationController extends BaseController {
@@ -37,18 +40,22 @@ trait EmailVerificationController extends BaseController {
   def verificationLinkService: VerificationLinkService
 
   def requestVerification() = Action.async(parse.json) { implicit httpRequest =>
+    def recovery: PartialFunction[Throwable, Result] = {
+      case ex: Upstream4xxResponse => BadRequest(ex.message)
+    }
+
     withJsonBody[EmailVerificationRequest] { request =>
       val paramsWithVerificationLink = request.templateParameters +
         ("verificationLink" -> verificationLinkService.verificationLinkFor(request))
 
-      emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink) map (_ => NoContent)
+      val sendResponse = emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink)
+
+      sendResponse map (_ => NoContent) recover recovery
     }
   }
 }
 
-case class EmailVerificationRequest(email: String, templateId: String, templateParameters: Map[String, String], linkExpiryDuration: Period, continueUrl: String)
-
-object EmailVerificationRequest {
-  implicit val periodReads: Reads[Period] = JsPath.read[String].map(ISOPeriodFormat.standard().parsePeriod)
-  implicit val reads: Reads[EmailVerificationRequest] = Json.reads[EmailVerificationRequest]
+object EmailVerificationController extends EmailVerificationController {
+  override lazy val emailConnector = EmailConnector
+  override lazy val verificationLinkService = VerificationLinkService
 }
