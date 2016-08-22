@@ -30,27 +30,35 @@ case class VerificationToken(nonce: String, email: String, expiration: DateTime,
 object VerificationToken {
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
   implicit val writes = Json.writes[VerificationToken]
+
+  def from(req: EmailVerificationRequest, createNonce: String, currentTime: DateTime) = {
+    new VerificationToken(createNonce, req.email, currentTime.plus(req.linkExpiryDuration), req.continueUrl)
+  }
 }
 
 trait VerificationLinkService {
-  val emailVerificationFrontendUrl: String
-  val crypto: CryptoWithKeysFromConfig
+  def emailVerificationFrontendUrl: String
 
-  private def encryptedVerificationToken(req: EmailVerificationRequest) = {
-    def encrypt(value: String) = new String(crypto.encrypt(PlainText(value)).toBase64)
-    def token() = VerificationToken(createNonce, req.email, currentTime.plus(req.linkExpiryDuration), req.continueUrl)
-    encrypt(Json.toJson(token()).toString())
-  }
+  def crypto: CryptoWithKeysFromConfig
+
+  def createNonce: String = UUID.randomUUID().toString
+
+  def currentTime: DateTime = DateTime.now()
 
   def verificationLinkFor(req: EmailVerificationRequest) = s"$emailVerificationFrontendUrl/verification?token=${encryptedVerificationToken(req)}"
 
-  def createNonce = UUID.randomUUID().toString
-
-  def currentTime = DateTime.now()
+  private def encryptedVerificationToken(req: EmailVerificationRequest) = {
+    def encrypt(value: String) = new String(crypto.encrypt(PlainText(value)).toBase64)
+    def tokenAsJson = Json.toJson(VerificationToken.from(req, createNonce, currentTime))
+    encrypt(tokenAsJson.toString())
+  }
 }
 
 object VerificationLinkService extends VerificationLinkService {
   override lazy val emailVerificationFrontendUrl = AppConfig.emailVerificationFrontendUrl
+  override lazy val crypto = CryptoWithKeysFromConfig(baseConfigKey = "application.secret")
 
-  override val crypto = CryptoWithKeysFromConfig(baseConfigKey = "application.secret")
+  override def createNonce = UUID.randomUUID().toString
+
+  override def currentTime = DateTime.now()
 }
