@@ -13,15 +13,17 @@ import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
 import scala.collection.JavaConverters._
 
 class EmailVerificationIntegrationSpec extends IntegrationBaseSpec(testName = "EmailVerificationIntegrationSpec".takeRight(30),
-  extraConfig = Map("microservice.services.email.port" -> WireMockConfig.stubPort.toString))
-  with GivenWhenThen with WireMockHelper {
+  extraConfig = Map(
+    "microservice.services.email.port" -> WireMockConfig.stubPort.toString,
+    "queryParameter.encryption.key" -> "mRX1FSPQ9qCzZ61V9PBh3XuU24l6xhI4VenkXhN0uDs")
+  ) with GivenWhenThen with WireMockHelper {
 
   val emailToVerify = "example@domain.com"
   val templateId = "my-lovely-template"
   val templateParams = Map("name" -> "Mr Joe Bloggs")
   val continueUrl = "http://some/url"
 
-  lazy val crypto = CryptoWithKeysFromConfig("application.secret")
+  lazy val crypto = CryptoWithKeysFromConfig("queryParameter.encryption")
 
   "email verification" should {
 
