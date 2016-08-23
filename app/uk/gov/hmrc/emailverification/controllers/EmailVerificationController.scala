@@ -23,34 +23,51 @@ import org.joda.time.format.ISOPeriodFormat
 import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
-import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository
+import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.play.http.Upstream4xxResponse
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
+import scala.concurrent.Future
+
 case class EmailVerificationRequest(email: String, templateId: String, templateParameters: Map[String, String], linkExpiryDuration: Period, continueUrl: String)
+
+case class TokenVerificationRequest(token: String)
 
 object EmailVerificationRequest {
   implicit val periodReads: Reads[Period] = JsPath.read[String].map(ISOPeriodFormat.standard().parsePeriod)
-  implicit val reads: Reads[EmailVerificationRequest] = Json.reads[EmailVerificationRequest]
+  implicit val reads = Json.reads[EmailVerificationRequest]
+}
+
+object TokenVerificationRequest {
+  implicit val reads = Json.reads[TokenVerificationRequest]
 }
 
 trait EmailVerificationController extends BaseController {
   def emailConnector: EmailConnector
   def verificationLinkService: VerificationLinkService
   def tokenRepo: VerificationTokenMongoRepository
+  def verifiedEmailRepo: VerifiedEmailMongoRepository
   def newToken: String
 
   def requestVerification() = Action.async(parse.json) { implicit httpRequest =>
     withJsonBody[EmailVerificationRequest] { request =>
       val token = newToken
       tokenRepo.insert(token, request.email, request.linkExpiryDuration).flatMap(_ => {
-        val paramsWithVerificationLink = request.templateParameters +
-          ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
+        val paramsWithVerificationLink = request.templateParameters + ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
 
         emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink)
       }) map (_ => NoContent) recover recovery
+    }
+  }
+
+  def validateToken() = Action.async(parse.json) { implicit httpRequest =>
+    withJsonBody[TokenVerificationRequest] { request =>
+      tokenRepo.findToken(request.token) flatMap  {
+        case Some(doc) => verifiedEmailRepo.insert(doc.email) map (_ => NoContent)
+        case None => Future.successful(BadRequest("Token not found or expired"))
+      }
     }
   }
 
@@ -63,5 +80,7 @@ object EmailVerificationController extends EmailVerificationController {
   override lazy val emailConnector = EmailConnector
   override lazy val verificationLinkService = VerificationLinkService
   override lazy val tokenRepo = VerificationTokenMongoRepository()
+  override lazy val verifiedEmailRepo = VerifiedEmailMongoRepository()
+
   override def newToken = UUID.randomUUID().toString
 }

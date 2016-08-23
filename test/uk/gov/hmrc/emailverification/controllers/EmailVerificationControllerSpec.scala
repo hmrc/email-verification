@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
-import org.joda.time.Period
+import org.joda.time.{DateTime, Period}
 import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
@@ -27,7 +27,7 @@ import play.api.test.FakeRequest
 import reactivemongo.api.commands.WriteResult
 import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
-import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository
+import uk.gov.hmrc.emailverification.repositories.{VerificationDoc, VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
@@ -64,16 +64,42 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     }
   }
 
+  "validateToken" should {
+    "return 204 when the token is valid" in new Setup {
+      private val email = "user@email.com"
+      when(tokenRepoMock.findToken(someToken)).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
+      when(verifiedEmailRepoMock.insert(email)).thenReturn(Future.successful(mock[WriteResult]))
+
+      val result = await(controller.validateToken()(FakeRequest().withBody(Json.obj("token" -> someToken))))
+
+      status(result) shouldBe Status.NO_CONTENT
+      verify(verifiedEmailRepoMock).insert(email)
+    }
+
+    "return 400 when the token does not exist in mongo" in new Setup {
+      when(tokenRepoMock.findToken(someToken)).thenReturn(Future.successful(None))
+
+      val result = await(controller.validateToken()(FakeRequest().withBody(Json.obj("token" -> someToken))))
+
+      status(result) shouldBe Status.BAD_REQUEST
+      verifyZeroInteractions(verifiedEmailRepoMock)
+    }
+  }
+
   trait Setup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     val emailConnectorMock: EmailConnector = mock[EmailConnector]
     val verificationLinkServiceMock: VerificationLinkService = mock[VerificationLinkService]
     val tokenRepoMock: VerificationTokenMongoRepository = mock[VerificationTokenMongoRepository]
+    val verifiedEmailRepoMock: VerifiedEmailMongoRepository = mock[VerifiedEmailMongoRepository]
+    val someToken = "some-token"
+
     val controller = new EmailVerificationController {
       override val emailConnector = emailConnectorMock
       override val verificationLinkService = verificationLinkServiceMock
       override val tokenRepo = tokenRepoMock
       override def newToken = token
+      override def verifiedEmailRepo = verifiedEmailRepoMock
       override implicit def hc(implicit rh: RequestHeader) = headerCarrier
     }
     val token = "theToken"
