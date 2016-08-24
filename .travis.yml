@@ -7,5 +7,7 @@ jdk:
 cache:
   directories:
     - '$HOME/.ivy2/cache'
+services:
+    - mongodb
 notifications:
   email: false
