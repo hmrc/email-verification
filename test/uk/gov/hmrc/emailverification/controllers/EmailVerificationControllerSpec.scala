@@ -41,6 +41,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
   "requestVerification" should {
     "send email containing verificationLink param and return 204" in new Setup {
       val verificationLink = "verificationLink"
+      when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
       when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
       when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
         .thenReturn(Future.successful(HttpResponse(202)))
@@ -55,6 +56,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
 
     "blow up when mongo fails" in new Setup {
+      when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
       when(tokenRepoMock.insert(any(), any(), any())(any())).thenReturn(Future.failed(new RuntimeException("lp0 on fire !!!")))
 
       intercept[Exception] {
@@ -63,6 +65,13 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
       verify(tokenRepoMock).insert(token, recipient, Period.days(2))
       verifyZeroInteractions(emailConnectorMock, verificationLinkServiceMock)
+    }
+
+    "return 409 when email already registered" in new Setup {
+      when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(true))
+
+      val result = await(controller.requestVerification()(FakeRequest().withBody(validRequest)))
+      status(result) shouldBe Status.CONFLICT
     }
   }
 

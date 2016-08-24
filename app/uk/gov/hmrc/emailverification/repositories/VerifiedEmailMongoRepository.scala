@@ -39,6 +39,8 @@ abstract class VerifiedEmailMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[VerifiedEmail, BSONObjectID](collectionName = "verifiedEmail", mongo = mongo,
     domainFormat = VerifiedEmail.format, idFormat = ReactiveMongoFormats.objectIdFormats) with Indexes {
 
+  def isVerified(email: String)(implicit hc: HeaderCarrier) = find("email" -> email).map(_.nonEmpty)
+
   def insert(email: String)(implicit hc: HeaderCarrier): Future[WriteResult] = insert(VerifiedEmail(email))
 
   override def indexes: Seq[Index] = Seq(

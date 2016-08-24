@@ -5,23 +5,26 @@ import java.util.UUID
 import _root_.play.api.libs.json.Json
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.scalatest.GivenWhenThen
+import org.scalatest.{BeforeAndAfterEach, GivenWhenThen}
 import support.{IntegrationBaseSpec, WireMockConfig, WireMockHelper}
 import uk.gov.hmrc.crypto.Crypted.fromBase64
 import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
+import uk.gov.hmrc.emailverification.repositories.{VerifiedEmail, VerifiedEmailMongoRepository}
 
+import concurrent.ExecutionContext.Implicits.global
 import scala.collection.JavaConverters._
 
 class EmailVerificationISpec extends IntegrationBaseSpec(testName = "EmailVerificationISpec",
   extraConfig = Map(
     "microservice.services.email.port" -> WireMockConfig.stubPort.toString,
     "queryParameter.encryption.key" -> "mRX1FSPQ9qCzZ61V9PBh3XuU24l6xhI4VenkXhN0uDs")
-  ) with GivenWhenThen with WireMockHelper {
+  ) with GivenWhenThen with WireMockHelper with BeforeAndAfterEach {
 
   val emailToVerify = "example@domain.com"
   val templateId = "my-lovely-template"
   val templateParams = Map("name" -> "Mr Joe Bloggs")
   val continueUrl = "http://some/url"
+  lazy val verifiedRepo = VerifiedEmailMongoRepository()
 
   lazy val crypto = CryptoWithKeysFromConfig("queryParameter.encryption")
 
@@ -57,12 +60,18 @@ class EmailVerificationISpec extends IntegrationBaseSpec(testName = "EmailVerifi
       response.body should include (body)
     }
 
-    "return 400 error if email sending fails with 4xx" in new Setup {
+    "return 500 error if email sending fails with 4xx" in new Setup {
       val body = "some-4xx-message"
-      stubSendEmailRequest(401, body)
+      stubSendEmailRequest(404, body)
       val response = appClient("/verification-requests").post(Json.parse(request)).futureValue
-      response.status shouldBe 400
+      response.status shouldBe 500
       response.body should include (body)
+    }
+
+    "return 409 if email is already verified" in new Setup {
+      verifiedRepo.insert(VerifiedEmail(emailToVerify)).futureValue
+      val response = appClient("/verification-requests").post(Json.parse(request)).futureValue
+      response.status shouldBe 409
     }
   }
 
@@ -99,6 +108,11 @@ class EmailVerificationISpec extends IntegrationBaseSpec(testName = "EmailVerifi
   def stubSendEmailRequest(status: Int) =
     stubFor(post(emailMatchingStrategy).willReturn(aResponse()
       .withStatus(status)))
+
+  override def beforeEach() = {
+    super.beforeEach()
+    verifiedRepo.drop.futureValue
+  }
 
   trait Setup {
     val paramsJsonStr = Json.toJson(templateParams).toString()
