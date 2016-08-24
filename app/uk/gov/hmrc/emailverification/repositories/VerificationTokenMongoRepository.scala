@@ -55,6 +55,7 @@ abstract class VerificationTokenMongoRepository(implicit mongo: () => DB)
 }
 
 object VerificationTokenMongoRepository extends MongoDbConnection {
+  val DuplicateValue = 11000
   private lazy val repo = new VerificationTokenMongoRepository {
     override val dateTimeProvider = () => DateTime.now(UTC)
   }

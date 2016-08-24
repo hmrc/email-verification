@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import org.joda.time.{DateTime, DateTimeZone, Period}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.bson.BSONDocument
+import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
@@ -39,6 +38,14 @@ class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach 
       val docs = await(repo.find("address" -> email))
       docs shouldBe Seq(VerifiedEmail(email))
     }
+
+    "blow up if the email already exists" in {
+      await(repo.ensureIndexes)
+      await(repo.insert(email))
+
+      val r = intercept[DatabaseException](await(repo.insert(email)))
+      r.code shouldBe Some(11000)
+    }
   }
 
   "ensureIndexes" should {
@@ -53,7 +60,7 @@ class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach 
     }
   }
 
-  lazy val repo = new VerifiedEmailMongoRepository {}
+  val repo = new VerifiedEmailMongoRepository {}
 
   override def beforeEach() {
     super.beforeEach()

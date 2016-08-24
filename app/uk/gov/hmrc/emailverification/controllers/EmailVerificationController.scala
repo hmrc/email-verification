@@ -22,7 +22,9 @@ import org.joda.time.Period
 import org.joda.time.format.ISOPeriodFormat
 import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.mvc._
+import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
+import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository._
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.play.http.Upstream4xxResponse
@@ -65,9 +67,11 @@ trait EmailVerificationController extends BaseController {
   def validateToken() = Action.async(parse.json) { implicit httpRequest =>
     withJsonBody[TokenVerificationRequest] { request =>
       tokenRepo.findToken(request.token) flatMap  {
-        case Some(doc) => verifiedEmailRepo.insert(doc.email) map (_ => NoContent)
+        case Some(doc) => verifiedEmailRepo.insert(doc.email) map (_ => Created)
         case None => Future.successful(BadRequest("Token not found or expired"))
       }
+    } recover {
+      case e: DatabaseException if e.code.contains(DuplicateValue) => NoContent
     }
   }
 

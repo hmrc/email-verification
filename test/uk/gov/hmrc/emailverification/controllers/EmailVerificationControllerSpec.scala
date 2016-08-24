@@ -24,9 +24,11 @@ import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
-import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.commands.{DefaultWriteResult, WriteConcernError, WriteResult}
+import reactivemongo.core.errors.GenericDatabaseException
 import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
+import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository.DuplicateValue
 import uk.gov.hmrc.emailverification.repositories.{VerificationDoc, VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
@@ -42,7 +44,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
       when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
         .thenReturn(Future.successful(HttpResponse(202)))
-      when(tokenRepoMock.insert(any(), any(), any())(any())).thenReturn(Future.successful(mock[WriteResult]))
+      when(tokenRepoMock.insert(any(), any(), any())(any())).thenReturn(writeResult)
 
       val result = await(controller.requestVerification()(FakeRequest().withBody(validRequest)))
 
@@ -65,10 +67,19 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
   }
 
   "validateToken" should {
-    "return 204 when the token is valid" in new Setup {
-      private val email = "user@email.com"
+    "return 201 when the token is valid" in new Setup {
       when(tokenRepoMock.findToken(someToken)).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
-      when(verifiedEmailRepoMock.insert(email)).thenReturn(Future.successful(mock[WriteResult]))
+      when(verifiedEmailRepoMock.insert(email)).thenReturn(writeResult)
+
+      val result = await(controller.validateToken()(FakeRequest().withBody(Json.obj("token" -> someToken))))
+
+      status(result) shouldBe Status.CREATED
+      verify(verifiedEmailRepoMock).insert(email)
+    }
+
+    "return 204 when the token is valid and the email war already validated" in new Setup {
+      when(tokenRepoMock.findToken(someToken)).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
+      when(verifiedEmailRepoMock.insert(email)).thenReturn(Future.failed(GenericDatabaseException("", Some(DuplicateValue))))
 
       val result = await(controller.validateToken()(FakeRequest().withBody(Json.obj("token" -> someToken))))
 
@@ -107,6 +118,8 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     val recipient = "user@example.com"
     val params = Map("name" -> "Mr Joe Bloggs")
     val paramsJsonStr = Json.toJson(params).toString()
+    val email = "user@email.com"
+    val writeResult: Future[WriteResult] = Future.successful(DefaultWriteResult(true, 0, Seq.empty, None, None, None))
 
     val validRequest = Json.parse(
       s"""{

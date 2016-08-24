@@ -25,18 +25,21 @@ class TokenValidationISpec extends IntegrationBaseSpec("TokenValidationISpec", e
       When("a token verification request is submitted")
       val response = appClient("/verified-email-addresses").post(Json.obj("token" -> token)).futureValue
 
-      Then("Service responds with OK")
-      response.status shouldBe 204
+      Then("Service responds with Created")
+      response.status shouldBe 201
+
+      When("the same token is submitted again")
+      val response2 = appClient("/verified-email-addresses").post(Json.obj("token" -> token)).futureValue
+
+      Then("Service responds with NoContent")
+      response2.status shouldBe 204
+
     }
 
-    "return 400 if the token is invalid" in  {
-      When("a token verification request is submitted")
+    "return 400 if the token is invalid or expired" in  {
+      When("an invalid token verification request is submitted")
       val response = appClient("/verified-email-addresses").post(Json.obj("token" -> "invalid")).futureValue
       response.status shouldBe 400
-    }
-
-    "return 400 if the token is expired" in  {
-
     }
   }
 
@@ -44,6 +47,7 @@ class TokenValidationISpec extends IntegrationBaseSpec("TokenValidationISpec", e
     super.beforeEach()
     await(tokenRepo.drop)
     await(verifiedRepo.drop)
+    await(verifiedRepo.ensureIndexes)
   }
 
   override def afterAll() {
