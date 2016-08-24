@@ -29,7 +29,7 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
 
-case class VerifiedEmail(address: String)
+case class VerifiedEmail(email: String)
 
 object VerifiedEmail {
   implicit val format = Json.format[VerifiedEmail]

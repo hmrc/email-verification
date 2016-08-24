@@ -32,10 +32,10 @@ class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach 
 
   "insert" should {
     "insert a document when it does not exist" in {
-      await(repo.find("address" -> email)) shouldBe empty
+      await(repo.find("email" -> email)) shouldBe empty
       await(repo.insert(email))
 
-      val docs = await(repo.find("address" -> email))
+      val docs = await(repo.find("email" -> email))
       docs shouldBe Seq(VerifiedEmail(email))
     }
 
@@ -49,7 +49,7 @@ class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach 
   }
 
   "ensureIndexes" should {
-    "create ttl on updatedAt field" in {
+    "verify indexes exist" in {
       await(repo.ensureIndexes)
       val indexes = await(mongo().indexesManager.onCollection("verifiedEmail").list())
 
