@@ -1,26 +1,18 @@
 package uk.gov.hmrc
 
 import _root_.play.api.libs.json.Json
-import org.joda.time.Period
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, GivenWhenThen}
+import org.scalatest.GivenWhenThen
+import support.EmailStub._
 import support.IntegrationBaseSpec
-import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
-import concurrent.ExecutionContext.Implicits.global
-
-class TokenValidationISpec extends IntegrationBaseSpec("TokenValidationISpec", extraConfig = Map("mongodb.uri" -> "mongodb://localhost:27017/Test-email-verification")) with GivenWhenThen with BeforeAndAfterEach with BeforeAndAfterAll {
-
-  lazy val tokenRepo = VerificationTokenMongoRepository()
-  lazy val verifiedRepo = VerifiedEmailMongoRepository()
-  val token = "token"
+class TokenValidationISpec extends IntegrationBaseSpec with GivenWhenThen {
   implicit val hc = HeaderCarrier()
 
   "the service" should {
-
-    "return 204 if the token is valid" in {
+    "return 201 if the token is valid and 204 if email is already verified" in {
       Given("a verification request exists")
-      tokenRepo.insert(token, "user@email.com", Period.minutes(5))
+      val token = tokenFor("user@email.com").get
 
       When("a token verification request is submitted")
       val response = appClient("/verified-email-addresses").post(Json.obj("token" -> token)).futureValue
@@ -33,26 +25,19 @@ class TokenValidationISpec extends IntegrationBaseSpec("TokenValidationISpec", e
 
       Then("Service responds with NoContent")
       response2.status shouldBe 204
-
     }
 
     "return 400 if the token is invalid or expired" in  {
       When("an invalid token verification request is submitted")
       val response = appClient("/verified-email-addresses").post(Json.obj("token" -> "invalid")).futureValue
       response.status shouldBe 400
+      response.body shouldBe "Token not found or expired"
     }
   }
 
-  override def beforeEach() {
-    super.beforeEach()
-    await(tokenRepo.drop)
-    await(verifiedRepo.drop)
-    await(verifiedRepo.ensureIndexes)
-  }
-
-  override def afterAll() {
-    await(tokenRepo.drop)
-    await(verifiedRepo.drop)
-    super.afterAll()
+  def tokenFor(email: String) = {
+    stubSendEmailRequest(202)
+    appClient("/verification-requests").post(verificationRequest(emailToVerify = email)).futureValue.status shouldBe 204
+    decryptedToken(lastVerificationEMail)._1
   }
 }

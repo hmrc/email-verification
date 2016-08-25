@@ -48,22 +48,19 @@ object TokenVerificationRequest {
 
 trait EmailVerificationController extends BaseController {
   def emailConnector: EmailConnector
-
   def verificationLinkService: VerificationLinkService
-
   def tokenRepo: VerificationTokenMongoRepository
-
   def verifiedEmailRepo: VerifiedEmailMongoRepository
-
-  def newToken: String
+  def newToken(): String
 
   def requestVerification() = Action.async(parse.json) { implicit httpRequest =>
     withJsonBody[EmailVerificationRequest] { request =>
+      val token = newToken()
       verifiedEmailRepo.isVerified(request.email) flatMap {
         if (_) Future.successful(Conflict)
         else for {
-          _ <- tokenRepo.insert(newToken, request.email, request.linkExpiryDuration)
-          paramsWithVerificationLink = request.templateParameters + ("verificationLink" -> verificationLinkService.verificationLinkFor(newToken, request.continueUrl))
+          _ <- tokenRepo.insert(token, request.email, request.linkExpiryDuration)
+          paramsWithVerificationLink = request.templateParameters + ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
           _ <- emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink)
         } yield NoContent
       } recover {
@@ -92,5 +89,5 @@ object EmailVerificationController extends EmailVerificationController {
   override lazy val tokenRepo = VerificationTokenMongoRepository()
   override lazy val verifiedEmailRepo = VerifiedEmailMongoRepository()
 
-  override def newToken = UUID.randomUUID().toString
+  override def newToken() = UUID.randomUUID().toString
 }
