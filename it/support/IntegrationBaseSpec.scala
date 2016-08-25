@@ -6,6 +6,7 @@ import play.api.Play.current
 import play.api.libs.ws.WS
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.play.it.ServiceSpec
+import EmailStub._
 import concurrent.ExecutionContext.Implicits.global
 
 class IntegrationBaseSpec(extraConfig: Map[String, String] = Map(
@@ -16,8 +17,8 @@ class IntegrationBaseSpec(extraConfig: Map[String, String] = Map(
 
   def appClient(path: String) = WS.url(resource(s"/email-verification$path"))
 
-  lazy val tokenRepo = VerificationTokenMongoRepository()
-  lazy val verifiedRepo = VerifiedEmailMongoRepository()
+  private lazy val tokenRepo = VerificationTokenMongoRepository()
+  private lazy val verifiedRepo = VerifiedEmailMongoRepository()
 
   override def beforeEach() {
     super.beforeEach()
@@ -31,4 +32,11 @@ class IntegrationBaseSpec(extraConfig: Map[String, String] = Map(
     await(verifiedRepo.drop)
     super.afterAll()
   }
+
+  def tokenFor(email: String) = {
+    stubSendEmailRequest(202)
+    appClient("/verification-requests").post(verificationRequest(emailToVerify = email)).futureValue.status shouldBe 204
+    decryptedToken(lastVerificationEMail)._1
+  }
+
 }

@@ -34,10 +34,4 @@ class TokenValidationISpec extends IntegrationBaseSpec with GivenWhenThen {
       response.body shouldBe "Token not found or expired"
     }
   }
-
-  def tokenFor(email: String) = {
-    stubSendEmailRequest(202)
-    appClient("/verification-requests").post(verificationRequest(emailToVerify = email)).futureValue.status shouldBe 204
-    decryptedToken(lastVerificationEMail)._1
-  }
 }

@@ -4,9 +4,6 @@ import _root_.play.api.libs.json.Json
 import org.scalatest.GivenWhenThen
 import support.EmailStub._
 import support.IntegrationBaseSpec
-import uk.gov.hmrc.emailverification.repositories.VerifiedEmail
-
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class EmailVerificationISpec extends IntegrationBaseSpec with GivenWhenThen {
   val emailToVerify = "example@domain.com"
@@ -50,10 +47,18 @@ class EmailVerificationISpec extends IntegrationBaseSpec with GivenWhenThen {
     }
 
     "return 409 if email is already verified" in new Setup {
-      verifiedRepo.insert(VerifiedEmail(emailToVerify)).futureValue
+      assumeEmailAlreadyVerified(emailToVerify)
+
       val response = appClient("/verification-requests").post(verificationRequest(emailToVerify)).futureValue
       response.status shouldBe 409
     }
+  }
+
+  def assumeEmailAlreadyVerified(email: String): Unit = {
+    stubSendEmailRequest(202)
+    appClient("/verification-requests").post(verificationRequest(email)).futureValue.status shouldBe 204
+    val token = tokenFor(email).get
+    appClient("/verified-email-addresses").post(Json.obj("token" -> token)).futureValue.status shouldBe 201
   }
 
   trait Setup {
