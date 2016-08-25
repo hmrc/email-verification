@@ -44,6 +44,8 @@ abstract class VerificationTokenMongoRepository(implicit mongo: () => DB)
 
   def insert(token: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[WriteResult] = insert(VerificationDoc(email, token, dateTimeProvider().plus(validity)))
 
+  def findToken(token: String)(implicit hc: HeaderCarrier): Future[Option[VerificationDoc]] = find("token" -> token).map(_.headOption)
+
   def dateTimeProvider: () => DateTime
 
   override def indexes: Seq[Index] = Seq(
@@ -53,6 +55,7 @@ abstract class VerificationTokenMongoRepository(implicit mongo: () => DB)
 }
 
 object VerificationTokenMongoRepository extends MongoDbConnection {
+  val DuplicateValue = 11000
   private lazy val repo = new VerificationTokenMongoRepository {
     override val dateTimeProvider = () => DateTime.now(UTC)
   }

@@ -16,62 +16,51 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import org.joda.time.{DateTime, DateTimeZone, Period}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.bson.BSONDocument
+import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport {
-  val token = "theToken"
+class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport {
   val email = "user@email.com"
   implicit val hc = HeaderCarrier()
 
   "insert" should {
     "insert a document when it does not exist" in {
-      await(repo.find("token" -> token)) shouldBe empty
+      await(repo.find("email" -> email)) shouldBe empty
+      await(repo.insert(email))
 
-      await(repo.insert(token, email, Period.minutes(10)))
-
-      val docs = await(repo.find("token" -> token))
-      docs shouldBe Seq(VerificationDoc(email, token, now.plusMinutes(10)))
-    }
-  }
-
-  "find" should {
-    "return the verification document" in {
-      await(repo.insert(token, email, Period.minutes(10)))
-
-      await(repo.findToken(token)) shouldBe Some(VerificationDoc(email, token, now.plusMinutes(10)))
+      val docs = await(repo.find("email" -> email))
+      docs shouldBe Seq(VerifiedEmail(email))
     }
 
-    "return None whet token does not exist or has expired" in {
-      await(repo.findToken(token)) shouldBe None
+    "blow up if the email already exists" in {
+      await(repo.ensureIndexes)
+      await(repo.insert(email))
+
+      val r = intercept[DatabaseException](await(repo.insert(email)))
+      r.code shouldBe Some(11000)
     }
   }
 
   "ensureIndexes" should {
-    "create ttl on updatedAt field" in {
+    "verify indexes exist" in {
       await(repo.ensureIndexes)
-      val indexes = await(mongo().indexesManager.onCollection("verificationToken").list())
+      val indexes = await(mongo().indexesManager.onCollection("verifiedEmail").list())
 
-      val index = indexes.find(_.name.contains("expireAtIndex")).get
+      val index = indexes.find(_.name.contains("addressUnique")).get
 
       //version of index is managed by mongodb. We don't want to assert on it.
-      index shouldBe Index(Seq("expireAt" -> Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0)).copy(version = index.version)
+      index shouldBe Index(Seq("address" -> Ascending), name = Some("addressUnique"), unique = true).copy(version = index.version)
     }
   }
 
-  val now = DateTime.now(DateTimeZone.UTC)
-
-  lazy val repo = new VerificationTokenMongoRepository {
-    override val dateTimeProvider = () => now
-  }
+  val repo = new VerifiedEmailMongoRepository {}
 
   override def beforeEach() {
     super.beforeEach()

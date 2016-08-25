@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
-import org.joda.time.Period
+import org.joda.time.{DateTime, Period}
 import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
@@ -24,10 +24,12 @@ import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
-import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.commands.{DefaultWriteResult, WriteConcernError, WriteResult}
+import reactivemongo.core.errors.GenericDatabaseException
 import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
-import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository
+import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository.DuplicateValue
+import uk.gov.hmrc.emailverification.repositories.{VerificationDoc, VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
@@ -39,10 +41,11 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
   "requestVerification" should {
     "send email containing verificationLink param and return 204" in new Setup {
       val verificationLink = "verificationLink"
+      when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
       when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
       when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
         .thenReturn(Future.successful(HttpResponse(202)))
-      when(tokenRepoMock.insert(any(), any(), any())(any())).thenReturn(Future.successful(mock[WriteResult]))
+      when(tokenRepoMock.insert(any(), any(), any())(any())).thenReturn(writeResult)
 
       val result = await(controller.requestVerification()(FakeRequest().withBody(validRequest)))
 
@@ -53,6 +56,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
 
     "blow up when mongo fails" in new Setup {
+      when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
       when(tokenRepoMock.insert(any(), any(), any())(any())).thenReturn(Future.failed(new RuntimeException("lp0 on fire !!!")))
 
       intercept[Exception] {
@@ -62,6 +66,44 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       verify(tokenRepoMock).insert(token, recipient, Period.days(2))
       verifyZeroInteractions(emailConnectorMock, verificationLinkServiceMock)
     }
+
+    "return 409 when email already registered" in new Setup {
+      when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(true))
+
+      val result = await(controller.requestVerification()(FakeRequest().withBody(validRequest)))
+      status(result) shouldBe Status.CONFLICT
+    }
+  }
+
+  "validateToken" should {
+    "return 201 when the token is valid" in new Setup {
+      when(tokenRepoMock.findToken(someToken)).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
+      when(verifiedEmailRepoMock.insert(email)).thenReturn(writeResult)
+
+      val result = await(controller.validateToken()(FakeRequest().withBody(Json.obj("token" -> someToken))))
+
+      status(result) shouldBe Status.CREATED
+      verify(verifiedEmailRepoMock).insert(email)
+    }
+
+    "return 204 when the token is valid and the email war already validated" in new Setup {
+      when(tokenRepoMock.findToken(someToken)).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
+      when(verifiedEmailRepoMock.insert(email)).thenReturn(Future.failed(GenericDatabaseException("", Some(DuplicateValue))))
+
+      val result = await(controller.validateToken()(FakeRequest().withBody(Json.obj("token" -> someToken))))
+
+      status(result) shouldBe Status.NO_CONTENT
+      verify(verifiedEmailRepoMock).insert(email)
+    }
+
+    "return 400 when the token does not exist in mongo" in new Setup {
+      when(tokenRepoMock.findToken(someToken)).thenReturn(Future.successful(None))
+
+      val result = await(controller.validateToken()(FakeRequest().withBody(Json.obj("token" -> someToken))))
+
+      status(result) shouldBe Status.BAD_REQUEST
+      verifyZeroInteractions(verifiedEmailRepoMock)
+    }
   }
 
   trait Setup {
@@ -69,11 +111,15 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     val emailConnectorMock: EmailConnector = mock[EmailConnector]
     val verificationLinkServiceMock: VerificationLinkService = mock[VerificationLinkService]
     val tokenRepoMock: VerificationTokenMongoRepository = mock[VerificationTokenMongoRepository]
+    val verifiedEmailRepoMock: VerifiedEmailMongoRepository = mock[VerifiedEmailMongoRepository]
+    val someToken = "some-token"
+
     val controller = new EmailVerificationController {
       override val emailConnector = emailConnectorMock
       override val verificationLinkService = verificationLinkServiceMock
       override val tokenRepo = tokenRepoMock
       override def newToken = token
+      override def verifiedEmailRepo = verifiedEmailRepoMock
       override implicit def hc(implicit rh: RequestHeader) = headerCarrier
     }
     val token = "theToken"
@@ -81,6 +127,8 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     val recipient = "user@example.com"
     val params = Map("name" -> "Mr Joe Bloggs")
     val paramsJsonStr = Json.toJson(params).toString()
+    val email = "user@email.com"
+    val writeResult: Future[WriteResult] = Future.successful(DefaultWriteResult(true, 0, Seq.empty, None, None, None))
 
     val validRequest = Json.parse(
       s"""{
