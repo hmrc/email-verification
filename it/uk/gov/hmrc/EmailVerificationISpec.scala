@@ -1,18 +1,12 @@
 package uk.gov.hmrc
 
-import java.util.UUID
-
 import _root_.play.api.libs.json.Json
-import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.{BeforeAndAfterEach, GivenWhenThen}
+import support.EmailStub._
 import support.{IntegrationBaseSpec, WireMockConfig, WireMockHelper}
-import uk.gov.hmrc.crypto.Crypted.fromBase64
-import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
 import uk.gov.hmrc.emailverification.repositories.{VerifiedEmail, VerifiedEmailMongoRepository}
 
-import concurrent.ExecutionContext.Implicits.global
-import scala.collection.JavaConverters._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class EmailVerificationISpec extends IntegrationBaseSpec(testName = "EmailVerificationISpec",
   extraConfig = Map(
@@ -26,10 +20,7 @@ class EmailVerificationISpec extends IntegrationBaseSpec(testName = "EmailVerifi
   val continueUrl = "http://some/url"
   lazy val verifiedRepo = VerifiedEmailMongoRepository()
 
-  lazy val crypto = CryptoWithKeysFromConfig("queryParameter.encryption")
-
   "email verification" should {
-
     "send the verification email to the specified address successfully" in new Setup {
       Given("The email service is running")
       stubSendEmailRequest(202)
@@ -40,8 +31,7 @@ class EmailVerificationISpec extends IntegrationBaseSpec(testName = "EmailVerifi
       response.status shouldBe 204
 
       Then("an email is sent")
-      verifyEmailSent(emailToVerify, templateId, paramsWithVerificationLink)
-
+      verifyEmailSent(emailToVerify, continueUrl, templateId, paramsWithVerificationLink)
     }
 
     "return 502 error if email sending fails" in new Setup {
@@ -75,40 +65,6 @@ class EmailVerificationISpec extends IntegrationBaseSpec(testName = "EmailVerifi
     }
   }
 
-  def verifyEmailSent(to: String, templateId: String, params: Map[String, String]): Unit = {
-    val emailSendRequest = WireMock.findAll(emailEventStub).asScala.head.getBodyAsString
-    val emailSendRequestJson = Json.parse(emailSendRequest)
-
-    (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
-    (emailSendRequestJson \ "templateId").as[String] shouldBe templateId
-
-    val verificationLink = (emailSendRequestJson \ "parameters" \ "verificationLink").as[String]
-
-    val decryptedTokenJson = decryptToJson(verificationLink.split("token=")(1))
-
-    (decryptedTokenJson \ "continueUrl").as[String] shouldBe continueUrl
-    val token = (decryptedTokenJson \ "token").asOpt[String] map UUID.fromString
-    token.isDefined shouldBe true
-  }
-
-  def decryptToJson(encrypted: String) = {
-    val base64DecodedEncrypted = fromBase64(encrypted)
-    val decrypted = crypto.decrypt(base64DecodedEncrypted).value
-    Json.parse(decrypted)
-  }
-
-  private val emailMatchingStrategy = urlEqualTo("/send-templated-email")
-  private val emailEventStub = postRequestedFor(emailMatchingStrategy)
-
-  def stubSendEmailRequest(status: Int, body: String) =
-    stubFor(post(emailMatchingStrategy).willReturn(aResponse()
-      .withStatus(status)
-      .withBody(body)))
-
-  def stubSendEmailRequest(status: Int) =
-    stubFor(post(emailMatchingStrategy).willReturn(aResponse()
-      .withStatus(status)))
-
   override def beforeEach() = {
     super.beforeEach()
     verifiedRepo.drop.futureValue
@@ -128,5 +84,4 @@ class EmailVerificationISpec extends IntegrationBaseSpec(testName = "EmailVerifi
           |  "continueUrl" : "$continueUrl"
           |}""".stripMargin
   }
-
 }
