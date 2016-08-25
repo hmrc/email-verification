@@ -45,7 +45,7 @@ class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
 
       when(cryptoMock.encrypt(PlainText(jsonToken))).thenReturn(cryptedJsonToken)
 
-      underTest.verificationLinkFor(token, continueUrl) shouldBe s"http://email-verification-frontend.url/verification?token=$base64CryptedJsonToken"
+      underTest.verificationLinkFor(token, continueUrl) shouldBe s"http://email-verification-frontend.url/verify?token=$base64CryptedJsonToken"
     }
   }
 

@@ -15,13 +15,12 @@
  */
 
 package config
-import play.api.test.{FakeApplication, TestServer}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 class AppConfigSpec extends UnitSpec with WithFakeApplication{
   "AppConfig" should {
     "be initialized with properties" in {
-      AppConfig.emailVerificationFrontendUrl shouldBe "http://localhost:9890"
+      AppConfig.emailVerificationFrontendUrl shouldBe "http://localhost:9890/email-verification"
     }
   }
 

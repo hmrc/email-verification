@@ -31,7 +31,7 @@ trait VerificationLinkService {
   def emailVerificationFrontendUrl: String
   def crypto: CryptoWithKeysFromConfig
 
-  def verificationLinkFor(token: String, continueUrl: String) = s"$emailVerificationFrontendUrl/verification?token=${encryptedVerificationToken(token, continueUrl)}"
+  def verificationLinkFor(token: String, continueUrl: String) = s"$emailVerificationFrontendUrl/verify?token=${encryptedVerificationToken(token, continueUrl)}"
 
   private def encryptedVerificationToken(token: String, continueUrl: String) = {
     def encrypt(value: String) = new String(crypto.encrypt(PlainText(value)).toBase64)
