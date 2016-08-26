@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
@@ -26,16 +27,16 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport {
+class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport with ScalaFutures with IntegrationPatience {
   val email = "user@email.com"
   implicit val hc = HeaderCarrier()
 
   "insert" should {
     "insert a document when it does not exist" in {
-      await(repo.find("email" -> email)) shouldBe empty
+      repo.findAll().futureValue shouldBe empty
       await(repo.insert(email))
 
-      val docs = await(repo.find("email" -> email))
+      val docs = repo.findAll().futureValue
       docs shouldBe Seq(VerifiedEmail(email))
     }
 
@@ -48,10 +49,36 @@ class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach 
     }
   }
 
+  "find" should {
+    "return verified email if it exist" in {
+      repo.findAll().futureValue shouldBe empty
+      await(repo.insert(email))
+
+      repo.find(email).futureValue shouldBe Some(VerifiedEmail(email))
+    }
+
+    "return None if email does not exist" in {
+      repo.find(email).futureValue shouldBe None
+    }
+  }
+
+  "isVerified" should {
+    "return true if verified email exist" in {
+      repo.findAll().futureValue shouldBe empty
+      await(repo.insert(email))
+
+      repo.isVerified(email).futureValue shouldBe true
+    }
+
+    "return false if email does not exist" in {
+      repo.isVerified(email).futureValue shouldBe false
+    }
+  }
+
   "ensureIndexes" should {
     "verify indexes exist" in {
       await(repo.ensureIndexes)
-      val indexes = await(mongo().indexesManager.onCollection("verifiedEmail").list())
+      val indexes = mongo().indexesManager.onCollection("verifiedEmail").list().futureValue
 
       val index = indexes.find(_.name.contains("addressUnique")).get
 

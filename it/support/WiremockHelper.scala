@@ -32,8 +32,8 @@ trait WireMockHelper extends BeforeAndAfterAll with BeforeAndAfterEach {
   }
 
   override def afterAll() = {
-    super.afterAll()
     stopMockServer()
+    super.afterAll()
   }
 
   override def beforeEach() = {
