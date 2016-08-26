@@ -20,6 +20,7 @@ import java.util.UUID
 
 import org.joda.time.Period
 import org.joda.time.format.ISOPeriodFormat
+import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.mvc._
 import reactivemongo.core.errors.DatabaseException
@@ -78,6 +79,13 @@ trait EmailVerificationController extends BaseController {
       }
     } recover {
       case e: DatabaseException if e.code.contains(DuplicateValue) => NoContent
+    }
+  }
+
+  def verifiedEmail(email: String) = Action.async { implicit request =>
+    verifiedEmailRepo.find(email).map {
+      case Some(verifiedEmail) => Ok(toJson(verifiedEmail))
+      case None => NotFound
     }
   }
 
