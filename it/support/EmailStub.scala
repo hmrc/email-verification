@@ -57,7 +57,7 @@ object EmailStub extends MockitoSugar with ShouldMatchers {
 
   def lastVerificationEMail: JsValue = {
     val emails = WireMock.findAll(emailEventStub).asScala
-    val emailSendRequest = emails.head.getBodyAsString
+    val emailSendRequest = emails.last.getBodyAsString
     Json.parse(emailSendRequest)
   }
 

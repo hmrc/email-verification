@@ -42,6 +42,9 @@ abstract class VerificationTokenMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[VerificationDoc, BSONObjectID](collectionName = "verificationToken", mongo = mongo,
     domainFormat = VerificationDoc.format, idFormat = ReactiveMongoFormats.objectIdFormats) with Indexes {
 
+  def upsert(token: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[WriteResult] =
+    collection.update(Json.obj("email" -> email), VerificationDoc(email, token, dateTimeProvider().plus(validity)), upsert = true)
+
   def insert(token: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[WriteResult] = insert(VerificationDoc(email, token, dateTimeProvider().plus(validity)))
 
   def findToken(token: String)(implicit hc: HeaderCarrier): Future[Option[VerificationDoc]] = find("token" -> token).map(_.headOption)

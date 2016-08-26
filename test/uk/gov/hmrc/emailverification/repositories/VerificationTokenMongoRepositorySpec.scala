@@ -43,6 +43,22 @@ class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterE
     }
   }
 
+  "upsert" should {
+    "always update the existing document for a given email address" in {
+      await(repo.findAll()) shouldBe empty
+
+      val token1 = token + "1"
+
+      await(repo.upsert(token1, email, Period.minutes(10)))
+      await(repo.findAll()) shouldBe Seq(VerificationDoc(email, token1, now.plusMinutes(10)))
+
+      val token2 = token + "2"
+
+      await(repo.upsert(token2, email, Period.minutes(10)))
+      await(repo.findAll()) shouldBe Seq(VerificationDoc(email, token2, now.plusMinutes(10)))
+    }
+  }
+
   "find" should {
     "return the verification document" in {
       await(repo.insert(token, email, Period.minutes(10)))

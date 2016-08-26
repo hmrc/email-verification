@@ -24,7 +24,7 @@ import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
-import reactivemongo.api.commands.{DefaultWriteResult, WriteConcernError, WriteResult}
+import reactivemongo.api.commands.{DefaultWriteResult, WriteResult}
 import reactivemongo.core.errors.GenericDatabaseException
 import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
@@ -45,26 +45,13 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
       when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
         .thenReturn(Future.successful(HttpResponse(202)))
-      when(tokenRepoMock.insert(any(), any(), any())(any())).thenReturn(writeResult)
+      when(tokenRepoMock.upsert(any(), any(), any())(any())).thenReturn(writeResult)
 
       val result = await(controller.requestVerification()(FakeRequest().withBody(validRequest)))
 
       status(result) shouldBe Status.NO_CONTENT
-      verify(tokenRepoMock).insert(token, recipient, Period.days(2))
+      verify(tokenRepoMock).upsert(token, recipient, Period.days(2))
       verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
-    }
-
-
-    "blow up when mongo fails" in new Setup {
-      when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
-      when(tokenRepoMock.insert(any(), any(), any())(any())).thenReturn(Future.failed(new RuntimeException("lp0 on fire !!!")))
-
-      intercept[Exception] {
-        await(controller.requestVerification()(FakeRequest().withBody(validRequest)))
-      }
-
-      verify(tokenRepoMock).insert(token, recipient, Period.days(2))
-      verifyZeroInteractions(emailConnectorMock, verificationLinkServiceMock)
     }
 
     "return 409 when email already registered" in new Setup {

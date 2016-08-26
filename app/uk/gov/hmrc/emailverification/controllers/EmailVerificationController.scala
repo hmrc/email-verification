@@ -59,7 +59,7 @@ trait EmailVerificationController extends BaseController {
       verifiedEmailRepo.isVerified(request.email) flatMap {
         if (_) Future.successful(Conflict)
         else for {
-          _ <- tokenRepo.insert(token, request.email, request.linkExpiryDuration)
+          _ <- tokenRepo.upsert(token, request.email, request.linkExpiryDuration)
           paramsWithVerificationLink = request.templateParameters + ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
           _ <- emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink)
         } yield NoContent
