@@ -32,17 +32,6 @@ class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterE
   val email = "user@email.com"
   implicit val hc = HeaderCarrier()
 
-  "insert" should {
-    "insert a document when it does not exist" in {
-      await(repo.find("token" -> token)) shouldBe empty
-
-      await(repo.insert(token, email, Period.minutes(10)))
-
-      val docs = await(repo.find("token" -> token))
-      docs shouldBe Seq(VerificationDoc(email, token, now.plusMinutes(10)))
-    }
-  }
-
   "upsert" should {
     "always update the existing document for a given email address" in {
       await(repo.findAll()) shouldBe empty
@@ -61,7 +50,7 @@ class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterE
 
   "find" should {
     "return the verification document" in {
-      await(repo.insert(token, email, Period.minutes(10)))
+      await(repo.upsert(token, email, Period.minutes(10)))
 
       await(repo.findToken(token)) shouldBe Some(VerificationDoc(email, token, now.plusMinutes(10)))
     }
