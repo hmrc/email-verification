@@ -26,9 +26,11 @@ Preconditions:
 
 # API
 
-    | Path                      | Supported Methods | Description                                                                                                 |
-    |---------------------------|-------------------|-------------------------------------------------------------------------------------------------------------|
-    | /email-verifications      | POST              | Create a new verification                                                                                   |
+    | Path                             | Supported Methods | Description                                               |
+    |----------------------------------|-------------------|-----------------------------------------------------------|
+    | /verification-requests           | POST              | Create a new verification request                         |
+    | /verified-email-addresses        | POST              | Create a new verified email address                       |
+    | /verified-email-addresses/:email | GET               | Check if email address is verified                        |
 
 
 ## POST /verification-requests
