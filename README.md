@@ -31,9 +31,9 @@ Preconditions:
     | /email-verifications      | POST              | Create a new verification                                                                                   |
 
 
-## POST /email-verifications
+## POST /verification-requests
 
-Create a new verification
+Create a new verification request
 
 **Request body**
 
@@ -58,7 +58,51 @@ The template identified by ```templateId``` must contain a parameter named ```ve
     |-----------|-----------------------------------|
     | 204       | Verification created successfully |
     | 400       | Invalid request                   |
+    | 409       | Email has already been verified   |
+    | 500       | Email template not found          |
     | 500       | Unexpected error                  |
+    
+
+## POST /verified-email-addresses
+
+Create a new verified email address
+
+**Request body**
+
+```json
+{
+  "token": "qwerty1234567890"
+}
+```
+### Response with
+
+    | Status    |  Description                      |
+    |-----------|-----------------------------------|
+    | 201       | Verification created successfully |
+    | 204       | Verification already existing     |
+    | 400       | Token not found or expired        |
+    | 500       | Unexpected error                  |
+
+
+## GET /verified-email-addresses/:email
+
+Check if email address is verified
+
+### Response with
+
+    | Status    |  Description                      |
+    |-----------|-----------------------------------|
+    | 200       | Email is verified                 |
+    | 404       | Email not found / not verified    |
+    | 500       | Unexpected error                  |
+
+**Response body**
+
+```json
+{
+  "email": "some.email.address@yahoo.co.uk"
+}
+```
 
 ### License
 
