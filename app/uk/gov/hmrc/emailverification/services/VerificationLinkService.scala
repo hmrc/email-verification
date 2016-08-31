@@ -42,5 +42,5 @@ trait VerificationLinkService {
 
 object VerificationLinkService extends VerificationLinkService {
   override lazy val emailVerificationFrontendUrl = AppConfig.emailVerificationFrontendUrl
-  override lazy val crypto = CryptoWithKeysFromConfig(baseConfigKey = "queryParameter.encryption")
+  override lazy val crypto = CryptoWithKeysFromConfig(baseConfigKey = "token.encryption")
 }
