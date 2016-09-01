@@ -28,10 +28,10 @@ object VerificationToken {
 }
 
 trait VerificationLinkService {
-  def emailVerificationFrontendUrl: String
+  def platformFrontendHost: String
   def crypto: CryptoWithKeysFromConfig
 
-  def verificationLinkFor(token: String, continueUrl: String) = s"$emailVerificationFrontendUrl/verify?token=${encryptedVerificationToken(token, continueUrl)}"
+  def verificationLinkFor(token: String, continueUrl: String) = s"$platformFrontendHost/email-verification/verify?token=${encryptedVerificationToken(token, continueUrl)}"
 
   private def encryptedVerificationToken(token: String, continueUrl: String) = {
     def encrypt(value: String) = new String(crypto.encrypt(PlainText(value)).toBase64)
@@ -41,6 +41,6 @@ trait VerificationLinkService {
 }
 
 object VerificationLinkService extends VerificationLinkService {
-  override lazy val emailVerificationFrontendUrl = AppConfig.emailVerificationFrontendUrl
+  override lazy val platformFrontendHost = AppConfig.platformFrontendHost
   override lazy val crypto = CryptoWithKeysFromConfig(baseConfigKey = "token.encryption")
 }

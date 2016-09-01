@@ -45,19 +45,19 @@ class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
 
       when(cryptoMock.encrypt(PlainText(jsonToken))).thenReturn(cryptedJsonToken)
 
-      underTest.verificationLinkFor(token, continueUrl) shouldBe s"http://email-verification-frontend.url/verify?token=$base64CryptedJsonToken"
+      underTest.verificationLinkFor(token, continueUrl) shouldBe s"http://tax-platform-url.url/email-verification/verify?token=$base64CryptedJsonToken"
     }
   }
 
   trait Setup {
-    val frontendUrl = "http://email-verification-frontend.url"
+    val frontendUrl = "http://tax-platform-url.url"
     val encryptedTokenData = "encryptedTokenData"
     val token = "fixedNonce"
     val fixedTime = DateTime.parse("2016-08-18T12:45:11.631+0100")
 
     val cryptoMock = mock[CryptoWithKeysFromConfig]
     val underTest = new VerificationLinkService {
-      override val emailVerificationFrontendUrl = frontendUrl
+      override val platformFrontendHost = frontendUrl
       override val crypto: CryptoWithKeysFromConfig = cryptoMock
     }
   }

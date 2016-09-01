@@ -20,7 +20,7 @@ import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 class AppConfigSpec extends UnitSpec with WithFakeApplication{
   "AppConfig" should {
     "be initialized with properties" in {
-      AppConfig.emailVerificationFrontendUrl shouldBe "http://localhost:9890/email-verification"
+      AppConfig.platformFrontendHost shouldBe "http://localhost:9890"
     }
   }
 
