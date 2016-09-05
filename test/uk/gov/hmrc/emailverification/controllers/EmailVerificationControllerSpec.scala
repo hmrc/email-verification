@@ -39,7 +39,7 @@ import scala.concurrent.Future
 class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication with MockitoSugarRush with ScalaFutures {
 
   "requestVerification" should {
-    "send email containing verificationLink param and return 204" in new Setup {
+    "send email containing verificationLink param and return success response" in new Setup {
       val verificationLink = "verificationLink"
       when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
       when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
@@ -49,7 +49,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
       val result = await(controller.requestVerification()(request.withBody(validRequest)))
 
-      status(result) shouldBe Status.NO_CONTENT
+      status(result) shouldBe Status.CREATED
       verify(tokenRepoMock).upsert(token, recipient, Period.days(2))
       verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
     }

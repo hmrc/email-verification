@@ -63,7 +63,7 @@ trait EmailVerificationController extends BaseController {
           _ <- tokenRepo.upsert(token, request.email, request.linkExpiryDuration)
           paramsWithVerificationLink = request.templateParameters + ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
           _ <- emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink)
-        } yield NoContent
+        } yield Created
       } recover {
         case ex: NotFoundException => InternalServerError(ex.toString)
         case ex: Upstream4xxResponse if ex.upstreamResponseCode == 400 => BadRequest(ex.message)
