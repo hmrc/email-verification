@@ -61,7 +61,7 @@ The template identified by ```templateId``` must contain a parameter named ```ve
     | 201       | Verification created successfully |
     | 400       | Invalid request                   |
     | 409       | Email has already been verified   |
-    | 500       | Email template not found          |
+    | 400       | Email template not found          |
     | 500       | Unexpected error                  |
     
 

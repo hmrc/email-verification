@@ -31,7 +31,7 @@ import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository.DuplicateValue
 import uk.gov.hmrc.emailverification.repositories.{VerificationDoc, VerificationTokenMongoRepository, VerifiedEmail, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
@@ -52,6 +52,21 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       status(result) shouldBe Status.CREATED
       verify(tokenRepoMock).upsert(token, recipient, Period.days(2))
       verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
+    }
+
+    "return 400 if upstream email service returns bad request" in new Setup {
+      val verificationLink = "verificationLink"
+      when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
+      when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
+      when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
+        .thenReturn(Future.failed(new Upstream4xxResponse("", 400, 400, Map.empty)))
+      when(tokenRepoMock.upsert(any(), any(), any())(any())).thenReturn(writeResult)
+
+      val result = await(controller.requestVerification()(request.withBody(validRequest)))
+
+      status(result) shouldBe Status.BAD_REQUEST
+      verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
+      verify(tokenRepoMock).upsert(token, recipient, Period.days(2))
     }
 
     "return 409 when email already registered" in new Setup {
@@ -125,8 +140,11 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       override val emailConnector = emailConnectorMock
       override val verificationLinkService = verificationLinkServiceMock
       override val tokenRepo = tokenRepoMock
+
       override def newToken = token
+
       override def verifiedEmailRepo = verifiedEmailRepoMock
+
       override implicit def hc(implicit rh: RequestHeader) = headerCarrier
     }
     val token = "theToken"
@@ -147,4 +165,5 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
           |}""".stripMargin
     )
   }
+
 }
