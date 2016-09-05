@@ -54,7 +54,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
     }
 
-    "return 400 if upstream email service returns bad request" in new Setup {
+    "return 400 if upstream email service returns bad request and should not create mongo entry" in new Setup {
       val verificationLink = "verificationLink"
       when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
       when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
@@ -66,7 +66,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
       status(result) shouldBe Status.BAD_REQUEST
       verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
-      verify(tokenRepoMock).upsert(token, recipient, Period.days(2))
+      verifyZeroInteractions(tokenRepoMock)
     }
 
     "return 409 when email already registered" in new Setup {
