@@ -54,7 +54,7 @@ Create a new verification request
 The template identified by ```templateId``` must contain a parameter named ```verificationLink```
 ```linkExpiryDuration``` is the validity in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) format
 
-### Response with
+### Success Response
 
     | Status    |  Description                      |
     |-----------|-----------------------------------|
@@ -103,6 +103,39 @@ Check if email address is verified
 ```json
 {
   "email": "some.email.address@yahoo.co.uk"
+}
+```
+
+## General Error handling
+Error responses are mapped to the following Json structure that is returned in the response with the appropriate http error status:
+
+**Validation error response body**
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message":"Payload validation failed",
+  "details":{
+    "obj.email": "error.path.missing"
+  }
+}
+```
+
+**Not found error response body**
+```json
+{
+  "code":"NOT_FOUND",
+  "message":"URI not found",
+  "details": {
+     "requestedUrl":"/email-verification/non-existent-url"
+  }
+}
+```
+
+*5XX errors response body**
+```json
+{
+  "code":"5XX_ERROR",
+  "message":"POST of 'http://localhost:11111/send-templated-email' returned 500. Response body: 'some-5xx-message'"
 }
 ```
 

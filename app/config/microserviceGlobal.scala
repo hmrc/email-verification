@@ -18,14 +18,21 @@ package config
 
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
-import play.api.{Application, Configuration, Play}
+import play.api._
+import play.api.http.Status._
+import play.api.libs.json.Json
+import play.api.mvc.RequestHeader
+import play.api.mvc.Results._
+import uk.gov.hmrc.emailverification.controllers.ErrorResponse
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
+import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 
+import scala.concurrent.Future
 
 object ControllerConfiguration extends ControllerConfig {
   lazy val controllerConfigs = Play.current.configuration.underlying.as[Config]("controllers")
@@ -37,6 +44,7 @@ object AuthParamsControllerConfiguration extends AuthParamsControllerConfig {
 
 object MicroserviceAuditFilter extends AuditFilter with AppName {
   override val auditConnector = MicroserviceAuditConnector
+
   override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
 }
 
@@ -47,6 +55,7 @@ object MicroserviceLoggingFilter extends LoggingFilter {
 object MicroserviceAuthFilter extends AuthorisationFilter {
   override lazy val authParamsConfig = AuthParamsControllerConfiguration
   override lazy val authConnector = MicroserviceAuthConnector
+
   override def controllerNeedsAuth(controllerName: String): Boolean = ControllerConfiguration.paramsForController(controllerName).needsAuth
 }
 
@@ -60,4 +69,22 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override val microserviceAuditFilter = MicroserviceAuditFilter
 
   override val authFilter = Some(MicroserviceAuthFilter)
+
+  override def onError(request: RequestHeader, ex: Throwable) = {
+    val (code, message) = ex.getCause match {
+      case e: HttpException => (e.responseCode, e.getMessage)
+      case e: Upstream4xxResponse => (e.reportAs, e.getMessage)
+      case e: Upstream5xxResponse => (e.reportAs, e.getMessage)
+      case e: Throwable => (INTERNAL_SERVER_ERROR, e.getMessage)
+    }
+    Future.successful(new Status(code)(Json.toJson(ErrorResponse(s"${code}_ERROR", message))))
+  }
+
+  override def onHandlerNotFound(request: RequestHeader) =
+    Future.successful(NotFound(Json.toJson(ErrorResponse("NOT_FOUND", s"URI not found", Some(Map("requestedUrl" -> request.path))))))
+
+
+  override def onBadRequest(request: RequestHeader, error: String) =
+    Future.successful(BadRequest(Json.toJson(ErrorResponse("BAD_REQUEST", error))))
+
 }

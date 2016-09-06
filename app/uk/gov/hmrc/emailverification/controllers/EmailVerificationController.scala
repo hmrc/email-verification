@@ -71,11 +71,11 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
     implicit httpRequest =>
       withJsonBody[EmailVerificationRequest] { request =>
         verifiedEmailRepo.isVerified(request.email) flatMap {
-          case true => Future.successful(Conflict)
+          case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY","Email has already been verified"))))
           case false => sendEmailAndCreateVerification(request)
         } recover {
-          case ex: NotFoundException => InternalServerError(ex.toString)
-          case ex: Upstream4xxResponse if ex.upstreamResponseCode == 400 => BadRequest(ex.message)
+          case ex: NotFoundException => InternalServerError(Json.toJson(ErrorResponse("500_ERROR",ex.getMessage)))
+          case ex: Upstream4xxResponse if ex.upstreamResponseCode == 400 => BadRequest(Json.toJson(ErrorResponse("400_ERROR",ex.getMessage)))
         }
       }
   }
