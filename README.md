@@ -106,7 +106,7 @@ Check if email address is verified
 }
 ```
 
-## General Error handling
+## Error handling
 Error responses are mapped to the following json structure returned as the response body
 with the appropriate http error status code:
 
