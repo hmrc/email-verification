@@ -47,7 +47,7 @@ object TokenVerificationRequest {
   implicit val reads = Json.reads[TokenVerificationRequest]
 }
 
-trait EmailVerificationController extends BaseController {
+trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
   def emailConnector: EmailConnector
 
   def verificationLinkService: VerificationLinkService
