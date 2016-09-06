@@ -107,9 +107,10 @@ Check if email address is verified
 ```
 
 ## General Error handling
-Error responses are mapped to the following Json structure that is returned in the response with the appropriate http error status:
+Error responses are mapped to the following json structure returned as the response body
+with the appropriate http error status code:
 
-**Validation error response body**
+**Validation error response body returned with 400 http status**
 ```json
 {
   "code": "VALIDATION_ERROR",
@@ -120,7 +121,7 @@ Error responses are mapped to the following Json structure that is returned in t
 }
 ```
 
-**Not found error response body**
+**Not found error response body returned with 404 http status**
 ```json
 {
   "code":"NOT_FOUND",
@@ -131,7 +132,7 @@ Error responses are mapped to the following Json structure that is returned in t
 }
 ```
 
-*5XX errors response body**
+*5XX errors response body returened with e.g. 502 http status**
 ```json
 {
   "code":"5XX_ERROR",
