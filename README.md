@@ -132,7 +132,7 @@ with the appropriate http error status code:
 }
 ```
 
-*5XX errors response body returened with e.g. 502 http status**
+**5XX errors response body returned with e.g. 502 http status**
 ```json
 {
   "code":"5XX_ERROR",
