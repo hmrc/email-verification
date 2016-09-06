@@ -51,6 +51,27 @@ class PayloadErrorHandlingISpec extends IntegrationBaseSpec with GivenWhenThen {
           |  ]
           |}""".stripMargin).toString()
     }
+
+    "return BAD REQUEST with structured error when invalid payload is sent with invalid linkExpiryDuration" in {
+      When("a client submits an invalid verification request")
+
+      val invalidPayloadWithMissingEmailField = Json.parse(
+        """{
+          |  "email": "email@email.com",
+          |  "templateId":  "my-lovely-template",
+          |  "templateParameters": {},
+          |  "linkExpiryDuration" : "XXX",
+          |  "continueUrl" : "http://some/url"
+          |}""".stripMargin)
+
+      val response = appClient("/verification-requests").post(invalidPayloadWithMissingEmailField).futureValue
+      response.status shouldBe 400
+      response.body shouldBe
+        Json.parse("""{
+                     |  "code":"VALIDATION_ERROR",
+                     |  "message":"Invalid format: \"XXX\""
+                     |}""".stripMargin).toString()
+    }
   }
 
 

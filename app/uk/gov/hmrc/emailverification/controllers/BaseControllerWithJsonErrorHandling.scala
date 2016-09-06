@@ -21,6 +21,7 @@ import play.api.mvc.{Request, Result}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 case class FieldError(fieldName: String, message: String)
 
@@ -30,7 +31,7 @@ object FieldError {
 
 case class ErrorResponse(val code: String,
                          val message: String,
-                         val errors: Seq[FieldError])
+                         val errors: Option[Seq[FieldError]] = None)
 
 object ErrorResponse {
   implicit val writes = Json.writes[ErrorResponse]
@@ -39,12 +40,15 @@ object ErrorResponse {
 trait BaseControllerWithJsonErrorHandling extends BaseController {
 
   override protected def withJsonBody[T](f: (T) => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] =
-    request.body.validate[T] match {
-      case JsSuccess(payload, _) => f(payload)
-      case JsError(errs) =>
+    Try(request.body.validate[T]) match {
+      case Success(JsSuccess(payload, _)) => f(payload)
+      case Success(JsError(errs)) =>
         val fieldErrors = errs.flatMap {
           case (jsPath, errors) => errors.map(validationError => FieldError(jsPath.toJsonString, validationError.message))
         }
-        Future.successful(BadRequest(Json.toJson(ErrorResponse("VALIDATION_ERROR", "Payload validation failed", fieldErrors))))
+        Future.successful(BadRequest(Json.toJson(ErrorResponse("VALIDATION_ERROR", "Payload validation failed", Some(fieldErrors)))))
+      case Failure(e) =>
+        println("FAILURE")
+        Future.successful(BadRequest(Json.toJson(ErrorResponse("VALIDATION_ERROR", e.getMessage))))
     }
 }
