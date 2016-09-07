@@ -71,13 +71,13 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override val authFilter = Some(MicroserviceAuthFilter)
 
   override def onError(request: RequestHeader, ex: Throwable) = {
-    val (code, message) = ex.getCause match {
-      case e: HttpException => (e.responseCode, e.getMessage)
-      case e: Upstream4xxResponse => (e.reportAs, e.getMessage)
-      case e: Upstream5xxResponse => (e.reportAs, e.getMessage)
-      case e: Throwable => (INTERNAL_SERVER_ERROR, e.getMessage)
+    val (statusCode, code, message) = ex.getCause match {
+      case e: Upstream4xxResponse => (BAD_GATEWAY, "UPSTREAM_ERROR", e.getMessage)
+      case e: NotFoundException => (BAD_GATEWAY, "UPSTREAM_ERROR", e.getMessage)
+      case e: Upstream5xxResponse => (BAD_GATEWAY, "UPSTREAM_ERROR", e.getMessage)
+      case e: Throwable => (INTERNAL_SERVER_ERROR, "UNEXPECTED_ERROR", e.getMessage)
     }
-    Future.successful(new Status(code)(Json.toJson(ErrorResponse(s"${code}_ERROR", message))))
+    Future.successful(new Status(statusCode)(Json.toJson(ErrorResponse(code, message))))
   }
 
   override def onHandlerNotFound(request: RequestHeader) =

@@ -59,10 +59,16 @@ The template identified by ```templateId``` must contain a parameter named ```ve
     | Status    |  Description                      |
     |-----------|-----------------------------------|
     | 201       | Verification created successfully |
-    | 400       | Invalid request                   |
-    | 409       | Email has already been verified   |
-    | 400       | Email template not found          |
-    | 500       | Unexpected error                  |
+
+### Failure Responses
+
+    | Status    |  Description                      |  Code                    |
+    |-----------|-----------------------------------|--------------------------|
+    | 400       | Invalid request                   | VALIDATION_ERROR         |
+    | 409       | Email has already been verified   | EMAIL_VERIFIED_ALREADY   |
+    | 400       | Email template not found          | EMAIL_TEMPLATE_NOT_FOUND |
+    | 500       | Unexpected error                  | UNEXPECTED_ERROR         |
+    | 502       | Upstream service error            | UPSTREAM_ERROR           |
     
 
 ## POST /verified-email-addresses
@@ -76,27 +82,39 @@ Create a new verified email address
   "token": "qwerty1234567890"
 }
 ```
-### Response with
+### Success Responses
 
     | Status    |  Description                      |
     |-----------|-----------------------------------|
     | 201       | Verification created successfully |
     | 204       | Verification already existing     |
-    | 400       | Token not found or expired        |
-    | 500       | Unexpected error                  |
+
+### Failure Responses
+
+    | Status    |  Description                      |  Code                      |
+    |-----------|-----------------------------------|----------------------------|
+    | 400       | Token not found or expired        | TOKEN_NOT_FOUND_OR_EXPIRED |
+    | 500       | Unexpected error                  | UNEXPECTED_ERROR           |
+    | 502       | Upstream service error            | UPSTREAM_ERROR             |
 
 
 ## GET /verified-email-addresses/:email
 
 Check if email address is verified
 
-### Response with
+### Success Response
 
     | Status    |  Description                      |
     |-----------|-----------------------------------|
     | 200       | Email is verified                 |
-    | 404       | Email not found / not verified    |
-    | 500       | Unexpected error                  |
+
+### Failure Responses
+
+    | Status    |  Description                      |  Code                            |
+    |-----------|-----------------------------------|----------------------------------|
+    | 404       | Email not found / not verified    | EMAIL_NOT_FOUND_OR_NOT_VERIFIED  |
+    | 500       | Unexpected error                  | UNEXPECTED_ERROR                 |
+    | 502       | Upstream service error            | UPSTREAM_ERROR                   |
 
 **Response body**
 
@@ -106,11 +124,19 @@ Check if email address is verified
 }
 ```
 
-## Error handling
+## Error response payload format
 Error responses are mapped to the following json structure returned as the response body
-with the appropriate http error status code:
+with the appropriate http error status code. E.g.:
 
-**Validation error response body returned with 400 http status**
+```json
+{
+  "code": "TOKEN_NOT_FOUND_OR_EXPIRED",
+  "message":"Token not found or expired.",
+}
+
+## Generic errors
+
+**Payload validation errors are returning with 400 http status**
 ```json
 {
   "code": "VALIDATION_ERROR",
@@ -121,7 +147,7 @@ with the appropriate http error status code:
 }
 ```
 
-**Not found error response body returned with 404 http status**
+**Not found errors are returning with 404 http status**
 ```json
 {
   "code":"NOT_FOUND",
@@ -132,10 +158,18 @@ with the appropriate http error status code:
 }
 ```
 
-**5XX errors response body returned with e.g. 502 http status**
+*Unexpected errors are returning with 500 http status**
 ```json
 {
-  "code":"5XX_ERROR",
+  "code":"UNEXPECTED_ERROR",
+  "message":"An unexpected error occured"
+}
+```
+
+**upstream errors are returning with 502 http status**
+```json
+{
+  "code":"UPSTREAM_ERROR",
   "message":"POST of 'http://localhost:11111/send-templated-email' returned 500. Response body: 'some-5xx-message'"
 }
 ```

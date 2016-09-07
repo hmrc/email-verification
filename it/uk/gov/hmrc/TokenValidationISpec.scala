@@ -32,7 +32,7 @@ class TokenValidationISpec extends IntegrationBaseSpec with GivenWhenThen {
       When("an invalid token verification request is submitted")
       val response = appClient("/verified-email-addresses").post(Json.obj("token" -> "invalid")).futureValue
       response.status shouldBe 400
-      response.body shouldBe "Token not found or expired"
+      (Json.parse(response.body) \ "code").as[String] shouldBe "TOKEN_NOT_FOUND_OR_EXPIRED"
     }
   }
 

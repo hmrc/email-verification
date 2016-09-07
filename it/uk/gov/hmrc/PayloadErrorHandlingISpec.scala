@@ -74,38 +74,27 @@ class PayloadErrorHandlingISpec extends IntegrationBaseSpec with GivenWhenThen {
                      |}""".stripMargin).toString()
     }
 
-    "return 502 error if email sending fails" in {
+    "return 502 error if upstream service fails with 500" in {
       val body = "some-5xx-message"
       stubSendEmailRequest(500, body)
       val response = appClient("/verification-requests").post(verificationRequest()).futureValue
       response.status shouldBe 502
       response.body shouldBe
         Json.parse("""{
-                     |  "code":"502_ERROR",
+                     |  "code":"UPSTREAM_ERROR",
                      |  "message":"POST of 'http://localhost:11111/send-templated-email' returned 500. Response body: 'some-5xx-message'"
                      |}""".stripMargin).toString()
     }
 
-    "return 400 error if email sending fails with 400" in  {
-      val body = "some-400-message"
-      stubSendEmailRequest(400, body)
-      val response = appClient("/verification-requests").post(verificationRequest()).futureValue
-      response.status shouldBe 400
-      response.body shouldBe
-        Json.parse("""{
-                     |  "code":"400_ERROR",
-                     |  "message":"POST of 'http://localhost:11111/send-templated-email' returned 400 (Bad Request). Response body 'some-400-message'"
-                     |}""".stripMargin).toString()
-    }
 
-    "return 500 error if email sending fails with 4xx" in {
+    "return 502 error if upstream service fails with 4xx" in {
       val body = "some-4xx-message"
       stubSendEmailRequest(404, body)
       val response = appClient("/verification-requests").post(verificationRequest()).futureValue
-      response.status shouldBe 500
+      response.status shouldBe 502
       response.body shouldBe
         Json.parse("""{
-                     |  "code":"500_ERROR",
+                     |  "code":"UPSTREAM_ERROR",
                      |  "message":"POST of 'http://localhost:11111/send-templated-email' returned 404 (Not Found). Response body: 'some-4xx-message'"
                      |}""".stripMargin).toString()
     }
@@ -123,6 +112,5 @@ class PayloadErrorHandlingISpec extends IntegrationBaseSpec with GivenWhenThen {
                      |}""".stripMargin).toString()
     }
   }
-
 
 }

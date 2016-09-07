@@ -29,7 +29,7 @@ import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoReposito
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
+import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
@@ -74,8 +74,7 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
           case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY","Email has already been verified"))))
           case false => sendEmailAndCreateVerification(request)
         } recover {
-          case ex: NotFoundException => InternalServerError(Json.toJson(ErrorResponse("500_ERROR",ex.getMessage)))
-          case ex: Upstream4xxResponse if ex.upstreamResponseCode == 400 => BadRequest(Json.toJson(ErrorResponse("400_ERROR",ex.getMessage)))
+          case ex: BadRequestException  => BadRequest(Json.toJson(ErrorResponse("EMAIL_TEMPLATE_NOT_FOUND", ex.getMessage)))
         }
       }
   }
@@ -84,7 +83,7 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
     withJsonBody[TokenVerificationRequest] { request =>
       tokenRepo.findToken(request.token) flatMap {
         case Some(doc) => verifiedEmailRepo.insert(doc.email) map (_ => Created)
-        case None => Future.successful(BadRequest("Token not found or expired"))
+        case None => Future.successful(BadRequest(Json.toJson(ErrorResponse("TOKEN_NOT_FOUND_OR_EXPIRED","Token not found or expired"))))
       }
     } recover {
       case e: DatabaseException if e.code.contains(DuplicateValue) => NoContent

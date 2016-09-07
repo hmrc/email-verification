@@ -31,7 +31,7 @@ import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository.DuplicateValue
 import uk.gov.hmrc.emailverification.repositories.{VerificationDoc, VerificationTokenMongoRepository, VerifiedEmail, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse}
+import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse, Upstream4xxResponse}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
@@ -59,12 +59,13 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
       when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
       when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
-        .thenReturn(Future.failed(new Upstream4xxResponse("", 400, 400, Map.empty)))
+        .thenReturn(Future.failed(new BadRequestException("Bad Request from email")))
       when(tokenRepoMock.upsert(any(), any(), any())(any())).thenReturn(writeResult)
 
       val result = await(controller.requestVerification()(request.withBody(validRequest)))
 
       status(result) shouldBe Status.BAD_REQUEST
+      (jsonBodyOf(result) \ "code").as[String] shouldBe "EMAIL_TEMPLATE_NOT_FOUND"
       verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
       verifyZeroInteractions(tokenRepoMock)
     }
