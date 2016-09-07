@@ -131,7 +131,19 @@ with the appropriate http error status code. E.g.:
 ```json
 {
   "code": "TOKEN_NOT_FOUND_OR_EXPIRED",
-  "message":"Token not found or expired.",
+  "message":"Token not found or expired."
+}
+```
+
+or with details (optional):
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message":"Payload validation failed",
+  "details":{
+    "obj.email": "error.path.missing"
+  }
 }
 ```
 
