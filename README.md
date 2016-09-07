@@ -124,7 +124,7 @@ Check if email address is verified
 }
 ```
 
-## Error response payload format
+## Error response payload structure
 Error responses are mapped to the following json structure returned as the response body
 with the appropriate http error status code. E.g.:
 
@@ -133,10 +133,12 @@ with the appropriate http error status code. E.g.:
   "code": "TOKEN_NOT_FOUND_OR_EXPIRED",
   "message":"Token not found or expired.",
 }
+```
 
 ## Generic errors
 
 **Payload validation errors are returning with 400 http status**
+
 ```json
 {
   "code": "VALIDATION_ERROR",
@@ -147,7 +149,8 @@ with the appropriate http error status code. E.g.:
 }
 ```
 
-**Not found errors are returning with 404 http status**
+**Not found errors are returning with 404 http status and a response body:**
+
 ```json
 {
   "code":"NOT_FOUND",
@@ -158,7 +161,8 @@ with the appropriate http error status code. E.g.:
 }
 ```
 
-*Unexpected errors are returning with 500 http status**
+**Unexpected errors are returning with 500 http status and a response body:**
+
 ```json
 {
   "code":"UNEXPECTED_ERROR",
@@ -166,7 +170,8 @@ with the appropriate http error status code. E.g.:
 }
 ```
 
-**upstream errors are returning with 502 http status**
+**upstream errors are returning with 502 http status and a response body:**
+
 ```json
 {
   "code":"UPSTREAM_ERROR",
