@@ -65,7 +65,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       val result = await(controller.requestVerification()(request.withBody(validRequest)))
 
       status(result) shouldBe Status.BAD_REQUEST
-      (jsonBodyOf(result) \ "code").as[String] shouldBe "EMAIL_TEMPLATE_NOT_FOUND"
+      (jsonBodyOf(result) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
       verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
       verifyZeroInteractions(tokenRepoMock)
     }

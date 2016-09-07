@@ -56,13 +56,13 @@ The template identified by ```templateId``` must contain a parameter named ```ve
 
 ### Failure Responses
 
-    | Status    |  Description                      |  Code                    |
-    |-----------|-----------------------------------|--------------------------|
-    | 400       | Invalid request                   | VALIDATION_ERROR         |
-    | 409       | Email has already been verified   | EMAIL_VERIFIED_ALREADY   |
-    | 400       | Email template not found          | EMAIL_TEMPLATE_NOT_FOUND |
-    | 500       | Unexpected error                  | UNEXPECTED_ERROR         |
-    | 502       | Upstream service error            | UPSTREAM_ERROR           |
+    | Status    |  Description                                  |  Code                    |
+    |-----------|-----------------------------------------------|--------------------------|
+    | 400       | Invalid request                               | VALIDATION_ERROR         |
+    | 409       | Email has already been verified               | EMAIL_VERIFIED_ALREADY   |
+    | 400       | Bad request to email, like template not found | BAD_EMAIL_REQUEST        |
+    | 500       | Unexpected error                              | UNEXPECTED_ERROR         |
+    | 502       | Upstream service error                        | UPSTREAM_ERROR           |
     
 
 ## POST /verified-email-addresses

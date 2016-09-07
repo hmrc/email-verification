@@ -49,14 +49,14 @@ class EmailVerificationISpec extends IntegrationBaseSpec with GivenWhenThen {
       response.body should include(body)
     }
 
-    "return EMAIL_TEMPLATE_NOT_FOUND error if email sending fails with 400" in new Setup {
+    "return BAD_EMAIL_REQUEST error if email sending fails with 400" in new Setup {
       val body = "some-400-message"
       stubSendEmailRequest(400, body)
       val response = appClient("/verification-requests").post(verificationRequest()).futureValue
       response.status shouldBe 400
       response.body should include(body)
 
-      (Json.parse(response.body) \ "code").as[String] shouldBe "EMAIL_TEMPLATE_NOT_FOUND"
+      (Json.parse(response.body) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
     }
 
     "return 500 error if email sending fails with 4xx" in new Setup {

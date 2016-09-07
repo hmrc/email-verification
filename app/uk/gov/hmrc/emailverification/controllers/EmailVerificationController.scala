@@ -74,7 +74,7 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
           case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY","Email has already been verified"))))
           case false => sendEmailAndCreateVerification(request)
         } recover {
-          case ex: BadRequestException  => BadRequest(Json.toJson(ErrorResponse("EMAIL_TEMPLATE_NOT_FOUND", ex.getMessage)))
+          case ex: BadRequestException  => BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
         }
       }
   }
