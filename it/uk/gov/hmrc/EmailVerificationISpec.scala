@@ -52,8 +52,7 @@ class EmailVerificationISpec extends IntegrationBaseSpec with GivenWhenThen {
 
       Then("the verification request with the token should be successful")
       appClient("/verified-email-addresses").post(Json.obj("token" -> token)).futureValue.status shouldBe 201
-      Then("any additional verification requests with the token should be successful, but return with a 204 response")
-      appClient("/verified-email-addresses").post(Json.obj("token" -> token)).futureValue.status shouldBe 204
+      Then("an additional verification requests with the token should be successful, but return with a 204 response")
       appClient("/verified-email-addresses").post(Json.obj("token" -> token)).futureValue.status shouldBe 204
     }
 
