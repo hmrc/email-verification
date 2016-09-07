@@ -29,7 +29,7 @@ import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoReposito
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.http.{NotFoundException, Upstream4xxResponse}
+import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
@@ -47,35 +47,43 @@ object TokenVerificationRequest {
   implicit val reads = Json.reads[TokenVerificationRequest]
 }
 
-trait EmailVerificationController extends BaseController {
+trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
   def emailConnector: EmailConnector
+
   def verificationLinkService: VerificationLinkService
+
   def tokenRepo: VerificationTokenMongoRepository
+
   def verifiedEmailRepo: VerifiedEmailMongoRepository
+
   def newToken(): String
 
-  def requestVerification() = Action.async(parse.json) { implicit httpRequest =>
-    withJsonBody[EmailVerificationRequest] { request =>
-      val token = newToken()
-      verifiedEmailRepo.isVerified(request.email) flatMap {
-        if (_) Future.successful(Conflict)
-        else for {
-          _ <- tokenRepo.upsert(token, request.email, request.linkExpiryDuration)
-          paramsWithVerificationLink = request.templateParameters + ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
-          _ <- emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink)
-        } yield NoContent
-      } recover {
-        case ex: NotFoundException => InternalServerError(ex.toString)
-        case ex: Upstream4xxResponse if ex.upstreamResponseCode == 400 => BadRequest(ex.message)
+  private def sendEmailAndCreateVerification(request: EmailVerificationRequest)(implicit hc: HeaderCarrier) = {
+    val token = newToken()
+    val paramsWithVerificationLink = request.templateParameters + ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
+    for {
+      _ <- emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink)
+      _ <- tokenRepo.upsert(token, request.email, request.linkExpiryDuration)
+    } yield Created
+  }
+
+  def requestVerification() = Action.async(parse.json) {
+    implicit httpRequest =>
+      withJsonBody[EmailVerificationRequest] { request =>
+        verifiedEmailRepo.isVerified(request.email) flatMap {
+          case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY","Email has already been verified"))))
+          case false => sendEmailAndCreateVerification(request)
+        } recover {
+          case ex: BadRequestException  => BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
+        }
       }
-    }
   }
 
   def validateToken() = Action.async(parse.json) { implicit httpRequest =>
     withJsonBody[TokenVerificationRequest] { request =>
       tokenRepo.findToken(request.token) flatMap {
         case Some(doc) => verifiedEmailRepo.insert(doc.email) map (_ => Created)
-        case None => Future.successful(BadRequest("Token not found or expired"))
+        case None => Future.successful(BadRequest(Json.toJson(ErrorResponse("TOKEN_NOT_FOUND_OR_EXPIRED","Token not found or expired"))))
       }
     } recover {
       case e: DatabaseException if e.code.contains(DuplicateValue) => NoContent

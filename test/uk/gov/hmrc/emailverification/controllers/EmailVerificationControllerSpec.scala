@@ -31,7 +31,7 @@ import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository.DuplicateValue
 import uk.gov.hmrc.emailverification.repositories.{VerificationDoc, VerificationTokenMongoRepository, VerifiedEmail, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse, Upstream4xxResponse}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
@@ -39,7 +39,7 @@ import scala.concurrent.Future
 class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication with MockitoSugarRush with ScalaFutures {
 
   "requestVerification" should {
-    "send email containing verificationLink param and return 204" in new Setup {
+    "send email containing verificationLink param and return success response" in new Setup {
       val verificationLink = "verificationLink"
       when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
       when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
@@ -49,9 +49,25 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
       val result = await(controller.requestVerification()(request.withBody(validRequest)))
 
-      status(result) shouldBe Status.NO_CONTENT
+      status(result) shouldBe Status.CREATED
       verify(tokenRepoMock).upsert(token, recipient, Period.days(2))
       verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
+    }
+
+    "return 400 if upstream email service returns bad request and should not create mongo entry" in new Setup {
+      val verificationLink = "verificationLink"
+      when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
+      when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
+      when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
+        .thenReturn(Future.failed(new BadRequestException("Bad Request from email")))
+      when(tokenRepoMock.upsert(any(), any(), any())(any())).thenReturn(writeResult)
+
+      val result = await(controller.requestVerification()(request.withBody(validRequest)))
+
+      status(result) shouldBe Status.BAD_REQUEST
+      (jsonBodyOf(result) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
+      verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
+      verifyZeroInteractions(tokenRepoMock)
     }
 
     "return 409 when email already registered" in new Setup {
@@ -125,8 +141,11 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       override val emailConnector = emailConnectorMock
       override val verificationLinkService = verificationLinkServiceMock
       override val tokenRepo = tokenRepoMock
+
       override def newToken = token
+
       override def verifiedEmailRepo = verifiedEmailRepoMock
+
       override implicit def hc(implicit rh: RequestHeader) = headerCarrier
     }
     val token = "theToken"
@@ -147,4 +166,5 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
           |}""".stripMargin
     )
   }
+
 }

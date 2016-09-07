@@ -36,7 +36,7 @@ class IntegrationBaseSpec(extraConfig: Map[String, String] = Map(
 
   def tokenFor(email: String) = {
     stubSendEmailRequest(202)
-    appClient("/verification-requests").post(verificationRequest(emailToVerify = email)).futureValue.status shouldBe 204
+    appClient("/verification-requests").post(verificationRequest(emailToVerify = email)).futureValue.status shouldBe 201
     decryptedToken(lastVerificationEMail)._1.get
   }
 
