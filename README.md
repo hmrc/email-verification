@@ -4,12 +4,6 @@
 
 # About
 
-Preconditions:
-- ```smserver``` needs to be running for it:test
-- ```mongod``` needs to be running for it:test
-
-```sbt test it:test```
-
 email-verification is a service to support a verification flow that starts by creating a verification for an email address and sending out an email with verification link.
 
 Users can verify the email address by clicking on the link in the email.
