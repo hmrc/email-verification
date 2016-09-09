@@ -91,7 +91,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       verify(verifiedEmailRepoMock).find(email)
     }
 
-    "return 204 when the token is valid and the email war already validated" in new Setup {
+    "return 204 when the token is valid and the email was already validated" in new Setup {
       when(tokenRepoMock.findToken(someToken)).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
       when(verifiedEmailRepoMock.find(email)).thenReturn(Future.successful(Some(VerifiedEmail(email))))
 

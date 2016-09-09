@@ -50,8 +50,8 @@ class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach 
     }
 
     "not blow up if another email exists" in {
-      repo.findAll().futureValue shouldBe empty
       await(repo.ensureIndexes)
+      repo.findAll().futureValue shouldBe empty
       await(repo.insert(email))
       await(repo.insert(anotherEmail))
 
