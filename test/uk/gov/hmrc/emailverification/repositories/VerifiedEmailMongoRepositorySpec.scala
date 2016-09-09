@@ -29,6 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport with ScalaFutures with IntegrationPatience {
   val email = "user@email.com"
+  val anotherEmail = "another.user@email.com"
   implicit val hc = HeaderCarrier()
 
   "insert" should {
@@ -47,7 +48,18 @@ class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach 
       val r = intercept[DatabaseException](await(repo.insert(email)))
       r.code shouldBe Some(11000)
     }
-  }
+
+    "not blow up if another email exists" in {
+      repo.findAll().futureValue shouldBe empty
+      await(repo.ensureIndexes)
+      await(repo.insert(email))
+      await(repo.insert(anotherEmail))
+
+      repo.find(email).futureValue shouldBe Some(VerifiedEmail(email))
+      repo.find(anotherEmail).futureValue shouldBe Some(VerifiedEmail(anotherEmail))
+    }
+
+}
 
   "find" should {
     "return verified email if it exist" in {
@@ -80,10 +92,10 @@ class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach 
       await(repo.ensureIndexes)
       val indexes = mongo().indexesManager.onCollection("verifiedEmail").list().futureValue
 
-      val index = indexes.find(_.name.contains("addressUnique")).get
+      val index = indexes.find(_.name.contains("emailUnique")).get
 
       //version of index is managed by mongodb. We don't want to assert on it.
-      index shouldBe Index(Seq("address" -> Ascending), name = Some("addressUnique"), unique = true).copy(version = index.version)
+      index shouldBe Index(Seq("email" -> Ascending), name = Some("emailUnique"), unique = true).copy(version = index.version)
     }
   }
 

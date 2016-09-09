@@ -23,14 +23,11 @@ import org.joda.time.format.ISOPeriodFormat
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.mvc._
-import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
-import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository._
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, NotFoundException, Upstream4xxResponse}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier}
 
 import scala.concurrent.Future
 
@@ -71,23 +68,29 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
     implicit httpRequest =>
       withJsonBody[EmailVerificationRequest] { request =>
         verifiedEmailRepo.isVerified(request.email) flatMap {
-          case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY","Email has already been verified"))))
+          case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY", "Email has already been verified"))))
           case false => sendEmailAndCreateVerification(request)
         } recover {
-          case ex: BadRequestException  => BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
+          case ex: BadRequestException => BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
         }
       }
   }
 
-  def validateToken() = Action.async(parse.json) { implicit httpRequest =>
-    withJsonBody[TokenVerificationRequest] { request =>
-      tokenRepo.findToken(request.token) flatMap {
-        case Some(doc) => verifiedEmailRepo.insert(doc.email) map (_ => Created)
-        case None => Future.successful(BadRequest(Json.toJson(ErrorResponse("TOKEN_NOT_FOUND_OR_EXPIRED","Token not found or expired"))))
+  def validateToken() = Action.async(parse.json) {
+    def createEmailIfNotExist(email: String)(implicit hc: HeaderCarrier) =
+      verifiedEmailRepo.find(email) flatMap {
+        case Some(verifiedEmail) => Future.successful(NoContent)
+        case None => verifiedEmailRepo.insert(email) map (_ => Created)
       }
-    } recover {
-      case e: DatabaseException if e.code.contains(DuplicateValue) => NoContent
-    }
+    val tokenNotFoundOrExpiredResponse = Future.successful(BadRequest(Json.toJson(ErrorResponse("TOKEN_NOT_FOUND_OR_EXPIRED", "Token not found or expired"))))
+
+    implicit httpRequest =>
+      withJsonBody[TokenVerificationRequest] { request =>
+        tokenRepo.findToken(request.token) flatMap {
+          case Some(doc) => createEmailIfNotExist(doc.email)
+          case None => tokenNotFoundOrExpiredResponse
+        }
+      }
   }
 
   def verifiedEmail(email: String) = Action.async { implicit request =>
