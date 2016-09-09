@@ -82,21 +82,24 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     "return 201 when the token is valid" in new Setup {
       when(tokenRepoMock.findToken(someToken)).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
       when(verifiedEmailRepoMock.insert(email)).thenReturn(writeResult)
+      when(verifiedEmailRepoMock.find(email)).thenReturn(Future.successful(None))
 
       val result = await(controller.validateToken()(request.withBody(Json.obj("token" -> someToken))))
 
       status(result) shouldBe Status.CREATED
       verify(verifiedEmailRepoMock).insert(email)
+      verify(verifiedEmailRepoMock).find(email)
     }
 
-    "return 204 when the token is valid and the email war already validated" in new Setup {
+    "return 204 when the token is valid and the email was already validated" in new Setup {
       when(tokenRepoMock.findToken(someToken)).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
-      when(verifiedEmailRepoMock.insert(email)).thenReturn(Future.failed(GenericDatabaseException("", Some(DuplicateValue))))
+      when(verifiedEmailRepoMock.find(email)).thenReturn(Future.successful(Some(VerifiedEmail(email))))
 
       val result = await(controller.validateToken()(request.withBody(Json.obj("token" -> someToken))))
 
       status(result) shouldBe Status.NO_CONTENT
-      verify(verifiedEmailRepoMock).insert(email)
+      verify(verifiedEmailRepoMock).find(email)
+      verifyNoMoreInteractions(verifiedEmailRepoMock)
     }
 
     "return 400 when the token does not exist in mongo" in new Setup {

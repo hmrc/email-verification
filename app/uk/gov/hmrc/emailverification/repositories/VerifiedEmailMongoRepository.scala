@@ -46,7 +46,7 @@ abstract class VerifiedEmailMongoRepository(implicit mongo: () => DB)
   def insert(email: String)(implicit hc: HeaderCarrier): Future[WriteResult] = insert(VerifiedEmail(email))
 
   override def indexes: Seq[Index] = Seq(
-    Index(Seq("address" -> IndexType.Ascending), name = Some("addressUnique"), unique = true)
+    Index(Seq("email" -> IndexType.Ascending), name = Some("emailUnique"), unique = true)
   )
 }
 

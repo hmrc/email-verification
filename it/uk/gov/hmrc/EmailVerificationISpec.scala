@@ -56,6 +56,27 @@ class EmailVerificationISpec extends IntegrationBaseSpec with GivenWhenThen {
       appClient("/verified-email-addresses").post(Json.obj("token" -> token)).futureValue.status shouldBe 204
     }
 
+    "email verification for two different emails should be successful" in new Setup {
+      def submitVerificationRequest(emailToVerify: String, templateId: String, continueUrl: String) = {
+        val response = appClient("/verification-requests").post(verificationRequest(emailToVerify, templateId, continueUrl)).futureValue
+        response.status shouldBe 201
+        val token = decryptedToken(lastVerificationEMail)._1.get
+        And("the client verifies the token")
+        appClient("/verified-email-addresses").post(Json.obj("token" -> token)).futureValue.status shouldBe 201
+        Then("the email should be verified")
+        appClient(s"/verified-email-addresses/$emailToVerify").get().futureValue.status shouldBe 200
+      }
+
+      Given("The email service is running")
+      stubSendEmailRequest(202)
+
+      When("client submits first verification request ")
+      submitVerificationRequest("example1@domain.com", templateId, continueUrl)
+
+      When("client submits second verification request ")
+      submitVerificationRequest("example2@domain.com", templateId, continueUrl)
+    }
+
     "return 502 error if email sending fails" in new Setup {
       val body = "some-5xx-message"
       stubSendEmailRequest(500, body)
