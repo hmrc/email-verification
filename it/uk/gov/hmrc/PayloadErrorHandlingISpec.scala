@@ -11,7 +11,7 @@ class PayloadErrorHandlingISpec extends IntegrationBaseSpec with GivenWhenThen {
     "not return a BAD request when template parameters are not provided" in {
       When("a client submits a request without template parameters")
       stubSendEmailRequest(202)
-      val invalidPayloadWithMissingEmailField = Json.parse(
+      val validPayloadWithMissingTemplateParameter = Json.parse(
         """{
           |  "templateId":  "my-lovely-template",
           |  "email" : "abc@def.com",
@@ -19,7 +19,7 @@ class PayloadErrorHandlingISpec extends IntegrationBaseSpec with GivenWhenThen {
           |  "continueUrl" : "http://some/url"
           |}""".stripMargin)
 
-      val response = appClient("/verification-requests").post(invalidPayloadWithMissingEmailField).futureValue
+      val response = appClient("/verification-requests").post(validPayloadWithMissingTemplateParameter).futureValue
       response.status shouldBe 201
 
     }
