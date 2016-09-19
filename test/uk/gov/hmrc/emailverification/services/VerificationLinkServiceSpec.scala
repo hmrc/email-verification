@@ -29,7 +29,7 @@ class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
     "create encrypted verification Link" in new Setup {
       val emailToVerify = "example@domain.com"
       val templateId = "my-lovely-template"
-      val templateParams = Map("name" -> "Mr Joe Bloggs")
+      val templateParams = Some(Map("name" -> "Mr Joe Bloggs"))
       val continueUrl = "http://continue-url.com"
       val expectedExpirationTimeStamp = ""
 

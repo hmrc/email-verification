@@ -7,6 +7,23 @@ import support.IntegrationBaseSpec
 
 class PayloadErrorHandlingISpec extends IntegrationBaseSpec with GivenWhenThen {
   "request POST on an endpoint" should {
+
+    "not return a BAD request when template parameters are not provided" in {
+      When("a client submits a request without template parameters")
+      stubSendEmailRequest(202)
+      val invalidPayloadWithMissingEmailField = Json.parse(
+        """{
+          |  "templateId":  "my-lovely-template",
+          |  "email" : "abc@def.com",
+          |  "linkExpiryDuration" : "P2D",
+          |  "continueUrl" : "http://some/url"
+          |}""".stripMargin)
+
+      val response = appClient("/verification-requests").post(invalidPayloadWithMissingEmailField).futureValue
+      response.status shouldBe 201
+
+    }
+
     "return BAD REQUEST with structured error when invalid payload is sent with a required field missing" in {
       When("a client submits an invalid verification request")
 
@@ -30,7 +47,7 @@ class PayloadErrorHandlingISpec extends IntegrationBaseSpec with GivenWhenThen {
                      |}""".stripMargin).toString()
     }
 
-    "return BAD REQUEST with structured error containint all fields when invalid payload is sent with mutiple fields missing" in {
+    "return BAD REQUEST with structured error containing all fields when invalid payload is sent with multiple fields missing" in {
       When("a client submits an invalid verification request")
 
       val invalidPayloadWithMissingEmailAndTemplateIdField = Json.parse(
