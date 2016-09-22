@@ -23,7 +23,7 @@ import org.joda.time.format.ISOPeriodFormat
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.mvc._
-import uk.gov.hmrc.emailverification.connectors.EmailConnector
+import uk.gov.hmrc.emailverification.connectors.{EmailConnector, GaEvent, GaEvents, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
@@ -53,6 +53,7 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
 
   def verifiedEmailRepo: VerifiedEmailMongoRepository
 
+  def analyticsConnector: PlatformAnalyticsConnector
   def newToken(): String
 
   private def sendEmailAndCreateVerification(request: EmailVerificationRequest)(implicit hc: HeaderCarrier) = {
@@ -69,7 +70,9 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
       withJsonBody[EmailVerificationRequest] { request =>
         verifiedEmailRepo.isVerified(request.email) flatMap {
           case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY", "Email has already been verified"))))
-          case false => sendEmailAndCreateVerification(request)
+          case false =>
+            analyticsConnector.sendEvents(GaEvents.verificationRequested)
+            sendEmailAndCreateVerification(request)
         } recover {
           case ex: BadRequestException => BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
         }
@@ -87,8 +90,12 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
     implicit httpRequest =>
       withJsonBody[TokenVerificationRequest] { request =>
         tokenRepo.findToken(request.token) flatMap {
-          case Some(doc) => createEmailIfNotExist(doc.email)
-          case None => tokenNotFoundOrExpiredResponse
+          case Some(doc) =>
+            analyticsConnector.sendEvents(GaEvents.verificationSuccess)
+            createEmailIfNotExist(doc.email)
+          case None =>
+            analyticsConnector.sendEvents(GaEvents.verificationFailed)
+            tokenNotFoundOrExpiredResponse
         }
       }
   }
@@ -99,14 +106,15 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
       case None => NotFound
     }
   }
-
 }
+
 
 object EmailVerificationController extends EmailVerificationController {
   override lazy val emailConnector = EmailConnector
   override lazy val verificationLinkService = VerificationLinkService
   override lazy val tokenRepo = VerificationTokenMongoRepository()
   override lazy val verifiedEmailRepo = VerifiedEmailMongoRepository()
+  override lazy val analyticsConnector = PlatformAnalyticsConnector
 
   override def newToken() = UUID.randomUUID().toString
 }

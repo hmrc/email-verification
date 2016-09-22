@@ -12,6 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class IntegrationBaseSpec(extraConfig: Map[String, String] = Map(
   "microservice.services.email.port" -> WireMockConfig.stubPort.toString,
+  "microservice.services.platform-analytics.port" -> WireMockConfig.stubPort.toString,
   "queryParameter.encryption.key" -> "gvBoGdgzqG1AarzF1LY0zQ==",
   "mongodb.uri" -> "mongodb://localhost:27017/Test-email-verification")) extends ServiceSpec with ScalaFutures with IntegrationPatience with WireMockHelper  with BeforeAndAfterEach {
   override val server = new IntegrationServer(getClass.getSimpleName,  extraConfig)
@@ -26,6 +27,7 @@ class IntegrationBaseSpec(extraConfig: Map[String, String] = Map(
     await(tokenRepo.drop)
     await(verifiedRepo.drop)
     await(verifiedRepo.ensureIndexes)
+    AnalyticsStub.stubAnalyticsEvent()
   }
 
   override def afterAll() {

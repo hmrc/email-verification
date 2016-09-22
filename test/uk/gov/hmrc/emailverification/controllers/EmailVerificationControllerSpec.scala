@@ -27,7 +27,7 @@ import play.api.test.FakeRequest
 import reactivemongo.api.commands.{DefaultWriteResult, WriteResult}
 import reactivemongo.core.errors.GenericDatabaseException
 import uk.gov.hmrc.emailverification.MockitoSugarRush
-import uk.gov.hmrc.emailverification.connectors.EmailConnector
+import uk.gov.hmrc.emailverification.connectors.{EmailConnector, GaEvent, GaEvents, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository.DuplicateValue
 import uk.gov.hmrc.emailverification.repositories.{VerificationDoc, VerificationTokenMongoRepository, VerifiedEmail, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
@@ -52,6 +52,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       status(result) shouldBe Status.CREATED
       verify(tokenRepoMock).upsert(token, recipient, Period.days(2))
       verify(emailConnectorMock).sendEmail(recipient, templateId, params + ("verificationLink" -> verificationLink))
+      verify(analyticsConnectorMock).sendEvents(GaEvents.verificationRequested)
     }
 
     "return 400 if upstream email service returns bad request and should not create mongo entry" in new Setup {
@@ -89,6 +90,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       status(result) shouldBe Status.CREATED
       verify(verifiedEmailRepoMock).insert(email)
       verify(verifiedEmailRepoMock).find(email)
+      verify(analyticsConnectorMock).sendEvents(GaEvents.verificationSuccess)
     }
 
     "return 204 when the token is valid and the email was already validated" in new Setup {
@@ -100,6 +102,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       status(result) shouldBe Status.NO_CONTENT
       verify(verifiedEmailRepoMock).find(email)
       verifyNoMoreInteractions(verifiedEmailRepoMock)
+      verify(analyticsConnectorMock).sendEvents(GaEvents.verificationSuccess)
     }
 
     "return 400 when the token does not exist in mongo" in new Setup {
@@ -108,6 +111,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       val result = await(controller.validateToken()(request.withBody(Json.obj("token" -> someToken))))
 
       status(result) shouldBe Status.BAD_REQUEST
+      verify(analyticsConnectorMock).sendEvents(GaEvents.verificationFailed)
       verifyZeroInteractions(verifiedEmailRepoMock)
     }
   }
@@ -137,18 +141,19 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     val verificationLinkServiceMock: VerificationLinkService = mock[VerificationLinkService]
     val tokenRepoMock: VerificationTokenMongoRepository = mock[VerificationTokenMongoRepository]
     val verifiedEmailRepoMock: VerifiedEmailMongoRepository = mock[VerifiedEmailMongoRepository]
+    val analyticsConnectorMock: PlatformAnalyticsConnector = mock[PlatformAnalyticsConnector]
     val someToken = "some-token"
     val request = FakeRequest()
+
+    when(analyticsConnectorMock.sendEvents(any())(any())).thenReturn(Future.successful(()))
 
     val controller = new EmailVerificationController {
       override val emailConnector = emailConnectorMock
       override val verificationLinkService = verificationLinkServiceMock
       override val tokenRepo = tokenRepoMock
-
-      override def newToken = token
-
+      override def newToken() = token
       override def verifiedEmailRepo = verifiedEmailRepoMock
-
+      override def analyticsConnector = analyticsConnectorMock
       override implicit def hc(implicit rh: RequestHeader) = headerCarrier
     }
     val token = "theToken"
