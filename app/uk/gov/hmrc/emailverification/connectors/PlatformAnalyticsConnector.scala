@@ -53,12 +53,15 @@ trait PlatformAnalyticsConnector {
   def serviceUrl: String
   def http: WSPost
   def newUUID: String
+
   def sendEvents(events: GaEvent*)(implicit hc: HeaderCarrier): Future[Unit] = sendEvents(AnalyticsRequest(newUUID, events))
 
-  private def sendEvents(data: AnalyticsRequest)(implicit hc: HeaderCarrier): Future[Unit] = {
+  private def sendEvents(data: AnalyticsRequest)(implicit hc: HeaderCarrier) = {
     val url = s"$serviceUrl/platform-analytics/event"
-    http.POST(url, data, Seq.empty).map(_ => ()).recover {
-      case e: Exception => Logger.error(s"Couldn't send analytics event $data", e)
+    http.POST(url, data, Seq.empty).map(_ => ()).recoverWith {
+      case e: Exception =>
+        Logger.error(s"Couldn't send analytics event $data", e)
+        Future.successful(())
     }
   }
 }
