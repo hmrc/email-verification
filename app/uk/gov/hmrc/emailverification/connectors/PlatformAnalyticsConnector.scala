@@ -27,6 +27,7 @@ import uk.gov.hmrc.play.http.ws.WSPost
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.Random
 
 case class DimensionValue(index: String, value: String)
 
@@ -52,9 +53,9 @@ object GaEvents {
 trait PlatformAnalyticsConnector {
   def serviceUrl: String
   def http: WSPost
-  def newUUID: String
+  def gaClientId: String
 
-  def sendEvents(events: GaEvent*)(implicit hc: HeaderCarrier): Future[Unit] = sendEvents(AnalyticsRequest(newUUID, events))
+  def sendEvents(events: GaEvent*)(implicit hc: HeaderCarrier): Future[Unit] = sendEvents(AnalyticsRequest(gaClientId, events))
 
   private def sendEvents(data: AnalyticsRequest)(implicit hc: HeaderCarrier) = {
     val url = s"$serviceUrl/platform-analytics/event"
@@ -69,5 +70,5 @@ trait PlatformAnalyticsConnector {
 object PlatformAnalyticsConnector extends PlatformAnalyticsConnector with ServicesConfig {
   override lazy val serviceUrl = baseUrl("platform-analytics")
   override lazy val http = WSHttp
-  override def newUUID = UUID.randomUUID().toString
+  override def gaClientId = s"GA1.1.${Math.abs(Random.nextInt())}.${Math.abs(Random.nextInt())}"
 }
