@@ -45,7 +45,7 @@ Create a new verification request
 }
 ```
 
-The template identified by ```templateId``` must contain a parameter named ```verificationLink```
+The template identified by ```templateId``` must contain a parameter named ```verificationLink```. One example is `verifyEmailAddress`.
 ```linkExpiryDuration``` is the validity in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) format
 
 ### Success Response
