@@ -23,7 +23,6 @@ Preconditions:
     | Path                             | Supported Methods | Description                                               |
     |----------------------------------|-------------------|-----------------------------------------------------------|
     | /verification-requests           | POST              | Create a new verification request                         |
-    | /verified-email-addresses        | POST              | Create a new verified email address                       |
     | /verified-email-addresses/:email | GET               | Check if email address is verified                        |
 
 
@@ -63,33 +62,6 @@ The template identified by ```templateId``` must contain a parameter named ```ve
     | 400       | Bad request to email, like template not found | BAD_EMAIL_REQUEST        |
     | 500       | Unexpected error                              | UNEXPECTED_ERROR         |
     | 502       | Upstream service error                        | UPSTREAM_ERROR           |
-    
-
-## POST /verified-email-addresses
-
-Create a new verified email address
-
-**Request body**
-
-```json
-{
-  "token": "qwerty1234567890"
-}
-```
-### Success Responses
-
-    | Status    |  Description                      |
-    |-----------|-----------------------------------|
-    | 201       | Verification created successfully |
-    | 204       | Verification already existing     |
-
-### Failure Responses
-
-    | Status    |  Description                      |  Code                      |
-    |-----------|-----------------------------------|----------------------------|
-    | 400       | Token not found or expired        | TOKEN_NOT_FOUND_OR_EXPIRED |
-    | 500       | Unexpected error                  | UNEXPECTED_ERROR           |
-    | 502       | Upstream service error            | UPSTREAM_ERROR             |
 
 
 ## GET /verified-email-addresses/:email
