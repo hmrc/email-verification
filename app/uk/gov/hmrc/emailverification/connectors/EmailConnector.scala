@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.emailverification.connectors
 
-import config.WSHttp
+import config.{AppConfig, WSHttp}
 import play.api.libs.json.Json
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -29,16 +29,21 @@ object SendEmailRequest {
 }
 
 trait EmailConnector {
+  def config: AppConfig
+
   def serviceUrl: String
 
   def http: WSPost
 
   def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier) =
-    http.POST(s"$serviceUrl/send-templated-email", SendEmailRequest(Seq(to), templateId, params))
+    http.POST(s"$serviceUrl${config.path}/send-templated-email", SendEmailRequest(Seq(to), templateId, params))
 }
 
 object EmailConnector extends EmailConnector with ServicesConfig {
+  override lazy val config = AppConfig
+
   override lazy val serviceUrl = baseUrl("email")
 
   override lazy val http = WSHttp
+
 }
