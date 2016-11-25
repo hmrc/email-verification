@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.emailverification.connectors
 
+import config.AppConfig
 import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
@@ -30,7 +31,19 @@ class EmailConnectorSpec extends UnitSpec with MockitoSugarRush with ScalaFuture
 
   "requesting a token" should {
 
-    "return a valid token when logging in with a valid username and password" in new Setup {
+    "return a valid token when logging in with a valid username and password (empty path)" in new Setup {
+      when(appConfigMock.path).thenReturn("")
+      val sendEmailUrl = s"$url/send-templated-email"
+      when(httpMock.POST[SendEmailRequest, HttpResponse](eqTo(sendEmailUrl), any(), any())(any(), any(), any[HeaderCarrier])).thenReturn(Future.successful(HttpResponse(202)))
+
+      val result = await(connector.sendEmail(recipient, templateId, params))
+
+      verify(httpMock).POST(eqTo(sendEmailUrl), eqTo(SendEmailRequest(Seq(recipient), templateId, params)), any())(any(), any(), any[HeaderCarrier])
+    }
+
+    "return a valid token when logging in with a valid username and password (with path to stub)" in new Setup {
+      when(appConfigMock.path).thenReturn("/some-path-to-stub")
+      val sendEmailUrl = s"$url/some-path-to-stub/send-templated-email"
       when(httpMock.POST[SendEmailRequest, HttpResponse](eqTo(sendEmailUrl), any(), any())(any(), any(), any[HeaderCarrier])).thenReturn(Future.successful(HttpResponse(202)))
 
       val result = await(connector.sendEmail(recipient, templateId, params))
@@ -42,13 +55,15 @@ class EmailConnectorSpec extends UnitSpec with MockitoSugarRush with ScalaFuture
   sealed trait Setup {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val httpMock: WSHttp = mock[WSHttp]
+    val appConfigMock: AppConfig = mock[AppConfig]
     val url = "http://somewhere"
-    val sendEmailUrl = s"$url/send-templated-email"
     val params = Map("p1" -> "v1")
     val templateId = "my-template"
     val recipient = "user@example.com"
 
     val connector = new EmailConnector {
+      override val config = appConfigMock
+
       override val http = httpMock
 
       override val serviceUrl = url

@@ -20,11 +20,13 @@ import play.api.Play.{configuration, current}
 import uk.gov.hmrc.play.config.ServicesConfig
 
 trait AppConfig {
-  val platformFrontendHost: String
+  def platformFrontendHost: String
+  def path: String
 }
 
 object AppConfig extends AppConfig with ServicesConfig {
   override val platformFrontendHost = getConfigValueFor("platform.frontend.host")
+  override val path = getConfigValueFor("microservice.services.email.path")
 
   private def getConfigValueFor(key: String) = configuration.getString(key).getOrElse(throw new Exception(s"Missing configuration key: $key"))
 }
