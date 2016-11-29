@@ -20,6 +20,7 @@ import java.util.UUID
 
 import org.joda.time.Period
 import org.joda.time.format.ISOPeriodFormat
+import play.api.Logger
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.mvc._
@@ -74,7 +75,9 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
             analyticsConnector.sendEvents(GaEvents.verificationRequested)
             sendEmailAndCreateVerification(request)
         } recover {
-          case ex: BadRequestException => BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
+          case ex: BadRequestException =>
+            Logger.error("email-verification had a problem reading from repo", ex)
+            BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
         }
       }
   }
