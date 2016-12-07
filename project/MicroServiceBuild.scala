@@ -13,7 +13,7 @@ private object AppDependencies {
   import play.core.PlayVersion
 
   private val microserviceBootstrapVersion = "4.4.0"
-  private val playAuthVersion = "3.3.0"
+  private val playAuthVersion = "3.4.0"
   private val playHealthVersion = "1.1.0"
   private val playJsonLoggerVersion = "2.1.1"
   private val playUrlBindersVersion = "1.1.0"
@@ -42,7 +42,7 @@ private object AppDependencies {
 
   object TestDependencies {
     def apply(scope: String) = Seq(
-      "uk.gov.hmrc" %% "hmrctest" % "1.8.0" % scope,
+      "uk.gov.hmrc" %% "hmrctest" % "1.9.0" % scope,
       "org.scalatest" %% "scalatest" % "2.2.6" % scope,
       "org.pegdown" % "pegdown" % pegdownVersion % scope,
       "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
