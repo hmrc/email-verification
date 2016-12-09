@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
+import helpers.MaterializerSupport
 import org.joda.time.{DateTime, Period}
 import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito._
@@ -25,18 +26,16 @@ import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import reactivemongo.api.commands.{DefaultWriteResult, WriteResult}
-import reactivemongo.core.errors.GenericDatabaseException
 import uk.gov.hmrc.emailverification.MockitoSugarRush
-import uk.gov.hmrc.emailverification.connectors.{EmailConnector, GaEvent, GaEvents, PlatformAnalyticsConnector}
-import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository.DuplicateValue
+import uk.gov.hmrc.emailverification.connectors.{EmailConnector, GaEvents, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.repositories.{VerificationDoc, VerificationTokenMongoRepository, VerifiedEmail, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse, Upstream4xxResponse}
+import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
 
-class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication with MockitoSugarRush with ScalaFutures {
+class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication with MockitoSugarRush with ScalaFutures with MaterializerSupport {
 
   "requestVerification" should {
     "send email containing verificationLink param and return success response" in new Setup {
@@ -151,9 +150,13 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       override val emailConnector = emailConnectorMock
       override val verificationLinkService = verificationLinkServiceMock
       override val tokenRepo = tokenRepoMock
+
       override def newToken() = token
+
       override def verifiedEmailRepo = verifiedEmailRepoMock
+
       override def analyticsConnector = analyticsConnectorMock
+
       override implicit def hc(implicit rh: RequestHeader) = headerCarrier
     }
     val token = "theToken"
