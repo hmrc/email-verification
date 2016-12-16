@@ -9,48 +9,47 @@ object MicroServiceBuild extends Build with MicroService {
 
 private object AppDependencies {
 
-  import play.PlayImport._
   import play.core.PlayVersion
+  import play.sbt.PlayImport._
 
-  private val microserviceBootstrapVersion = "4.4.0"
-  private val playAuthVersion = "3.4.0"
-  private val playHealthVersion = "1.1.0"
-  private val playJsonLoggerVersion = "2.1.1"
-  private val playUrlBindersVersion = "1.1.0"
-  private val playConfigVersion = "2.1.0"
-  private val domainVersion = "3.7.0"
+  private val microserviceBootstrapVersion = "5.8.0"
+  private val playAuthVersion = "4.2.0"
+  private val playHealthVersion = "2.0.0"
+  private val logbackJsonLoggerVersion = "3.1.0"
+  private val playUrlBindersVersion = "2.0.0"
+  private val playConfigVersion = "3.0.0"
+  private val domainVersion = "4.0.0"
   private val pegdownVersion = "1.6.0"
 
-  private val playReactivemongoVersion = "4.8.0"
-  private val hmrcCryptoVersion = "3.1.0"
-  private val mongoLibsVersion = "4.8.0"
+  private val playReactivemongoVersion = "5.1.0"
+  private val hmrcCryptoVersion = "4.1.0"
+  private val mockitoVersion = "1.9.0"
 
   val compile = Seq(
     ws,
-    "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
     "uk.gov.hmrc" %% "play-authorisation" % playAuthVersion,
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
-    "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
+    "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLoggerVersion,
     "uk.gov.hmrc" %% "crypto" % hmrcCryptoVersion,
-    "uk.gov.hmrc" %% "simple-reactivemongo" % mongoLibsVersion,
-    "uk.gov.hmrc" %% "play-reactivemongo" % mongoLibsVersion
+    "uk.gov.hmrc" %% "simple-reactivemongo" % playReactivemongoVersion,
+    "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion
   )
 
 
-  object TestDependencies {
-    def apply(scope: String) = Seq(
-      "uk.gov.hmrc" %% "hmrctest" % "1.9.0" % scope,
-      "org.scalatest" %% "scalatest" % "2.2.6" % scope,
-      "org.pegdown" % "pegdown" % pegdownVersion % scope,
-      "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-      "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope,
-      "com.github.tomakehurst" % "wiremock" % "1.58" % scope
-    )
-  }
+  val test = Seq(
+    "uk.gov.hmrc" %% "hmrctest" % "2.2.0" % "test,it",
+    "org.scalatest" %% "scalatest" % "2.2.6" % "test,it",
+    "org.pegdown" % "pegdown" % pegdownVersion % "test,it",
+    "com.typesafe.play" %% "play-test" % PlayVersion.current % "test,it",
+    "uk.gov.hmrc" %% "reactivemongo-test" % "2.0.0" % "test,it",
+    "com.github.tomakehurst" % "wiremock" % "1.58" % "test,it",
+    "org.mockito" % "mockito-core" % mockitoVersion % "test,it"
+  )
 
-  def apply() = compile ++ TestDependencies("test") ++ TestDependencies("it")
+
+  def apply() = compile ++ test
 }
 

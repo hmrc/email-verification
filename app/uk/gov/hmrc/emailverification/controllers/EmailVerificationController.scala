@@ -28,7 +28,7 @@ import uk.gov.hmrc.emailverification.connectors.{EmailConnector, GaEvent, GaEven
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier}
+import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, NotFoundException}
 
 import scala.concurrent.Future
 
@@ -78,6 +78,9 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
           case ex: BadRequestException =>
             Logger.error("email-verification had a problem reading from repo", ex)
             BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
+          case ex: NotFoundException =>
+            Logger.error("email-verification had a problem, sendEmail returned not found", ex)
+            Status(BAD_GATEWAY)(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
         }
       }
   }
