@@ -34,7 +34,6 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
     "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLoggerVersion,
     "uk.gov.hmrc" %% "crypto" % hmrcCryptoVersion,
-    "uk.gov.hmrc" %% "simple-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion
   )
 
