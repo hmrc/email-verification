@@ -21,7 +21,7 @@ import org.joda.time.{DateTime, Period}
 import play.api.libs.json._
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
-import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.commands.{WriteConcern, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -42,8 +42,14 @@ abstract class VerificationTokenMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[VerificationDoc, BSONObjectID](collectionName = "verificationToken", mongo = mongo,
     domainFormat = VerificationDoc.format, idFormat = ReactiveMongoFormats.objectIdFormats) with Indexes {
 
-  def upsert(token: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[WriteResult] =
-    collection.update(Json.obj("email" -> email), VerificationDoc(email, token, dateTimeProvider().plus(validity)), upsert = true)
+  private val majority = WriteConcern.Default.copy(w = WriteConcern.Majority)
+
+  def upsert(token: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[WriteResult] = {
+    val selector = Json.obj("email" -> email)
+    val update = VerificationDoc(email, token, dateTimeProvider().plus(validity))
+
+    collection.update(selector, update, writeConcern = majority, upsert = true)
+  }
 
   def findToken(token: String)(implicit hc: HeaderCarrier): Future[Option[VerificationDoc]] = find("token" -> token).map(_.headOption)
 

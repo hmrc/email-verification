@@ -19,7 +19,7 @@ package uk.gov.hmrc.emailverification.repositories
 import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
-import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.commands.{WriteConcern, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -39,11 +39,16 @@ abstract class VerifiedEmailMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[VerifiedEmail, BSONObjectID](collectionName = "verifiedEmail", mongo = mongo,
     domainFormat = VerifiedEmail.format, idFormat = ReactiveMongoFormats.objectIdFormats) with Indexes {
 
+  private val majority = WriteConcern.Default.copy(w = WriteConcern.Majority)
+
   def isVerified(email: String)(implicit hc: HeaderCarrier) = this.find(email).map(_.isDefined)
 
   def find(email: String)(implicit hc: HeaderCarrier) = super.find("email" -> email).map(_.headOption)
 
-  def insert(email: String)(implicit hc: HeaderCarrier): Future[WriteResult] = insert(VerifiedEmail(email))
+  def insert(email: String)(implicit hc: HeaderCarrier): Future[WriteResult] = {
+    val document = VerifiedEmail(email)
+    collection.insert(document, writeConcern = majority)
+  }
 
   override def indexes: Seq[Index] = Seq(
     Index(Seq("email" -> IndexType.Ascending), name = Some("emailUnique"), unique = true)
