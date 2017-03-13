@@ -11,7 +11,7 @@ import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
 import scala.collection.JavaConverters._
 
 object EmailStub extends MockitoSugar with ShouldMatchers {
-  private val emailMatchingStrategy = urlEqualTo("/send-templated-email")
+  private val emailMatchingStrategy = urlEqualTo("/hmrc/email")
   private val emailEventStub = postRequestedFor(emailMatchingStrategy)
   private lazy val crypto = CryptoWithKeysFromConfig("queryParameter.encryption")
 

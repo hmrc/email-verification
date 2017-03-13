@@ -99,7 +99,7 @@ class PayloadErrorHandlingISpec extends IntegrationBaseSpec with GivenWhenThen {
       response.body shouldBe
         Json.parse("""{
                      |  "code":"UPSTREAM_ERROR",
-                     |  "message":"POST of 'http://localhost:11111/send-templated-email' returned 500. Response body: 'some-5xx-message'"
+                     |  "message":"POST of 'http://localhost:11111/hmrc/email' returned 500. Response body: 'some-5xx-message'"
                      |}""".stripMargin).toString()
     }
 
@@ -112,7 +112,7 @@ class PayloadErrorHandlingISpec extends IntegrationBaseSpec with GivenWhenThen {
       response.body shouldBe
         Json.parse("""{
                      |  "code":"UPSTREAM_ERROR",
-                     |  "message":"POST of 'http://localhost:11111/send-templated-email' returned 404 (Not Found). Response body: 'some-4xx-message'"
+                     |  "message":"POST of 'http://localhost:11111/hmrc/email' returned 404 (Not Found). Response body: 'some-4xx-message'"
                      |}""".stripMargin).toString()
     }
 

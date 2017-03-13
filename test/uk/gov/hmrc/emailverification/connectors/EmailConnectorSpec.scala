@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,57 +16,67 @@
 
 package uk.gov.hmrc.emailverification.connectors
 
-import config.AppConfig
 import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
+import play.api.libs.json.Writes
 import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.play.http.ws.WSHttp
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
 class EmailConnectorSpec extends UnitSpec with MockitoSugarRush with ScalaFutures {
 
-  "requesting a token" should {
+  "send email" should {
 
-    "return a valid token when logging in with a valid username and password (empty path)" in new Setup {
-      when(appConfigMock.path).thenReturn("")
-      val sendEmailUrl = s"$url/send-templated-email"
-      when(httpMock.POST[SendEmailRequest, HttpResponse](eqTo(sendEmailUrl), any(), any())(any(), any(), any[HeaderCarrier])).thenReturn(Future.successful(HttpResponse(202)))
+    "submit request to email micro service to send email and get successful response status" in new Setup {
 
+      // given
+      val endpointUrl = s"${url + path}/hmrc/email"
+      when(httpMock.POST[SendEmailRequest, HttpResponse]
+        (
+          url = eqTo(endpointUrl),
+          body = any[SendEmailRequest],
+          headers = any[Seq[(String, String)]]())
+        (
+          wts = any[Writes[SendEmailRequest]](),
+          rds = any[HttpReads[HttpResponse]](),
+          hc = any[HeaderCarrier])
+      ).thenReturn(Future.successful(HttpResponse(202)))
+
+      // when
       val result = await(connector.sendEmail(recipient, templateId, params))
 
-      verify(httpMock).POST(eqTo(sendEmailUrl), eqTo(SendEmailRequest(Seq(recipient), templateId, params)), any())(any(), any(), any[HeaderCarrier])
-    }
+      // then
+      result.status shouldBe 202
 
-    "return a valid token when logging in with a valid username and password (with path to stub)" in new Setup {
-      when(appConfigMock.path).thenReturn("/some-path-to-stub")
-      val sendEmailUrl = s"$url/some-path-to-stub/send-templated-email"
-      when(httpMock.POST[SendEmailRequest, HttpResponse](eqTo(sendEmailUrl), any(), any())(any(), any(), any[HeaderCarrier])).thenReturn(Future.successful(HttpResponse(202)))
-
-      val result = await(connector.sendEmail(recipient, templateId, params))
-
-      verify(httpMock).POST(eqTo(sendEmailUrl), eqTo(SendEmailRequest(Seq(recipient), templateId, params)), any())(any(), any(), any[HeaderCarrier])
+      // and
+      val expectedResponseBody = SendEmailRequest(Seq(recipient), templateId, params)
+      verify(httpMock).POST(
+        url = eqTo(endpointUrl),
+        body = eqTo(expectedResponseBody),
+        headers = any[Seq[(String, String)]]())(
+        wts = any[Writes[SendEmailRequest]](),
+        rds = any[HttpReads[HttpResponse]](),
+        hc = eqTo(hc))
     }
   }
 
   sealed trait Setup {
-    implicit val hc: HeaderCarrier = HeaderCarrier()
+    implicit val hc = HeaderCarrier()
     val httpMock: WSHttp = mock[WSHttp]
-    val appConfigMock: AppConfig = mock[AppConfig]
+    val path = "/some-path"
     val url = "http://somewhere"
     val params = Map("p1" -> "v1")
     val templateId = "my-template"
     val recipient = "user@example.com"
 
     val connector = new EmailConnector {
-      override val config = appConfigMock
-
+      override val servicePath = path
       override val http = httpMock
-
-      override val serviceUrl = url
+      override val baseServiceUrl = url
     }
   }
 
