@@ -12,17 +12,17 @@ private object AppDependencies {
   import play.core.PlayVersion
   import play.sbt.PlayImport._
 
-  private val microserviceBootstrapVersion = "5.8.0"
-  private val playAuthVersion = "4.2.0"
-  private val playHealthVersion = "2.0.0"
+  private val microserviceBootstrapVersion = "5.15.0"
+  private val playAuthVersion = "4.3.0"
+  private val playHealthVersion = "2.1.0"
   private val logbackJsonLoggerVersion = "3.1.0"
-  private val playUrlBindersVersion = "2.0.0"
-  private val playConfigVersion = "3.0.0"
-  private val domainVersion = "4.0.0"
+  private val playUrlBindersVersion = "2.1.0"
+  private val playConfigVersion = "4.3.0"
+  private val domainVersion = "4.1.0"
   private val pegdownVersion = "1.6.0"
 
-  private val playReactivemongoVersion = "5.1.0"
-  private val hmrcCryptoVersion = "4.1.0"
+  private val playReactivemongoVersion = "5.2.0"
+  private val hmrcCryptoVersion = "4.2.0"
   private val mockitoVersion = "1.9.0"
 
   val compile = Seq(
@@ -39,7 +39,7 @@ private object AppDependencies {
 
 
   val test = Seq(
-    "uk.gov.hmrc" %% "hmrctest" % "2.2.0" % "test,it",
+    "uk.gov.hmrc" %% "hmrctest" % "2.3.0" % "test,it",
     "org.scalatest" %% "scalatest" % "2.2.6" % "test,it",
     "org.pegdown" % "pegdown" % pegdownVersion % "test,it",
     "com.typesafe.play" %% "play-test" % PlayVersion.current % "test,it",
