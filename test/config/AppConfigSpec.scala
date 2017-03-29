@@ -17,11 +17,10 @@
 package config
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-class AppConfigSpec extends UnitSpec with WithFakeApplication{
+class AppConfigSpec extends UnitSpec with WithFakeApplication {
   "AppConfig" should {
     "be initialized with properties" in {
       AppConfig.platformFrontendHost shouldBe "http://localhost:9890"
     }
   }
-
 }
