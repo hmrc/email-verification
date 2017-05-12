@@ -3,14 +3,14 @@ package support
 import _root_.play.api.libs.json.{JsValue, Json}
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.scalatest.ShouldMatchers
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.Matchers
+import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.crypto.Crypted.fromBase64
 import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
 
 import scala.collection.JavaConverters._
 
-object EmailStub extends MockitoSugar with ShouldMatchers {
+object EmailStub extends MockitoSugar with Matchers {
   private val emailMatchingStrategy = urlEqualTo("/hmrc/email")
   private val emailEventStub = postRequestedFor(emailMatchingStrategy)
   private lazy val crypto = CryptoWithKeysFromConfig("queryParameter.encryption")
