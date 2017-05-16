@@ -18,7 +18,7 @@ package uk.gov.hmrc.emailverification.controllers
 
 import helpers.MaterializerSupport
 import org.joda.time.{DateTime, Period}
-import org.mockito.Matchers.{eq => eqTo, _}
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
