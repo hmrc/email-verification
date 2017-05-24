@@ -10,6 +10,7 @@ Users can verify the email address by clicking on the link in the email.
 
 Endpoints are provided to trigger a verification email, verify email by clicking the link and retrieve a verification status for a given email address.
 
+
 # How to build
 
 Preconditions:
