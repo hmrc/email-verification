@@ -37,7 +37,7 @@ object ForwardUrl {
     }
   }
 
-  def validate(potentialUrl: String): Either[String, ForwardUrl] = {
+  private def validate(potentialUrl: String): Either[String, ForwardUrl] = {
     def validateDomain(uri: URI): Either[String, ForwardUrl] = {
       if (whitelistedDomains.isEmpty || whitelistedDomains.contains(uri.getDomain))
         Right(ForwardUrl(uri.toString))
@@ -51,7 +51,7 @@ object ForwardUrl {
     }.getOrElse(Left("URL could not be parsed"))
   }
 
-  implicit class URIOps(uri: URI) {
+  private implicit class URIOps(uri: URI) {
     def getDomain: String = {
       val port = uri.getPort match {
         case 80 | -1 => ""
