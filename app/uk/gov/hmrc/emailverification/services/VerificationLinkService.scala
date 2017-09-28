@@ -19,9 +19,10 @@ package uk.gov.hmrc.emailverification.services
 import config.AppConfig
 import play.api.libs.json.Json
 import uk.gov.hmrc.crypto.{CryptoWithKeysFromConfig, PlainText}
+import uk.gov.hmrc.emailverification.controllers.ForwardUrl
 
 
-case class VerificationToken(token: String, continueUrl: String)
+case class VerificationToken(token: String, continueUrl: ForwardUrl)
 
 object VerificationToken {
   implicit val writes = Json.writes[VerificationToken]
@@ -31,9 +32,10 @@ trait VerificationLinkService {
   def platformFrontendHost: String
   def crypto: CryptoWithKeysFromConfig
 
-  def verificationLinkFor(token: String, continueUrl: String) = s"$platformFrontendHost/email-verification/verify?token=${encryptedVerificationToken(token, continueUrl)}"
+  def verificationLinkFor(token: String, continueUrl: ForwardUrl) =
+    s"$platformFrontendHost/email-verification/verify?token=${encryptedVerificationToken(token, continueUrl)}"
 
-  private def encryptedVerificationToken(token: String, continueUrl: String) = {
+  private def encryptedVerificationToken(token: String, continueUrl: ForwardUrl) = {
     def encrypt(value: String) = new String(crypto.encrypt(PlainText(value)).toBase64)
     def tokenAsJson = Json.toJson(VerificationToken(token, continueUrl))
     encrypt(tokenAsJson.toString())

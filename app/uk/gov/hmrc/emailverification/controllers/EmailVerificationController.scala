@@ -32,7 +32,13 @@ import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, NotFoundExcept
 
 import scala.concurrent.Future
 
-case class EmailVerificationRequest(email: String, templateId: String, templateParameters: Option[Map[String, String]], linkExpiryDuration: Period, continueUrl: ForwardUrl)
+case class EmailVerificationRequest(
+  email: String,
+  templateId: String,
+  templateParameters: Option[Map[String, String]],
+  linkExpiryDuration: Period,
+  continueUrl: ForwardUrl
+)
 
 case class TokenVerificationRequest(token: String)
 
@@ -60,7 +66,7 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
   private def sendEmailAndCreateVerification(request: EmailVerificationRequest)(implicit hc: HeaderCarrier) = {
     val token = newToken()
     val paramsWithVerificationLink = request.templateParameters.getOrElse(Map.empty) +
-      ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl.url))
+      ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
 
     for {
       _ <- emailConnector.sendEmail(request.email, request.templateId, paramsWithVerificationLink)

@@ -27,13 +27,18 @@ case class ForwardUrl(url: String)
 
 object ForwardUrl {
 
-  implicit val reads: Reads[ForwardUrl] = new Reads[ForwardUrl]() {
+  implicit val format: Format[ForwardUrl] = new Format[ForwardUrl]() {
+
     override def reads(json: JsValue): JsResult[ForwardUrl] = {
       val url = json.as[String]
       validate(url) match {
         case Left(message) => JsError(error = message)
         case Right(forwardUrl) => JsSuccess(forwardUrl)
       }
+    }
+
+    override def writes(forwardUrl: ForwardUrl): JsValue = {
+      JsString(forwardUrl.url)
     }
   }
 

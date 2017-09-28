@@ -41,7 +41,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     "send email containing verificationLink param and return success response" in new Setup {
       val verificationLink = "verificationLink"
       when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
-      when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
+      when(verificationLinkServiceMock.verificationLinkFor(token, ForwardUrl("http://some/url"))).thenReturn(verificationLink)
       when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
         .thenReturn(Future.successful(HttpResponse(202)))
       when(tokenRepoMock.upsert(any(), any(), any())(any())).thenReturn(writeResult)
@@ -57,7 +57,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     "return 400 if upstream email service returns bad request and should not create mongo entry" in new Setup {
       val verificationLink = "verificationLink"
       when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
-      when(verificationLinkServiceMock.verificationLinkFor(token, "http://some/url")).thenReturn(verificationLink)
+      when(verificationLinkServiceMock.verificationLinkFor(token, ForwardUrl("http://some/url"))).thenReturn(verificationLink)
       when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
         .thenReturn(Future.failed(new BadRequestException("Bad Request from email")))
       when(tokenRepoMock.upsert(any(), any(), any())(any())).thenReturn(writeResult)
@@ -157,15 +157,23 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
       override def analyticsConnector = analyticsConnectorMock
 
-      override implicit def hc(implicit rh: RequestHeader) = headerCarrier
+      override implicit def hc(implicit rh: RequestHeader): HeaderCarrier = headerCarrier
     }
+
     val token = "theToken"
     val templateId = "my-template"
     val recipient = "user@example.com"
     val params = Map("name" -> "Mr Joe Bloggs")
     val paramsJsonStr = Json.toJson(params).toString()
     val email = "user@email.com"
-    val writeResult: Future[WriteResult] = Future.successful(DefaultWriteResult(true, 0, Seq.empty, None, None, None))
+    val writeResult: Future[WriteResult] = Future.successful(DefaultWriteResult(
+      ok = true,
+      n = 0,
+      writeErrors = Seq.empty,
+      writeConcernError = None,
+      code = None,
+      errmsg = None
+    ))
 
     val validRequest = Json.parse(
       s"""{

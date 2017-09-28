@@ -21,6 +21,7 @@ import org.mockito.Mockito._
 import play.api.libs.json.Json
 import uk.gov.hmrc.crypto.{Crypted, CryptoWithKeysFromConfig, PlainText}
 import uk.gov.hmrc.emailverification.MockitoSugarRush
+import uk.gov.hmrc.emailverification.controllers.ForwardUrl
 import uk.gov.hmrc.play.test.UnitSpec
 
 class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
@@ -29,13 +30,13 @@ class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
       val emailToVerify = "example@domain.com"
       val templateId = "my-lovely-template"
       val templateParams = Some(Map("name" -> "Mr Joe Bloggs"))
-      val continueUrl = "http://continue-url.com"
+      val continueUrl = ForwardUrl("http://continue-url.com")
       val expectedExpirationTimeStamp = ""
 
       val jsonToken = Json.parse(
         s"""{
             |  "token":"$token",
-            |  "continueUrl": "$continueUrl"
+            |  "continueUrl": "${continueUrl.url}"
             |}""".stripMargin).toString()
       val cryptedJsonToken = Crypted(jsonToken)
       val base64CryptedJsonToken = new String(cryptedJsonToken.toBase64)
