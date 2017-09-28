@@ -16,17 +16,22 @@
 
 package config
 
-import play.api.Play.{configuration, current}
-import uk.gov.hmrc.play.config.ServicesConfig
+import play.api.Play.current
+import play.api.{Configuration, Play}
 
 trait AppConfig {
-  def platformFrontendHost: String
-  def emailServicePath: String
+  protected def config: Configuration
+
+  lazy val platformFrontendHost: String = getString("platform.frontend.host")
+  lazy val emailServicePath: String = getString("microservice.services.email.path")
+  lazy val whitelistedDomains: Set[String] = config
+    .getString("whitelisted-domains")
+    .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSet)
+    .getOrElse(Set.empty[String])
+
+  private def getString(key: String) = config.getString(key).getOrElse(throw new RuntimeException(s"Could not find config key '$key'"))
 }
 
-object AppConfig extends AppConfig with ServicesConfig {
-  override val platformFrontendHost = getConfigValueFor("platform.frontend.host")
-  override val emailServicePath = getConfigValueFor("microservice.services.email.path")
-
-  private def getConfigValueFor(key: String) = configuration.getString(key).getOrElse(throw new Exception(s"Missing configuration key: $key"))
+object AppConfig extends AppConfig {
+  override protected val config = Play.configuration
 }

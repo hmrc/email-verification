@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import org.joda.time.{DateTime, Period}
+import org.joda.time.DateTime
 import org.mockito.Mockito._
 import play.api.libs.json.Json
 import uk.gov.hmrc.crypto.{Crypted, CryptoWithKeysFromConfig, PlainText}
 import uk.gov.hmrc.emailverification.MockitoSugarRush
-import uk.gov.hmrc.emailverification.controllers.EmailVerificationRequest
+import uk.gov.hmrc.emailverification.controllers.ForwardUrl
 import uk.gov.hmrc.play.test.UnitSpec
 
 class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
@@ -30,15 +30,13 @@ class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
       val emailToVerify = "example@domain.com"
       val templateId = "my-lovely-template"
       val templateParams = Some(Map("name" -> "Mr Joe Bloggs"))
-      val continueUrl = "http://continue-url.com"
+      val continueUrl = ForwardUrl("http://continue-url.com")
       val expectedExpirationTimeStamp = ""
-
-      val verificationRequest = EmailVerificationRequest(emailToVerify, templateId, templateParams, Period.parse("P1D"), continueUrl)
 
       val jsonToken = Json.parse(
         s"""{
             |  "token":"$token",
-            |  "continueUrl": "$continueUrl"
+            |  "continueUrl": "${continueUrl.url}"
             |}""".stripMargin).toString()
       val cryptedJsonToken = Crypted(jsonToken)
       val base64CryptedJsonToken = new String(cryptedJsonToken.toBase64)
@@ -61,5 +59,4 @@ class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
       override val crypto: CryptoWithKeysFromConfig = cryptoMock
     }
   }
-
 }
