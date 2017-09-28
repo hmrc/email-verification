@@ -1,6 +1,6 @@
-package uk.gov.hmrc
+package uk.gov.hmrc.emailverification
 
-import _root_.play.api.libs.json.Json
+import play.api.libs.json.Json
 import org.scalatest.GivenWhenThen
 import support.EmailStub._
 import support.IntegrationBaseSpec

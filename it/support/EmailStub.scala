@@ -15,9 +15,9 @@ object EmailStub extends MockitoSugar with Matchers {
   private val emailEventStub = postRequestedFor(emailMatchingStrategy)
   private lazy val crypto = CryptoWithKeysFromConfig("queryParameter.encryption")
 
-  def verificationRequest(emailToVerify: String = "user@example.com",
-                          templateId: String = "my-template",
-                          continueUrl: String = "http://somewhere",
+  def verificationRequest(emailToVerify: String = "test@example.com",
+                          templateId: String = "some-template-id",
+                          continueUrl: String = "http://example.com/continue",
                           paramsJsonStr: String = "{}") =
     Json.parse(s"""{
                    |  "email": "$emailToVerify",

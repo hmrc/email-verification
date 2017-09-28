@@ -22,11 +22,16 @@ import uk.gov.hmrc.play.config.ServicesConfig
 trait AppConfig {
   def platformFrontendHost: String
   def emailServicePath: String
+  def whitelistedDomains: Set[String]
 }
 
 object AppConfig extends AppConfig with ServicesConfig {
   override val platformFrontendHost = getConfigValueFor("platform.frontend.host")
   override val emailServicePath = getConfigValueFor("microservice.services.email.path")
+  override val whitelistedDomains = configuration
+    .getString("whitelisted-domains")
+    .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSet)
+    .getOrElse(Set.empty[String])
 
   private def getConfigValueFor(key: String) = configuration.getString(key).getOrElse(throw new Exception(s"Missing configuration key: $key"))
 }
