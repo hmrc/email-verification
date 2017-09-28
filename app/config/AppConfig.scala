@@ -29,7 +29,7 @@ trait AppConfig {
     .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSet)
     .getOrElse(Set.empty[String])
 
-  protected def getString(key: String) = config.getString(key).getOrElse(throw new RuntimeException(s"Could not find config key '$key'"))
+  private def getString(key: String) = config.getString(key).getOrElse(throw new RuntimeException(s"Could not find config key '$key'"))
 }
 
 object AppConfig extends AppConfig {
