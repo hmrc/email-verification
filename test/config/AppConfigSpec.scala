@@ -15,12 +15,57 @@
  */
 
 package config
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-class AppConfigSpec extends UnitSpec with WithFakeApplication {
-  "AppConfig" should {
-    "be initialized with properties" in {
-      AppConfig.platformFrontendHost shouldBe "http://localhost:9890"
+import org.scalatest.prop.{TableDrivenPropertyChecks, Tables}
+import play.api.Configuration
+import uk.gov.hmrc.play.test.UnitSpec
+
+class AppConfigSpec extends UnitSpec {
+
+  "simple string configuration values" should {
+
+    "be available when configuration is defined" in new Setup(Map(
+      "platform.frontend.host" -> "some-host",
+      "microservice.services.email.path" -> "some-path"
+    )) {
+      appConfig.platformFrontendHost shouldBe "some-host"
+      appConfig.emailServicePath shouldBe "some-path"
+    }
+
+    "throw exceptions when configuration not defined" in new Setup() {
+      val exception1 = intercept[RuntimeException](appConfig.platformFrontendHost)
+      exception1.getMessage shouldBe s"Could not find config key 'platform.frontend.host'"
+
+      val exception2 = intercept[RuntimeException](appConfig.emailServicePath)
+      exception2.getMessage shouldBe s"Could not find config key 'microservice.services.email.path'"
+    }
+  }
+
+  "whitelistedDomains" should {
+
+    "be empty when no configuration is defined" in new Setup {
+      appConfig.whitelistedDomains shouldBe Set.empty[String]
+    }
+
+    val scenarios = Tables.Table[String, String, Set[String]](
+      ("scenario", "configuration", "expectedValue"),
+      ("be empty when configuration is empty", "", Set.empty[String]),
+      ("contain a string if defined", "example.com", Set("example.com")),
+      ("contain multiple strings when configuration is a list", "example.com,test.example.com", Set("example.com", "test.example.com")),
+      ("filter out empty string values", " ,example.com, ,, ", Set("example.com")),
+      ("trim extraneous whitespace", "     ,   ,  example.com  ,     test.example.com,    ", Set("example.com", "test.example.com"))
+    )
+
+    TableDrivenPropertyChecks.forAll(scenarios) { (scenario, configuration, expectedValue) =>
+      scenario in new Setup(Map("whitelisted-domains" -> configuration)) {
+        appConfig.whitelistedDomains shouldBe expectedValue
+      }
+    }
+  }
+
+  private class Setup(testConfig: Map[String, Any] = Map.empty, env: String = "Test") {
+    val appConfig = new AppConfig {
+      override protected lazy val config: Configuration = Configuration.from(testConfig)
     }
   }
 }
