@@ -30,10 +30,12 @@ import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, GaEvents, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.repositories.{VerificationDoc, VerificationTokenMongoRepository, VerifiedEmail, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.logging.LoggingDetails
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 
 class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication with MockitoSugarRush with ScalaFutures with MaterializerSupport {
 
@@ -42,7 +44,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       val verificationLink = "verificationLink"
       when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
       when(verificationLinkServiceMock.verificationLinkFor(token, ForwardUrl("http://some/url"))).thenReturn(verificationLink)
-      when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
+      when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HttpResponse(202)))
       when(tokenRepoMock.upsert(any(), any(), any())(any())).thenReturn(writeResult)
 
@@ -58,7 +60,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       val verificationLink = "verificationLink"
       when(verifiedEmailRepoMock.isVerified(recipient)).thenReturn(Future.successful(false))
       when(verificationLinkServiceMock.verificationLinkFor(token, ForwardUrl("http://some/url"))).thenReturn(verificationLink)
-      when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier]))
+      when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.failed(new BadRequestException("Bad Request from email")))
       when(tokenRepoMock.upsert(any(), any(), any())(any())).thenReturn(writeResult)
 
@@ -143,8 +145,9 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     val analyticsConnectorMock: PlatformAnalyticsConnector = mock[PlatformAnalyticsConnector]
     val someToken = "some-token"
     val request = FakeRequest()
+    implicit val testMdcLoggingExecutionContext: ExecutionContext = ExecutionContext.Implicits.global
 
-    when(analyticsConnectorMock.sendEvents(any())(any())).thenReturn(Future.successful(()))
+    when(analyticsConnectorMock.sendEvents(any())(any[HeaderCarrier], any[MdcLoggingExecutionContext])).thenReturn(Future.successful(()))
 
     val controller = new EmailVerificationController {
       override val emailConnector = emailConnectorMock
@@ -158,6 +161,8 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       override def analyticsConnector = analyticsConnectorMock
 
       override implicit def hc(implicit rh: RequestHeader): HeaderCarrier = headerCarrier
+
+      override protected implicit def mdcContext(implicit ld: LoggingDetails) = testMdcLoggingExecutionContext
     }
 
     val token = "theToken"

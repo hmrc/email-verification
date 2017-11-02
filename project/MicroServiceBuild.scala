@@ -14,19 +14,12 @@ private object AppDependencies {
 
   val compile = Seq(
     ws,
-    "uk.gov.hmrc" %% "crypto" % "4.4.0",
-    "uk.gov.hmrc" %% "logback-json-logger" % "3.1.0",
-    "uk.gov.hmrc" %% "microservice-bootstrap" % "5.16.0",
-    "uk.gov.hmrc" %% "play-authorisation" % "4.3.0",
-    "uk.gov.hmrc" %% "play-config" % "4.3.0",
-    "uk.gov.hmrc" %% "play-health" % "2.1.0",
-    "uk.gov.hmrc" %% "play-reactivemongo" % "5.2.0",
-    "uk.gov.hmrc" %% "play-ui" % "7.7.0"
+    "uk.gov.hmrc" %% "microservice-bootstrap" % "6.12.0",
+    "uk.gov.hmrc" %% "play-reactivemongo" % "5.2.0"
   )
 
   val test = Seq(
     "com.github.tomakehurst" % "wiremock" % "1.58" % "test,it",
-    "com.typesafe.play" %% "play-test" % PlayVersion.current % "test,it",
     "org.mockito" % "mockito-core" % "2.9.0" % "test,it",
     "org.pegdown" % "pegdown" % "1.6.0" % "test,it",
     "org.scalatest" %% "scalatest" % "3.0.0" % "test,it",
