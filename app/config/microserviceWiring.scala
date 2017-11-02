@@ -36,20 +36,23 @@ trait Hooks extends HttpHooks with HttpAuditing {
 
 trait HttpClient
   extends HttpGet
-    with WSGet
     with HttpPut
-    with WSPut
     with HttpPost
-    with WSPost
     with HttpDelete
-    with WSDelete
     with HttpPatch
+
+trait HttpClientImpl
+  extends HttpClient
+    with WSGet
+    with WSPut
+    with WSPost
+    with WSDelete
     with WSPatch
     with Hooks
     with AppName
 
-object HttpClient extends HttpClient
+object HttpClientImpl extends HttpClientImpl
 
-object MicroserviceAuthConnector extends AuthConnector with ServicesConfig with HttpClient {
+object MicroserviceAuthConnector extends AuthConnector with ServicesConfig with HttpClientImpl {
   override val authBaseUrl = baseUrl("auth")
 }

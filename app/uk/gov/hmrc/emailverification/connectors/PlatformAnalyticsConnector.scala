@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.emailverification.connectors
 
-import config.HttpClient
+import config.{HttpClient, HttpClientImpl}
 import play.api.Logger
 import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -65,6 +65,6 @@ trait PlatformAnalyticsConnector {
 
 object PlatformAnalyticsConnector extends PlatformAnalyticsConnector with ServicesConfig {
   override lazy val serviceUrl = baseUrl("platform-analytics")
-  override lazy val httpClient = HttpClient
+  override lazy val httpClient = HttpClientImpl
   override def gaClientId = s"GA1.1.${Math.abs(Random.nextInt())}.${Math.abs(Random.nextInt())}"
 }
