@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.emailverification.connectors
 
+import config.HttpClient
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Writes
 import uk.gov.hmrc.emailverification.MockitoSugarRush
-import uk.gov.hmrc.play.http.ws.WSHttp
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
 
 class EmailConnectorSpec extends UnitSpec with MockitoSugarRush with ScalaFutures {
 
@@ -43,7 +43,8 @@ class EmailConnectorSpec extends UnitSpec with MockitoSugarRush with ScalaFuture
         (
           wts = any[Writes[SendEmailRequest]](),
           rds = any[HttpReads[HttpResponse]](),
-          hc = any[HeaderCarrier])
+          hc = any[HeaderCarrier],
+          ec = any[ExecutionContext])
       ).thenReturn(Future.successful(HttpResponse(202)))
 
       // when
@@ -60,13 +61,15 @@ class EmailConnectorSpec extends UnitSpec with MockitoSugarRush with ScalaFuture
         headers = any[Seq[(String, String)]]())(
         wts = any[Writes[SendEmailRequest]](),
         rds = any[HttpReads[HttpResponse]](),
-        hc = eqTo(hc))
+        hc = eqTo(hc),
+        ec = eqTo(executionContext))
     }
   }
 
   sealed trait Setup {
     implicit val hc = HeaderCarrier()
-    val httpMock: WSHttp = mock[WSHttp]
+    implicit val executionContext = ExecutionContext.Implicits.global
+    val httpMock: HttpClient = mock[HttpClient]
     val path = "/some-path"
     val url = "http://somewhere"
     val params = Map("p1" -> "v1")
@@ -75,9 +78,8 @@ class EmailConnectorSpec extends UnitSpec with MockitoSugarRush with ScalaFuture
 
     val connector = new EmailConnector {
       override val servicePath = path
-      override val http = httpMock
+      override val httpClient = httpMock
       override val baseServiceUrl = url
     }
   }
-
 }

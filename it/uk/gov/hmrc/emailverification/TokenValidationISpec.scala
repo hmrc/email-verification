@@ -5,7 +5,7 @@ import org.scalatest.GivenWhenThen
 import support.EmailStub._
 import support.IntegrationBaseSpec
 import uk.gov.hmrc.emailverification.repositories.VerifiedEmail
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.http.HeaderCarrier
 
 class TokenValidationISpec extends IntegrationBaseSpec with GivenWhenThen {
   implicit val hc = HeaderCarrier()

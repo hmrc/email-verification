@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.emailverification.connectors
 
-import config.{AppConfig, WSHttp}
+import config.{AppConfig, HttpClient}
 import play.api.libs.json.Json
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.http.ws.WSPost
+import uk.gov.hmrc.http.HeaderCarrier
+
+import scala.concurrent.ExecutionContext
 
 case class SendEmailRequest(to: Seq[String], templateId: String, parameters: Map[String, String])
 
@@ -33,10 +34,10 @@ trait EmailConnector {
 
   def baseServiceUrl: String
 
-  def http: WSPost
+  def httpClient: HttpClient
 
-  def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier) =
-    http.POST(s"$baseServiceUrl$servicePath/hmrc/email", SendEmailRequest(Seq(to), templateId, params))
+  def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext) =
+    httpClient.POST(s"$baseServiceUrl$servicePath/hmrc/email", SendEmailRequest(Seq(to), templateId, params))
 }
 
 object EmailConnector extends EmailConnector with ServicesConfig {
@@ -44,6 +45,6 @@ object EmailConnector extends EmailConnector with ServicesConfig {
 
   override lazy val baseServiceUrl = baseUrl("email")
 
-  override lazy val http = WSHttp
+  override lazy val httpClient = HttpClient
 
 }

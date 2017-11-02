@@ -16,24 +16,20 @@
 
 package config
 
-import com.google.inject.Singleton
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import play.api._
-import play.api.http.HttpErrorHandler
 import play.api.http.Status._
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 import play.api.mvc.Results._
 import uk.gov.hmrc.emailverification.controllers.ErrorResponse
-import uk.gov.hmrc.play.audit.filters.AuditFilter
+import uk.gov.hmrc.http.{NotFoundException, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
-import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
+import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
 
 import scala.concurrent.Future
 

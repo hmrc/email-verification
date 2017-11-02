@@ -24,13 +24,14 @@ import play.api.Logger
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.mvc._
-import uk.gov.hmrc.emailverification.connectors.{EmailConnector, GaEvent, GaEvents, PlatformAnalyticsConnector}
+import uk.gov.hmrc.emailverification.connectors.{EmailConnector, GaEvents, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.http.logging.LoggingDetails
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 
 case class EmailVerificationRequest(
   email: String,
@@ -120,6 +121,8 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
       case None => NotFound
     }
   }
+
+  protected implicit def mdcContext(implicit ld : LoggingDetails): ExecutionContext = MdcLoggingExecutionContext.fromLoggingDetails
 }
 
 

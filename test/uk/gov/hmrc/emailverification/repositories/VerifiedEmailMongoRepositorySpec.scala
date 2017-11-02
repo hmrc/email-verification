@@ -22,10 +22,10 @@ import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.http.HeaderCarrier
 
 class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport with ScalaFutures with IntegrationPatience {
   val email = "user@email.com"

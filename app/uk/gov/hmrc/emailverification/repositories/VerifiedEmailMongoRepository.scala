@@ -24,10 +24,10 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{Indexes, ReactiveRepository}
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
 
 case class VerifiedEmail(email: String)
 

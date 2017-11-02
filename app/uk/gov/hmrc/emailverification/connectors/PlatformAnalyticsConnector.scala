@@ -16,17 +16,13 @@
 
 package uk.gov.hmrc.emailverification.connectors
 
-import java.util.UUID
-
-import config.WSHttp
+import config.HttpClient
 import play.api.Logger
 import play.api.libs.json.{Json, Writes}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.http.ws.WSPost
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
 case class DimensionValue(index: String, value: String)
@@ -52,14 +48,14 @@ object GaEvents {
 
 trait PlatformAnalyticsConnector {
   def serviceUrl: String
-  def http: WSPost
+  def httpClient: HttpClient
   def gaClientId: String
 
-  def sendEvents(events: GaEvent*)(implicit hc: HeaderCarrier): Future[Unit] = sendEvents(AnalyticsRequest(gaClientId, events))
+  def sendEvents(events: GaEvent*)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = sendEvents(AnalyticsRequest(gaClientId, events))
 
-  private def sendEvents(data: AnalyticsRequest)(implicit hc: HeaderCarrier) = {
+  private def sendEvents(data: AnalyticsRequest)(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
     val url = s"$serviceUrl/platform-analytics/event"
-    http.POST(url, data, Seq.empty).map(_ => ()).recoverWith {
+    httpClient.POST(url, data, Seq.empty).map(_ => ()).recoverWith {
       case e: Exception =>
         Logger.error(s"Couldn't send analytics event $data", e)
         Future.successful(())
@@ -69,6 +65,6 @@ trait PlatformAnalyticsConnector {
 
 object PlatformAnalyticsConnector extends PlatformAnalyticsConnector with ServicesConfig {
   override lazy val serviceUrl = baseUrl("platform-analytics")
-  override lazy val http = WSHttp
+  override lazy val httpClient = HttpClient
   override def gaClientId = s"GA1.1.${Math.abs(Random.nextInt())}.${Math.abs(Random.nextInt())}"
 }
