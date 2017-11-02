@@ -41,7 +41,7 @@ trait HttpClient
     with HttpDelete
     with HttpPatch
 
-trait HttpClientImpl
+trait WSHttpClient
   extends HttpClient
     with WSGet
     with WSPut
@@ -51,8 +51,8 @@ trait HttpClientImpl
     with Hooks
     with AppName
 
-object HttpClientImpl extends HttpClientImpl
+object WSHttpClient extends WSHttpClient
 
-object MicroserviceAuthConnector extends AuthConnector with ServicesConfig with HttpClientImpl {
+object MicroserviceAuthConnector extends AuthConnector with ServicesConfig with WSHttpClient {
   override val authBaseUrl = baseUrl("auth")
 }

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.emailverification.connectors
 
-import config.{AppConfig, HttpClient, HttpClientImpl}
+import config.{AppConfig, HttpClient, WSHttpClient}
 import play.api.libs.json.Json
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.http.HeaderCarrier
@@ -45,6 +45,6 @@ object EmailConnector extends EmailConnector with ServicesConfig {
 
   override lazy val baseServiceUrl = baseUrl("email")
 
-  override lazy val httpClient = HttpClientImpl
+  override lazy val httpClient = WSHttpClient
 
 }
