@@ -18,6 +18,7 @@ package uk.gov.hmrc.emailverification.controllers
 
 import java.util.UUID
 
+import config.MicroserviceAuditConnector
 import org.joda.time.Period
 import org.joda.time.format.ISOPeriodFormat
 import play.api.Logger
@@ -28,9 +29,11 @@ import uk.gov.hmrc.emailverification.connectors.{EmailConnector, GaEvents, Platf
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.http.logging.LoggingDetails
+import uk.gov.hmrc.play.audit.AuditExtensions._
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 
 case class EmailVerificationRequest(
@@ -85,6 +88,16 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
             sendEmailAndCreateVerification(request)
         } recover {
           case ex: BadRequestException =>
+            val event = ExtendedDataEvent(
+              auditSource =  "email-verification",
+              auditType = "AIV-60",
+              tags = hc.toAuditTags("requestVerification", httpRequest.path),
+              detail = Json.obj(
+                "email-address" -> request.email,
+                "email-address-hex" -> toByteString(request.email)
+              )
+            )
+            MicroserviceAuditConnector.sendExtendedEvent(event)
             Logger.error("email-verification had a problem reading from repo", ex)
             BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
           case ex: NotFoundException =>
@@ -92,6 +105,10 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
             Status(BAD_GATEWAY)(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
         }
       }
+  }
+
+  private def toByteString(data: String) : String = {
+    data.getBytes("UTF-8").map("%02x".format(_)).mkString
   }
 
   def validateToken() = Action.async(parse.json) {
