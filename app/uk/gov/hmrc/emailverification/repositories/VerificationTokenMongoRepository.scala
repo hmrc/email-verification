@@ -24,6 +24,7 @@ import reactivemongo.api.DB
 import reactivemongo.api.commands.{WriteConcern, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{Indexes, ReactiveRepository}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
