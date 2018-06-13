@@ -14,8 +14,8 @@ private object AppDependencies {
 
   val compile = Seq(
     ws,
-    "uk.gov.hmrc" %% "microservice-bootstrap" % "6.12.0",
-    "uk.gov.hmrc" %% "play-reactivemongo" % "5.2.0"
+    "uk.gov.hmrc" %% "microservice-bootstrap" % "6.18.0",
+    "uk.gov.hmrc" %% "play-reactivemongo" % "6.2.0"
   )
 
   val test = Seq(
@@ -23,8 +23,8 @@ private object AppDependencies {
     "org.mockito" % "mockito-core" % "2.9.0" % "test,it",
     "org.pegdown" % "pegdown" % "1.6.0" % "test,it",
     "org.scalatest" %% "scalatest" % "3.0.0" % "test,it",
-    "uk.gov.hmrc" %% "hmrctest" % "2.4.0" % "test,it",
-    "uk.gov.hmrc" %% "reactivemongo-test" % "2.0.0" % "test,it"
+    "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % "test,it",
+    "uk.gov.hmrc" %% "reactivemongo-test" % "3.1.0" % "test,it"
   )
 
   def apply() = compile ++ test
