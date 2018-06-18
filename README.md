@@ -47,7 +47,9 @@ Create a new verification request
 
 The template identified by ```templateId``` must contain a parameter named ```verificationLink```. One example is `verifyEmailAddress`.
 ```linkExpiryDuration``` is the validity in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) format.
-FYI, if you need to use/add a template, please speak to digital-contact team to get the templateId.
+FYI, if you need to use/add a template, please speak to digital-contact team to get the templateId. 
+
+__Please make sure that you validate your email address before making this request.__
 
 ### Success Response
 
@@ -57,13 +59,17 @@ FYI, if you need to use/add a template, please speak to digital-contact team to 
 
 ### Failure Responses
 
-    | Status    |  Description                                  |  Code                    |
-    |-----------|-----------------------------------------------|--------------------------|
-    | 400       | Invalid request                               | VALIDATION_ERROR         |
-    | 409       | Email has already been verified               | EMAIL_VERIFIED_ALREADY   |
-    | 400       | Bad request to email, like template not found | BAD_EMAIL_REQUEST        |
-    | 500       | Unexpected error                              | UNEXPECTED_ERROR         |
-    | 502       | Upstream service error                        | UPSTREAM_ERROR           |
+    | Status    |  Description                                  |  Code                    |  Note                    |
+    |-----------|-----------------------------------------------|--------------------------|--------------------------|
+    | 400       | Invalid request                               | VALIDATION_ERROR         |                          |
+    | 409       | Email has already been verified               | EMAIL_VERIFIED_ALREADY   |                          |
+    | 400       | Bad request to email, like template not found | BAD_EMAIL_REQUEST        | This can also happen if  |
+    |           |                                               |                          | the email address is not |
+    |           |                                               |                          | valid, this can include  |
+    |           |                                               |                          | leading and/or trailing  |
+    |           |                                               |                          | spaces.                  |
+    | 500       | Unexpected error                              | UNEXPECTED_ERROR         |                          |
+    | 502       | Upstream service error                        | UPSTREAM_ERROR           |                          |
 
 
 ## GET /verified-email-addresses/:email
