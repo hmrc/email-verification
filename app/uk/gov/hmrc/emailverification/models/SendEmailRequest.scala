@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package helpers
+package uk.gov.hmrc.emailverification.models
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import play.api.libs.json.Json
 
-trait MaterializerSupport {
-  implicit val system = ActorSystem("Sys")
-  implicit val materializer = ActorMaterializer()
-}
+case class SendEmailRequest(to: Seq[String], templateId: String, parameters: Map[String, String])
+object SendEmailRequest { implicit val writes = Json.writes[SendEmailRequest] }

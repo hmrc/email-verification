@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package helpers
+package uk.gov.hmrc.emailverification.models
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import play.api.libs.json.{Json, Writes}
 
-trait MaterializerSupport {
-  implicit val system = ActorSystem("Sys")
-  implicit val materializer = ActorMaterializer()
+case class AnalyticsRequest(gaClientId: String, events: Seq[GaEvent])
+
+object AnalyticsRequest {
+  implicit val writes: Writes[AnalyticsRequest] = Json.writes[AnalyticsRequest]
 }

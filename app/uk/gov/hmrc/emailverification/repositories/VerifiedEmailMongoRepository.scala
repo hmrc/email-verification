@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,28 +16,25 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import play.api.libs.json.Json
-import play.modules.reactivemongo.MongoDbConnection
-import reactivemongo.api.DB
+import javax.inject.{Inject, Singleton}
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.{WriteConcern, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.mongo.{Indexes, ReactiveRepository}
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-
-import scala.concurrent.Future
+import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class VerifiedEmail(email: String)
+import scala.concurrent.{ExecutionContext, Future}
 
-object VerifiedEmail {
-  implicit val format = Json.format[VerifiedEmail]
-}
-
-abstract class VerifiedEmailMongoRepository(implicit mongo: () => DB)
-  extends ReactiveRepository[VerifiedEmail, BSONObjectID](collectionName = "verifiedEmail", mongo = mongo,
-    domainFormat = VerifiedEmail.format, idFormat = ReactiveMongoFormats.objectIdFormats) with Indexes {
+@Singleton
+class VerifiedEmailMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec:ExecutionContext)
+  extends ReactiveRepository[VerifiedEmail, BSONObjectID](
+    collectionName = "verifiedEmail",
+    mongo = mongoComponent.mongoConnector.db,
+    domainFormat = VerifiedEmail.format,
+    idFormat = ReactiveMongoFormats.objectIdFormats) {
 
   private val majority = WriteConcern.Default.copy(w = WriteConcern.Majority)
 
@@ -53,11 +50,4 @@ abstract class VerifiedEmailMongoRepository(implicit mongo: () => DB)
   override def indexes: Seq[Index] = Seq(
     Index(Seq("email" -> IndexType.Ascending), name = Some("emailUnique"), unique = true)
   )
-}
-
-
-object VerifiedEmailMongoRepository extends MongoDbConnection {
-  private lazy val repo = new VerifiedEmailMongoRepository {}
-
-  def apply() = repo
 }

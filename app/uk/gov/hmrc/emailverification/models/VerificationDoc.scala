@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-package helpers
+package uk.gov.hmrc.emailverification.models
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import org.joda.time.DateTime
+import play.api.libs.json.Json
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-trait MaterializerSupport {
-  implicit val system = ActorSystem("Sys")
-  implicit val materializer = ActorMaterializer()
+case class VerificationDoc(email: String, token: String, expireAt: DateTime)
+
+object VerificationDoc {
+  implicit val dateTimeFormats = ReactiveMongoFormats.dateTimeFormats
+  implicit val format = Json.format[VerificationDoc]
 }

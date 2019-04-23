@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,54 +18,32 @@ package uk.gov.hmrc.emailverification.controllers
 
 import java.util.UUID
 
-import config.MicroserviceAuditConnector
-import org.joda.time.Period
-import org.joda.time.format.ISOPeriodFormat
+import config.AppConfig
+import javax.inject.Inject
 import play.api.Logger
+import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
-import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.mvc._
-import uk.gov.hmrc.emailverification.connectors.{EmailConnector, GaEvents, PlatformAnalyticsConnector}
+import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
+import uk.gov.hmrc.emailverification.models.{EmailVerificationRequest, ErrorResponse, GaEvents, TokenVerificationRequest}
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.http.logging.LoggingDetails
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.play.audit.AuditExtensions._
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException}
-import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 
-case class EmailVerificationRequest(
-  email: String,
-  templateId: String,
-  templateParameters: Option[Map[String, String]],
-  linkExpiryDuration: Period,
-  continueUrl: ForwardUrl
-)
 
-case class TokenVerificationRequest(token: String)
+class EmailVerificationController @Inject() (emailConnector: EmailConnector,
+                                             verificationLinkService: VerificationLinkService,
+                                             tokenRepo:VerificationTokenMongoRepository,
+                                             verifiedEmailRepo: VerifiedEmailMongoRepository,
+                                             analyticsConnector: PlatformAnalyticsConnector,
+                                             auditConnector: AuditConnector)(implicit ec:ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling {
 
-object EmailVerificationRequest {
-  implicit val periodReads: Reads[Period] = JsPath.read[String].map(ISOPeriodFormat.standard().parsePeriod)
-  implicit val reads = Json.reads[EmailVerificationRequest]
-}
-
-object TokenVerificationRequest {
-  implicit val reads = Json.reads[TokenVerificationRequest]
-}
-
-trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
-  def emailConnector: EmailConnector
-
-  def verificationLinkService: VerificationLinkService
-
-  def tokenRepo: VerificationTokenMongoRepository
-
-  def verifiedEmailRepo: VerifiedEmailMongoRepository
-
-  def analyticsConnector: PlatformAnalyticsConnector
-  def newToken(): String
+  def newToken() = UUID.randomUUID().toString
 
   private def sendEmailAndCreateVerification(request: EmailVerificationRequest)(implicit hc: HeaderCarrier) = {
     val token = newToken()
@@ -97,7 +75,7 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
                 "email-address-hex" -> toByteString(request.email)
               )
             )
-            MicroserviceAuditConnector.sendExtendedEvent(event)
+            auditConnector.sendExtendedEvent(event)
             Logger.error("email-verification had a problem reading from repo", ex)
             BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
           case ex: NotFoundException =>
@@ -139,16 +117,5 @@ trait EmailVerificationController extends BaseControllerWithJsonErrorHandling {
     }
   }
 
-  protected implicit def mdcContext(implicit ld : LoggingDetails): ExecutionContext = MdcLoggingExecutionContext.fromLoggingDetails
 }
 
-
-object EmailVerificationController extends EmailVerificationController {
-  override lazy val emailConnector = EmailConnector
-  override lazy val verificationLinkService = VerificationLinkService
-  override lazy val tokenRepo = VerificationTokenMongoRepository()
-  override lazy val verifiedEmailRepo = VerifiedEmailMongoRepository()
-  override lazy val analyticsConnector = PlatformAnalyticsConnector
-
-  override def newToken() = UUID.randomUUID().toString
-}

@@ -3,6 +3,7 @@ package support
 import _root_.play.api.libs.json.{JsValue, Json}
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
+import com.typesafe.config.Config
 import org.scalatest.Matchers
 import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.crypto.Crypted.fromBase64
@@ -13,7 +14,7 @@ import scala.collection.JavaConverters._
 object EmailStub extends MockitoSugar with Matchers {
   private val emailMatchingStrategy = urlEqualTo("/hmrc/email")
   private val emailEventStub = postRequestedFor(emailMatchingStrategy)
-  private lazy val crypto = CryptoWithKeysFromConfig("queryParameter.encryption")
+  private def crypto(implicit config:Config) = new CryptoWithKeysFromConfig("queryParameter.encryption", config)
 
   def verificationRequest(emailToVerify: String = "test@example.com",
                           templateId: String = "some-template-id",
@@ -36,7 +37,7 @@ object EmailStub extends MockitoSugar with Matchers {
     stubFor(post(emailMatchingStrategy).willReturn(aResponse()
       .withStatus(status)))
 
-  def verifyEmailSent(to: String, continueUrl: String, templateId: String, params: Map[String, String]): Unit = {
+  def verifyEmailSent(to: String, continueUrl: String, templateId: String, params: Map[String, String])(implicit config:Config): Unit = {
     val emailSendRequestJson = lastVerificationEMail
 
     (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
@@ -48,7 +49,7 @@ object EmailStub extends MockitoSugar with Matchers {
     token.isDefined shouldBe true
   }
 
-  def decryptedToken(emailSendRequestJson: JsValue) = {
+  def decryptedToken(emailSendRequestJson: JsValue) (implicit config:Config) = {
     val verificationLink = (emailSendRequestJson \ "parameters" \ "verificationLink").as[String]
 
     val decryptedTokenJson = decryptToJson(verificationLink.split("token=")(1))
@@ -61,7 +62,7 @@ object EmailStub extends MockitoSugar with Matchers {
     Json.parse(emailSendRequest)
   }
 
-  def decryptToJson(encrypted: String) = {
+  def decryptToJson(encrypted: String)(implicit config: Config) = {
     val base64DecodedEncrypted = fromBase64(encrypted)
     val decrypted = crypto.decrypt(base64DecodedEncrypted).value
     Json.parse(decrypted)

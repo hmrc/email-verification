@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,8 +64,6 @@ class AppConfigSpec extends UnitSpec {
   }
 
   private class Setup(testConfig: Map[String, Any] = Map.empty, env: String = "Test") {
-    val appConfig = new AppConfig {
-      override protected lazy val config: Configuration = Configuration.from(testConfig)
-    }
+    val appConfig = new AppConfig(Configuration.from(testConfig))
   }
 }

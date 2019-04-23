@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,12 @@ package uk.gov.hmrc.emailverification.repositories
 
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.core.errors.DatabaseException
-import uk.gov.hmrc.mongo.MongoSpecSupport
+import uk.gov.hmrc.emailverification.models.VerifiedEmail
+import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -99,7 +101,9 @@ class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach 
     }
   }
 
-  val repo = new VerifiedEmailMongoRepository {}
+  val repo = new VerifiedEmailMongoRepository(new ReactiveMongoComponent {
+    override def mongoConnector: MongoConnector = mongoConnectorForTest
+  })
 
   override def beforeEach() {
     super.beforeEach()

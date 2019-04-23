@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package helpers
+package uk.gov.hmrc.emailverification.models
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import play.api.libs.json.Json
 
-trait MaterializerSupport {
-  implicit val system = ActorSystem("Sys")
-  implicit val materializer = ActorMaterializer()
+case class TokenVerificationRequest(token: String)
+
+object TokenVerificationRequest {
+  implicit val reads = Json.reads[TokenVerificationRequest]
 }

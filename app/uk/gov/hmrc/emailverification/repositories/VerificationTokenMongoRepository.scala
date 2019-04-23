@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,32 +16,29 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
+import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTimeZone.UTC
 import org.joda.time.{DateTime, Period}
 import play.api.libs.json._
-import play.modules.reactivemongo.MongoDbConnection
-import reactivemongo.api.DB
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.{WriteConcern, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.mongo.{Indexes, ReactiveRepository}
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-
-import scala.concurrent.Future
+import uk.gov.hmrc.emailverification.models.VerificationDoc
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class VerificationDoc(email: String, token: String, expireAt: DateTime)
+import scala.concurrent.{ExecutionContext, Future}
 
-object VerificationDoc {
-  implicit val dateTimeFormats = ReactiveMongoFormats.dateTimeFormats
-  implicit val format = Json.format[VerificationDoc]
-}
-
-abstract class VerificationTokenMongoRepository(implicit mongo: () => DB)
-  extends ReactiveRepository[VerificationDoc, BSONObjectID](collectionName = "verificationToken", mongo = mongo,
-    domainFormat = VerificationDoc.format, idFormat = ReactiveMongoFormats.objectIdFormats) with Indexes {
+@Singleton
+class VerificationTokenMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec:ExecutionContext)
+  extends ReactiveRepository[VerificationDoc, BSONObjectID](
+    collectionName = "verificationToken",
+    mongo          = mongoComponent.mongoConnector.db,
+    domainFormat   = VerificationDoc.format,
+    idFormat       = ReactiveMongoFormats.objectIdFormats) {
 
   private val majority = WriteConcern.Default.copy(w = WriteConcern.Majority)
 
@@ -54,18 +51,12 @@ abstract class VerificationTokenMongoRepository(implicit mongo: () => DB)
 
   def findToken(token: String)(implicit hc: HeaderCarrier): Future[Option[VerificationDoc]] = find("token" -> token).map(_.headOption)
 
-  def dateTimeProvider: () => DateTime
+  def dateTimeProvider: () => DateTime = () ⇒ DateTime.now(UTC)
 
   override def indexes: Seq[Index] = Seq(
     Index(Seq("token" -> IndexType.Ascending), name = Some("tokenUnique"), unique = true),
     Index(key = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0))
   )
+
 }
 
-object VerificationTokenMongoRepository extends MongoDbConnection {
-  val DuplicateValue = 11000
-  private lazy val repo = new VerificationTokenMongoRepository {
-    override val dateTimeProvider = () => DateTime.now(UTC)
-  }
-  def apply() = repo
-}
