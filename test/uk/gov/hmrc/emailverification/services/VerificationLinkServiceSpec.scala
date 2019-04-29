@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,15 @@
 
 package uk.gov.hmrc.emailverification.services
 
+import com.typesafe.config.Config
+import config.AppConfig
 import org.joda.time.DateTime
 import org.mockito.Mockito._
+import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.crypto.{Crypted, CryptoWithKeysFromConfig, PlainText}
 import uk.gov.hmrc.emailverification.MockitoSugarRush
-import uk.gov.hmrc.emailverification.controllers.ForwardUrl
+import uk.gov.hmrc.emailverification.models.ForwardUrl
 import uk.gov.hmrc.play.test.UnitSpec
 
 class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
@@ -31,32 +34,23 @@ class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
       val templateId = "my-lovely-template"
       val templateParams = Some(Map("name" -> "Mr Joe Bloggs"))
       val continueUrl = ForwardUrl("http://continue-url.com")
-      val expectedExpirationTimeStamp = ""
 
-      val jsonToken = Json.parse(
-        s"""{
-            |  "token":"$token",
-            |  "continueUrl": "${continueUrl.url}"
-            |}""".stripMargin).toString()
-      val cryptedJsonToken = Crypted(jsonToken)
-      val base64CryptedJsonToken = new String(cryptedJsonToken.toBase64)
-
-      when(cryptoMock.encrypt(PlainText(jsonToken))).thenReturn(cryptedJsonToken)
-
-      underTest.verificationLinkFor(token, continueUrl) shouldBe s"http://tax-platform-url.url/email-verification/verify?token=$base64CryptedJsonToken"
+      val base64CryptedJsonToken = "d3Uvc3JNSFd0V0FWOEEvKzhPM0M5TTBvOXZrNURNMEgxWkV5d29JSmE4UkpuQkROdEZQcHMxUG1tN3Z3eDhPU3hUOXdCbHAyd1dWR1NIWEp1SHEyZlE9PQ=="
+      underTest.verificationLinkFor(token, continueUrl) shouldBe s"/email-verification/verify?token=$base64CryptedJsonToken"
     }
   }
 
   trait Setup {
-    val frontendUrl = "http://tax-platform-url.url"
-    val encryptedTokenData = "encryptedTokenData"
     val token = "fixedNonce"
     val fixedTime = DateTime.parse("2016-08-18T12:45:11.631+0100")
 
     val cryptoMock = mock[CryptoWithKeysFromConfig]
-    val underTest = new VerificationLinkService {
-      override val platformFrontendHost = frontendUrl
-      override val crypto: CryptoWithKeysFromConfig = cryptoMock
-    }
+    val config :Config = mock[Config]
+    val appConfig = mock[AppConfig]
+    val configuration :Configuration = mock[Configuration]
+    when(configuration.underlying) thenReturn config
+    when(config.getString("token.encryption.key")) thenReturn "gvBoGdgzqG1AarzF1LY0zQ=="
+
+    val underTest = new VerificationLinkService()(appConfig,configuration)
   }
 }

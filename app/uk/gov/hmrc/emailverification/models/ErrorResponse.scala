@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package helpers
+package uk.gov.hmrc.emailverification.models
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import play.api.libs.json.Json
 
-trait MaterializerSupport {
-  implicit val system = ActorSystem("Sys")
-  implicit val materializer = ActorMaterializer()
+case class ErrorResponse(code: String, message: String, details: Option[Map[String, String]] = None)
+
+object ErrorResponse {
+  implicit val writes = Json.writes[ErrorResponse]
 }
+

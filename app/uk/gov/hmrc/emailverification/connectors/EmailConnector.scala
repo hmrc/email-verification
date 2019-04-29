@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,35 +16,29 @@
 
 package uk.gov.hmrc.emailverification.connectors
 
-import config.{AppConfig, HttpClient, WSHttpClient}
-import play.api.libs.json.Json
-import uk.gov.hmrc.play.config.ServicesConfig
+import config.AppConfig
+import javax.inject.Inject
+import play.api.Mode.Mode
+import play.api.{Configuration, Environment}
+import uk.gov.hmrc.emailverification.models.SendEmailRequest
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext
 
-case class SendEmailRequest(to: Seq[String], templateId: String, parameters: Map[String, String])
 
-object SendEmailRequest {
-  implicit val writes = Json.writes[SendEmailRequest]
-}
+class EmailConnector @Inject() (appConfig: AppConfig,
+                                httpClient:HttpClient,
+                                environment:Environment,
+                                val runModeConfiguration:Configuration) extends ServicesConfig {
+  val servicePath: String = appConfig.emailServicePath
 
-trait EmailConnector {
-  def servicePath: String
-
-  def baseServiceUrl: String
-
-  def httpClient: HttpClient
+  val baseServiceUrl: String = baseUrl("email")
 
   def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext) =
     httpClient.POST(s"$baseServiceUrl$servicePath/hmrc/email", SendEmailRequest(Seq(to), templateId, params))
-}
 
-object EmailConnector extends EmailConnector with ServicesConfig {
-  override lazy val servicePath = AppConfig.emailServicePath
-
-  override lazy val baseServiceUrl = baseUrl("email")
-
-  override lazy val httpClient = WSHttpClient
+  override protected def mode: Mode = environment.mode
 
 }

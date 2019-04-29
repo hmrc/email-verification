@@ -4,7 +4,7 @@ import play.api.libs.json.Json
 import org.scalatest.GivenWhenThen
 import support.EmailStub._
 import support.IntegrationBaseSpec
-import uk.gov.hmrc.emailverification.repositories.VerifiedEmail
+import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import uk.gov.hmrc.http.HeaderCarrier
 
 class TokenValidationISpec extends IntegrationBaseSpec with GivenWhenThen {

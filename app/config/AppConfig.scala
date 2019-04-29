@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,10 @@
 
 package config
 
-import play.api.Play.current
-import play.api.{Configuration, Play}
+import javax.inject.Inject
+import play.api.Configuration
 
-trait AppConfig {
-  protected def config: Configuration
+class AppConfig @Inject() (val config:Configuration){
 
   lazy val platformFrontendHost: String = getString("platform.frontend.host")
   lazy val emailServicePath: String = getString("microservice.services.email.path")
@@ -32,6 +31,3 @@ trait AppConfig {
   private def getString(key: String) = config.getString(key).getOrElse(throw new RuntimeException(s"Could not find config key '$key'"))
 }
 
-object AppConfig extends AppConfig {
-  override protected val config = Play.configuration
-}

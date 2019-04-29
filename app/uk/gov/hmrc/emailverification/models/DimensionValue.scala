@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package helpers
+package uk.gov.hmrc.emailverification.models
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import play.api.libs.json.{Json, Writes}
 
-trait MaterializerSupport {
-  implicit val system = ActorSystem("Sys")
-  implicit val materializer = ActorMaterializer()
-}
+case class DimensionValue(index: String, value: String)
+object DimensionValue{ implicit val dimensionWrites: Writes[DimensionValue] = Json.writes[DimensionValue] }

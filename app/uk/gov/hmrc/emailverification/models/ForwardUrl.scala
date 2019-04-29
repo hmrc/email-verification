@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.emailverification.controllers
+package uk.gov.hmrc.emailverification.models
 
 import java.net.URI
 
-import config.AppConfig.whitelistedDomains
+import config.AppConfig
 import play.api.libs.json._
 
 import scala.util.Try
@@ -27,11 +27,11 @@ case class ForwardUrl(url: String)
 
 object ForwardUrl {
 
-  implicit val format: Format[ForwardUrl] = new Format[ForwardUrl]() {
+  implicit def format(implicit appConfig: AppConfig): Format[ForwardUrl] = new Format[ForwardUrl]() {
 
     override def reads(json: JsValue): JsResult[ForwardUrl] = {
       val url = json.as[String]
-      validate(url) match {
+      validate(url,appConfig) match {
         case Left(message) => JsError(error = message)
         case Right(forwardUrl) => JsSuccess(forwardUrl)
       }
@@ -42,9 +42,9 @@ object ForwardUrl {
     }
   }
 
-  private def validate(potentialUrl: String): Either[String, ForwardUrl] = {
+  private def validate(potentialUrl: String,appConfig: AppConfig): Either[String, ForwardUrl] = {
     def validateDomain(uri: URI): Either[String, ForwardUrl] = {
-      if (whitelistedDomains.isEmpty || whitelistedDomains.contains(uri.getDomain))
+      if (appConfig.whitelistedDomains.isEmpty || appConfig.whitelistedDomains.contains(uri.getDomain))
         Right(ForwardUrl(uri.toString))
       else
         Left("URL is not whitelisted")

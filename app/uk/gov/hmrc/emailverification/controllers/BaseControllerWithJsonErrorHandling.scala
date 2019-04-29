@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,19 +18,12 @@ package uk.gov.hmrc.emailverification.controllers
 
 import play.api.libs.json._
 import play.api.mvc.{Request, Result}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.emailverification.models.ErrorResponse
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
-
-case class ErrorResponse(val code: String,
-                         val message: String,
-                         val details: Option[Map[String, String]] = None)
-
-object ErrorResponse {
-  implicit val writes = Json.writes[ErrorResponse]
-}
 
 trait BaseControllerWithJsonErrorHandling extends BaseController {
 

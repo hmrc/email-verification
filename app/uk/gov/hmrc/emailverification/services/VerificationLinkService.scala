@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,20 +17,16 @@
 package uk.gov.hmrc.emailverification.services
 
 import config.AppConfig
+import javax.inject.Inject
+import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.crypto.{CryptoWithKeysFromConfig, PlainText}
-import uk.gov.hmrc.emailverification.controllers.ForwardUrl
+import uk.gov.hmrc.emailverification.models.{ForwardUrl, VerificationToken}
 
+class VerificationLinkService @Inject() (implicit appConfig: AppConfig,configuration: Configuration){
 
-case class VerificationToken(token: String, continueUrl: ForwardUrl)
-
-object VerificationToken {
-  implicit val writes = Json.writes[VerificationToken]
-}
-
-trait VerificationLinkService {
-  def platformFrontendHost: String
-  def crypto: CryptoWithKeysFromConfig
+  val platformFrontendHost: String     = appConfig.platformFrontendHost
+  val crypto: CryptoWithKeysFromConfig = new CryptoWithKeysFromConfig(baseConfigKey = "token.encryption",configuration.underlying)
 
   def verificationLinkFor(token: String, continueUrl: ForwardUrl) =
     s"$platformFrontendHost/email-verification/verify?token=${encryptedVerificationToken(token, continueUrl)}"
@@ -40,9 +36,5 @@ trait VerificationLinkService {
     def tokenAsJson = Json.toJson(VerificationToken(token, continueUrl))
     encrypt(tokenAsJson.toString())
   }
-}
 
-object VerificationLinkService extends VerificationLinkService {
-  override lazy val platformFrontendHost = AppConfig.platformFrontendHost
-  override lazy val crypto = CryptoWithKeysFromConfig(baseConfigKey = "token.encryption")
 }

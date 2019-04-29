@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,28 @@ package uk.gov.hmrc.emailverification.repositories
 
 import org.joda.time.{DateTime, DateTimeZone, Period}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.bson.BSONDocument
-import uk.gov.hmrc.mongo.MongoSpecSupport
+import uk.gov.hmrc.emailverification.models.VerificationDoc
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.http.HeaderCarrier
 
 class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport {
+
+  def now = DateTime.now(DateTimeZone.UTC)
+
+  val repo = new VerificationTokenMongoRepository(new ReactiveMongoComponent {
+    override def mongoConnector: MongoConnector = mongoConnectorForTest
+  }){
+    override def dateTimeProvider: () ⇒ DateTime = () ⇒ now
+  }
+
+
   val token = "theToken"
   val email = "user@email.com"
   implicit val hc = HeaderCarrier()
@@ -39,12 +51,12 @@ class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterE
       val token1 = token + "1"
 
       await(repo.upsert(token1, email, Period.minutes(10)))
-      await(repo.findAll()) shouldBe Seq(VerificationDoc(email, token1, now.plusMinutes(10)))
+      await(repo.findAll()) === Seq(VerificationDoc(email, token1, now.plusMinutes(10)))
 
       val token2 = token + "2"
 
       await(repo.upsert(token2, email, Period.minutes(10)))
-      await(repo.findAll()) shouldBe Seq(VerificationDoc(email, token2, now.plusMinutes(10)))
+      await(repo.findAll()) === Seq(VerificationDoc(email, token2, now.plusMinutes(10)))
     }
   }
 
@@ -52,11 +64,11 @@ class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterE
     "return the verification document" in {
       await(repo.upsert(token, email, Period.minutes(10)))
 
-      await(repo.findToken(token)) shouldBe Some(VerificationDoc(email, token, now.plusMinutes(10)))
+      await(repo.findToken(token)) === Some(VerificationDoc(email, token, now.plusMinutes(10)))
     }
 
     "return None whet token does not exist or has expired" in {
-      await(repo.findToken(token)) shouldBe None
+      await(repo.findToken(token)) === None
     }
   }
 
@@ -72,11 +84,6 @@ class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterE
     }
   }
 
-  val now = DateTime.now(DateTimeZone.UTC)
-
-  lazy val repo = new VerificationTokenMongoRepository {
-    override val dateTimeProvider = () => now
-  }
 
   override def beforeEach() {
     super.beforeEach()
