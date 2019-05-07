@@ -20,6 +20,23 @@ trait MicroService {
   lazy val plugins : Seq[Plugins] = Seq.empty
   lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
+  private lazy val scoverageSettings = {
+
+    import scoverage._
+
+    Seq(
+      ScoverageKeys.coverageExcludedPackages :=
+        """<empty>;
+          |Reverse.*;
+          |.*BuildInfo.*;
+          |.*Routes.*;
+          |.*RoutesPrefix.*;""".stripMargin,
+      ScoverageKeys.coverageMinimum := 80,
+      ScoverageKeys.coverageFailOnMinimum := false,
+      ScoverageKeys.coverageHighlighting := true,
+      ScoverageKeys.coverageEnabled := true
+    )
+  }
 
   lazy val microservice = Project(appName, file("."))
 
@@ -29,6 +46,7 @@ trait MicroService {
     .settings(scalaSettings: _*)
     .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
+    .settings(scoverageSettings: _*)
     .settings(
       libraryDependencies ++= appDependencies,
       retrieveManaged := true,
