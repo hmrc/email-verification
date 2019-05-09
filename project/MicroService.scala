@@ -42,11 +42,10 @@ trait MicroService {
 
     .enablePlugins(Seq(play.sbt.PlayScala,SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory) ++ plugins : _*)
     .settings(majorVersion := 0)
-    .settings(playSettings : _*)
+    .settings(playSettings ++ scoverageSettings: _*)
     .settings(scalaSettings: _*)
     .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
-    .settings(scoverageSettings: _*)
     .settings(
       libraryDependencies ++= appDependencies,
       retrieveManaged := true,
