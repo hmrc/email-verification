@@ -33,8 +33,7 @@ trait MicroService {
           |.*RoutesPrefix.*;""".stripMargin,
       ScoverageKeys.coverageMinimum := 80,
       ScoverageKeys.coverageFailOnMinimum := false,
-      ScoverageKeys.coverageHighlighting := true,
-      ScoverageKeys.coverageEnabled := true
+      ScoverageKeys.coverageHighlighting := true
     )
   }
 
