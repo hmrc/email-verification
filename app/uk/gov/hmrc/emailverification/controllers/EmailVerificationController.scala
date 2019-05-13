@@ -25,7 +25,7 @@ import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
-import uk.gov.hmrc.emailverification.models.{EmailVerificationRequest, ErrorResponse, GaEvents, TokenVerificationRequest}
+import uk.gov.hmrc.emailverification.models.{EmailVerificationRequest, ErrorResponse, GaEvents, TokenVerificationRequest, VerifiedEmail}
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException}
@@ -110,7 +110,18 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
       }
   }
 
-  def verifiedEmail(email: String) = Action.async { implicit request =>
+  def verifiedEmail() = Action.async(parse.json) { implicit request =>
+    withJsonBody[VerifiedEmail] { verifiedEmail =>
+      verifiedEmailRepo.find(verifiedEmail.email).map {
+        case Some(email) => Ok(toJson(email))
+        case None => NotFound
+      }
+    }
+
+  }
+
+  @deprecated("use POST  /verified-email-check")
+  def getVerifiedEmail(email: String) = Action.async { implicit request =>
     verifiedEmailRepo.find(email).map {
       case Some(verifiedEmail) => Ok(toJson(verifiedEmail))
       case None => NotFound

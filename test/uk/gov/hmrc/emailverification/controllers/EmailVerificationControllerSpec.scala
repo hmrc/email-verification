@@ -133,7 +133,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
   "verifiedEmail" should {
     "return 200 with verified email in the body" in new Setup {
       when(verifiedEmailRepoMock.find(EQ(email))(any())).thenReturn(Future.successful(Some(VerifiedEmail(email))))
-      val response = controller.verifiedEmail(email)(request).futureValue
+      val response = controller.getVerifiedEmail(email)(request).futureValue
       status(response) shouldBe 200
       jsonBodyOf(response).as[VerifiedEmail] shouldBe VerifiedEmail(email)
       verify(verifiedEmailRepoMock).find(EQ(email))(any())
@@ -142,7 +142,26 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
 
     "return 404 if email not found" in new Setup {
       when(verifiedEmailRepoMock.find(EQ(email))(any())).thenReturn(Future.successful(None))
-      val response = controller.verifiedEmail(email)(request).futureValue
+      val response = controller.getVerifiedEmail(email)(request).futureValue
+      status(response) shouldBe 404
+      verify(verifiedEmailRepoMock).find(EQ(email))(any())
+      verifyNoMoreInteractions(verifiedEmailRepoMock)
+    }
+  }
+
+  "verifiedEmail(Post)" should {
+    "return 200 with verified email in the body" in new Setup {
+      when(verifiedEmailRepoMock.find(EQ(email))(any())).thenReturn(Future.successful(Some(VerifiedEmail(email))))
+      val response = controller.verifiedEmail()(request.withBody(Json.obj("email" -> email)))
+      status(response) shouldBe 200
+      jsonBodyOf(response).as[VerifiedEmail] shouldBe VerifiedEmail(email)
+      verify(verifiedEmailRepoMock).find(EQ(email))(any())
+      verifyNoMoreInteractions(verifiedEmailRepoMock)
+    }
+
+    "return 404 if email not found" in new Setup {
+      when(verifiedEmailRepoMock.find(EQ(email))(any())).thenReturn(Future.successful(None))
+      val response = controller.verifiedEmail()(request.withBody(Json.obj("email" -> email)))
       status(response) shouldBe 404
       verify(verifiedEmailRepoMock).find(EQ(email))(any())
       verifyNoMoreInteractions(verifiedEmailRepoMock)

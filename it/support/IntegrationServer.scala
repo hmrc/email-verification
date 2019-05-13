@@ -9,4 +9,6 @@ class IntegrationServer(val testName: String, extraConfig: Map[String, String]) 
   override val externalServices = Seq.empty
   override def additionalConfig = extraConfig
   override val startTimeout = 180.seconds
+  override def stop = ()
+
 }
