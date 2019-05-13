@@ -78,6 +78,14 @@ __Please make sure that you validate your email address before making this reque
 
 Check if email address is verified or not, if verified return 200 with the email.
 
+**Request body**
+
+```json
+{
+  "email": "some.email.address@yahoo.co.uk"
+}
+```
+
 ### Success Response
 
     | Status    |  Description                      |
