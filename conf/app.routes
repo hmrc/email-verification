@@ -2,4 +2,7 @@
 
 POST        /verification-requests                  uk.gov.hmrc.emailverification.controllers.EmailVerificationController.requestVerification
 POST        /verified-email-addresses               uk.gov.hmrc.emailverification.controllers.EmailVerificationController.validateToken
+POST        /verified-email-check                   uk.gov.hmrc.emailverification.controllers.EmailVerificationController.getVerifiedEmail
+
 GET         /verified-email-addresses/:email        uk.gov.hmrc.emailverification.controllers.EmailVerificationController.verifiedEmail(email : String)
+
