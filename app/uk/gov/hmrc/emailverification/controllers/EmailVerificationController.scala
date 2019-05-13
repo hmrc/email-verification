@@ -110,7 +110,7 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
       }
   }
 
-  def getVerifiedEmail() = Action.async(parse.json) { implicit request =>
+  def verifiedEmail() = Action.async(parse.json) { implicit request =>
     withJsonBody[VerifiedEmail] { verifiedEmail =>
       verifiedEmailRepo.find(verifiedEmail.email).map {
         case Some(email) => Ok(toJson(email))
@@ -121,7 +121,7 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
   }
 
   @deprecated("use POST  /verified-email-check")
-  def verifiedEmail(email: String) = Action.async { implicit request =>
+  def getVerifiedEmail(email: String) = Action.async { implicit request =>
     verifiedEmailRepo.find(email).map {
       case Some(verifiedEmail) => Ok(toJson(verifiedEmail))
       case None => NotFound
