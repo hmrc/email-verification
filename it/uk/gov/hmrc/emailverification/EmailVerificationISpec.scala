@@ -64,7 +64,7 @@ class EmailVerificationISpec extends IntegrationBaseSpec with GivenWhenThen {
         And("the client verifies the token")
         appClient("/verified-email-addresses").post(Json.obj("token" -> token)).futureValue.status shouldBe 201
         Then("the email should be verified")
-        appClient(s"/verified-email-addresses/$emailToVerify").get().futureValue.status shouldBe 200
+        appClient(s"/verified-email-check").post(Json.obj("email" -> emailToVerify)).futureValue.status shouldBe 200
       }
 
       Given("The email service is running")

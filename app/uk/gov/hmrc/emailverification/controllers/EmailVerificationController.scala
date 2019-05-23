@@ -120,13 +120,5 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
 
   }
 
-  @deprecated("use POST  /verified-email-check")
-  def getVerifiedEmail(email: String) = Action.async { implicit request =>
-    verifiedEmailRepo.find(email).map {
-      case Some(verifiedEmail) => Ok(toJson(verifiedEmail))
-      case None => NotFound
-    }
-  }
-
 }
 
