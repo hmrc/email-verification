@@ -51,7 +51,6 @@ class TokenValidationISpec extends IntegrationBaseSpec with GivenWhenThen {
     }
   }
 
-  // We have sperated this in two should block because combining them was failing. Couldn't find a cause.
   it should {
     "return verified email if it exist" in {
       Given("a verified email already exist")
@@ -60,7 +59,7 @@ class TokenValidationISpec extends IntegrationBaseSpec with GivenWhenThen {
       appClient("/verified-email-addresses").post(Json.obj("token" -> token)).futureValue
 
       When("an email is checked if it is verified")
-      val response = appClient(s"/verified-email-addresses/$email").get().futureValue
+      val response = appClient(s"/verified-email-check").post(Json.obj("email" -> "user@email.com")).futureValue
 
       Then("email resource is returned")
       response.status shouldBe 200
