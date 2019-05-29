@@ -26,8 +26,6 @@ Preconditions:
     | /verification-requests           | POST              | Create a new verification request                         |
     | /verified-email-check            | POST              | Check if email address is verified                        |
     
-    | /verified-email-addresses/:email | GET               | Check if email address is verified(deprecated)            |
-
 
 ## POST /verification-requests
 
@@ -107,35 +105,6 @@ Check if email address is verified or not, if verified return 200 with the email
   "email": "some.email.address@yahoo.co.uk"
 }
 ```
-   
-    
-deprecated
-## GET /verified-email-addresses/:email
-
-Check if email address is verified
-
-### Success Response
-
-    | Status    |  Description                      |
-    |-----------|-----------------------------------|
-    | 200       | Email is verified                 |
-
-### Failure Responses
-
-    | Status    |  Description                      |  Code                            |
-    |-----------|-----------------------------------|----------------------------------|
-    | 404       | Email not found / not verified    | EMAIL_NOT_FOUND_OR_NOT_VERIFIED  |
-    | 500       | Unexpected error                  | UNEXPECTED_ERROR                 |
-    | 502       | Upstream service error            | UPSTREAM_ERROR                   |
-
-**Response body**
-
-```json
-{
-  "email": "some.email.address@yahoo.co.uk"
-}
-```
-
 
 
 ## Error response payload structure
