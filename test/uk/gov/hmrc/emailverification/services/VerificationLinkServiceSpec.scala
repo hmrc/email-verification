@@ -18,6 +18,7 @@ package uk.gov.hmrc.emailverification.services
 
 import com.typesafe.config.Config
 import config.AppConfig
+import helpers.TestSupport
 import org.joda.time.DateTime
 import org.mockito.Mockito._
 import play.api.Configuration
@@ -25,9 +26,8 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.crypto.{Crypted, CryptoWithKeysFromConfig, PlainText}
 import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.models.ForwardUrl
-import uk.gov.hmrc.play.test.UnitSpec
 
-class VerificationLinkServiceSpec extends UnitSpec with MockitoSugarRush {
+class VerificationLinkServiceSpec extends TestSupport with MockitoSugarRush {
   "createVerificationLink" should {
     "create encrypted verification Link" in new Setup {
       val emailToVerify = "example@domain.com"

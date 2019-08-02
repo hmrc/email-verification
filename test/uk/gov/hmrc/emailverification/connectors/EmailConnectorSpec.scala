@@ -17,7 +17,8 @@
 package uk.gov.hmrc.emailverification.connectors
 
 import config.AppConfig
-import org.mockito.ArgumentMatchers.{eq ⇒ eqTo, _}
+import helpers.TestSupport
+import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import play.api.{Configuration, Environment}
@@ -26,11 +27,10 @@ import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.models.SendEmailRequest
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class EmailConnectorSpec extends UnitSpec with MockitoSugarRush with ScalaFutures {
+class EmailConnectorSpec extends TestSupport with MockitoSugarRush with ScalaFutures {
 
   "send email" should {
 
