@@ -17,7 +17,6 @@
 package uk.gov.hmrc.emailverification.controllers
 
 import config.AppConfig
-import helpers.MaterializerSupport
 import org.joda.time.{DateTime, Period}
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{eq ⇒ EQ, _}
@@ -35,11 +34,11 @@ import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import helpers.TestSupport
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication with MockitoSugarRush with ScalaFutures with MaterializerSupport {
+class EmailVerificationControllerSpec extends TestSupport with MockitoSugarRush with ScalaFutures {
 
   "requestVerification" should {
     "send email containing verificationLink param and return success response" in new Setup {
@@ -93,7 +92,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       when(verifiedEmailRepoMock.insert(EQ(email))(any())).thenReturn(writeResult)
       when(verifiedEmailRepoMock.find(EQ(email))(any())).thenReturn(Future.successful(None))
 
-      val result = await(controller.validateToken()(request.withBody(Json.obj("token" -> someToken))))
+      val result = controller.validateToken()(request.withBody(Json.obj("token" -> someToken)))
 
       status(result) shouldBe Status.CREATED
       verify(verifiedEmailRepoMock).insert(EQ(email))(any())
@@ -107,7 +106,7 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
       when(tokenRepoMock.findToken(EQ(someToken))(any())).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
       when(verifiedEmailRepoMock.find(EQ(email))(any())).thenReturn(Future.successful(Some(VerifiedEmail(email))))
 
-      val result = await(controller.validateToken()(request.withBody(Json.obj("token" -> someToken))))
+      val result = controller.validateToken()(request.withBody(Json.obj("token" -> someToken)))
 
       status(result) shouldBe Status.NO_CONTENT
       verify(verifiedEmailRepoMock).find(EQ(email))(any())
@@ -158,7 +157,6 @@ class EmailVerificationControllerSpec extends UnitSpec with WithFakeApplication 
     val analyticsConnectorMock: PlatformAnalyticsConnector = mock[PlatformAnalyticsConnector]
     val someToken = "some-token"
     val request = FakeRequest()
-    implicit val testMdcLoggingExecutionContext: ExecutionContext = ExecutionContext.Implicits.global
     implicit val appConfigMock : AppConfig = mock[AppConfig]
     val auditConnector = mock[AuditConnector]
 

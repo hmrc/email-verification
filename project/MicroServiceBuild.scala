@@ -13,7 +13,7 @@ private object AppDependencies {
 
   val compile = Seq(
     ws,
-    "uk.gov.hmrc" %% "bootstrap-play-25" % "4.12.0",
+    "uk.gov.hmrc" %% "bootstrap-play-25" % "4.13.0",
     "uk.gov.hmrc" %% "simple-reactivemongo" % "7.20.0-play-25"
   )
 
@@ -23,7 +23,7 @@ private object AppDependencies {
     "org.mockito" % "mockito-core" % "2.27.0" % "test,it",
     "org.pegdown" % "pegdown" % "1.6.0" % "test,it",
     "org.scalatest" %% "scalatest" % "3.0.7" % "test,it",
-    "uk.gov.hmrc" %% "hmrctest" % "3.8.0-play-25" % "test,it",
+    "uk.gov.hmrc" %% "service-integration-test" % "0.9.0-play-25" % "test,it",
     "uk.gov.hmrc" %% "reactivemongo-test" % "4.14.0-play-25" % "test,it"
   )
 

@@ -18,9 +18,9 @@ package config
 
 import org.scalatest.prop.{TableDrivenPropertyChecks, Tables}
 import play.api.Configuration
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{Matchers, WordSpec}
 
-class AppConfigSpec extends UnitSpec {
+class AppConfigSpec extends WordSpec with Matchers {
 
   "simple string configuration values" should {
 

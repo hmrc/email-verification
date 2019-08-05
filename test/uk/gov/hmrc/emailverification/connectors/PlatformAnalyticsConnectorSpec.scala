@@ -18,7 +18,8 @@ package uk.gov.hmrc.emailverification.connectors
 
 
 import ch.qos.logback.classic.Level
-import org.mockito.ArgumentMatchers.{eq ⇒ eqTo, _}
+import helpers.{TestSupport, LogCapturing}
+import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.LoneElement
 import org.scalatest.concurrent.Eventually
@@ -30,11 +31,10 @@ import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.emailverification.models.{AnalyticsRequest, GaEvent}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.test.{LogCapturing, UnitSpec}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class PlatformAnalyticsConnectorSpec extends UnitSpec with MockitoSugar with LogCapturing with LoneElement with Eventually {
+class PlatformAnalyticsConnectorSpec extends TestSupport with MockitoSugar with LogCapturing with LoneElement with Eventually {
 
   "sendEvents" should {
 
