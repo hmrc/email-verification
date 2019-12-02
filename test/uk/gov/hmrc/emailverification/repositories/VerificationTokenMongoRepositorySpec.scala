@@ -88,6 +88,7 @@ class VerificationTokenMongoRepositorySpec extends TestSupport with BeforeAndAft
   override def beforeEach() {
     super.beforeEach()
     await(repo.drop)
+    ()
   }
 
   override protected def afterAll() {

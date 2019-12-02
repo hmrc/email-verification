@@ -5,7 +5,7 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.typesafe.config.Config
 import org.scalatest.{Assertion, Matchers}
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.crypto.Crypted.fromBase64
 import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
 

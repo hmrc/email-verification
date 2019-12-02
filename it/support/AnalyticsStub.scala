@@ -1,7 +1,7 @@
 package support
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 
 object AnalyticsStub extends MockitoSugar {
   private val analyticsMatchingStrategy = urlEqualTo("/platform-analytics/event")

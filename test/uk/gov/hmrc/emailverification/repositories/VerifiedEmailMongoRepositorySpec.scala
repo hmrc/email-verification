@@ -108,6 +108,7 @@ class VerifiedEmailMongoRepositorySpec extends TestSupport with BeforeAndAfterEa
   override def beforeEach() {
     super.beforeEach()
     await(repo.drop)
+    ()
   }
 
   override protected def afterAll() {
