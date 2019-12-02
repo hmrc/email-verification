@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.emailverification.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OWrites}
 
 case class ErrorResponse(code: String, message: String, details: Option[Map[String, String]] = None)
 
 object ErrorResponse {
-  implicit val writes = Json.writes[ErrorResponse]
+  implicit val writes: OWrites[ErrorResponse] = Json.writes[ErrorResponse]
 }
 

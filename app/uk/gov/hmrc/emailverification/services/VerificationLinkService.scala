@@ -19,7 +19,7 @@ package uk.gov.hmrc.emailverification.services
 import config.AppConfig
 import javax.inject.Inject
 import play.api.Configuration
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.crypto.{CryptoWithKeysFromConfig, PlainText}
 import uk.gov.hmrc.emailverification.models.{ForwardUrl, VerificationToken}
 
@@ -31,9 +31,9 @@ class VerificationLinkService @Inject() (implicit appConfig: AppConfig,configura
   def verificationLinkFor(token: String, continueUrl: ForwardUrl) =
     s"$platformFrontendHost/email-verification/verify?token=${encryptedVerificationToken(token, continueUrl)}"
 
-  private def encryptedVerificationToken(token: String, continueUrl: ForwardUrl) = {
+  private def encryptedVerificationToken(token: String, continueUrl: ForwardUrl): String = {
     def encrypt(value: String) = new String(crypto.encrypt(PlainText(value)).toBase64)
-    def tokenAsJson = Json.toJson(VerificationToken(token, continueUrl))
+    def tokenAsJson: JsValue = Json.toJson(VerificationToken(token, continueUrl))
     encrypt(tokenAsJson.toString())
   }
 

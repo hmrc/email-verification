@@ -65,7 +65,7 @@ object ForwardUrl {
       s"${uri.getHost}$port"
     }
 
-    def hasHost = {
+    def hasHost: Boolean = {
       uri.getHost != null
     }
   }

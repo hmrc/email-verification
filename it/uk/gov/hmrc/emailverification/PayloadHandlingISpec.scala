@@ -1,7 +1,7 @@
 package uk.gov.hmrc.emailverification
 
 import play.api.http.Status._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import support.EmailStub._
 import support.ConfigHelper.payloadHandlingConfig
 import support.BaseISpec
@@ -22,7 +22,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
 
     "return CREATED when template parameters are not provided" in new Setup {
       stubSendEmailRequest(ACCEPTED)
-      val validPayloadWithMissingTemplateParameter = validPayload - "templateParameters"
+      val validPayloadWithMissingTemplateParameter: JsObject = validPayload - "templateParameters"
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(validPayloadWithMissingTemplateParameter))
@@ -33,7 +33,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
 
     "return CREATED when continueUrl is relative" in new Setup {
       stubSendEmailRequest(ACCEPTED)
-      val validPayloadWithRelativeContinueUrl = validPayload ++ Json.obj("continueUrl" -> "/continue")
+      val validPayloadWithRelativeContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "/continue")
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(validPayloadWithRelativeContinueUrl))
@@ -44,7 +44,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
 
     "return CREATED when continueUrl is protocol-relative and whitelisted" in new Setup {
       stubSendEmailRequest(ACCEPTED)
-      val validPayloadWithRelativeContinueUrl = validPayload ++ Json.obj("continueUrl" -> "//example.com/continue")
+      val validPayloadWithRelativeContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "//example.com/continue")
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(validPayloadWithRelativeContinueUrl))
@@ -54,7 +54,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
     }
 
     "return BAD_REQUEST with structured error when continueUrl is absolute but not whitelisted" in new Setup {
-      val validPayloadWithUnwhitelistedContinueUrl = validPayload ++ Json.obj("continueUrl" -> "http://hackers.ru/continue")
+      val validPayloadWithUnwhitelistedContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "http://hackers.ru/continue")
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(validPayloadWithUnwhitelistedContinueUrl))
@@ -73,7 +73,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
     }
 
     "return BAD_REQUEST with structured error when continueUrl is protocol-relative but not whitelisted" in new Setup {
-      val validPayloadWithUnwhitelistedContinueUrl = validPayload ++ Json.obj("continueUrl" -> "//hackers.ru/continue")
+      val validPayloadWithUnwhitelistedContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "//hackers.ru/continue")
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(validPayloadWithUnwhitelistedContinueUrl))
@@ -92,7 +92,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
     }
 
     "return BAD_REQUEST with structured error when continueUrl is not a valid URL" in new Setup {
-      val validPayloadWithInvalidContinueUrl = validPayload ++ Json.obj("continueUrl" -> "not-a-valid-url-$#$#$")
+      val validPayloadWithInvalidContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "not-a-valid-url-$#$#$")
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(validPayloadWithInvalidContinueUrl))
@@ -111,7 +111,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
     }
 
     "return BAD_REQUEST with structured error when invalid payload is sent with a required field missing" in new Setup {
-      val invalidPayloadWithMissingEmailField = validPayload - "email"
+      val invalidPayloadWithMissingEmailField: JsObject = validPayload - "email"
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(invalidPayloadWithMissingEmailField))
@@ -130,7 +130,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
     }
 
     "return BAD_REQUEST with structured error containing all fields when invalid payload is sent with multiple fields missing" in new Setup {
-      val invalidPayloadWithMissingEmailAndTemplateIdField = (validPayload - "email") - "templateId"
+      val invalidPayloadWithMissingEmailAndTemplateIdField: JsObject = (validPayload - "email") - "templateId"
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(invalidPayloadWithMissingEmailAndTemplateIdField))
@@ -150,7 +150,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
     }
 
     "return BAD_REQUEST with structured error when invalid payload is sent with invalid linkExpiryDuration" in new Setup {
-      val invalidPayloadWithMissingEmailField = validPayload ++ Json.obj("linkExpiryDuration" -> "XXX")
+      val invalidPayloadWithMissingEmailField: JsObject = validPayload ++ Json.obj("linkExpiryDuration" -> "XXX")
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(invalidPayloadWithMissingEmailField))
@@ -218,7 +218,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
   }
 
   trait Setup {
-    val validPayload = Json.obj(
+    val validPayload: JsObject = Json.obj(
       "templateId" -> "some-template-id",
       "email" -> "abc@def.com",
       "templateParameters" -> Json.obj(),

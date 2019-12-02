@@ -21,7 +21,7 @@ import java.util.UUID
 import config.AppConfig
 import javax.inject.Inject
 import play.api.Logger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
@@ -43,7 +43,7 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
                                              analyticsConnector: PlatformAnalyticsConnector,
                                              auditConnector: AuditConnector)(implicit ec:ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling {
 
-  def newToken() = UUID.randomUUID().toString
+  def newToken(): String = UUID.randomUUID().toString
 
   private def sendEmailAndCreateVerification(request: EmailVerificationRequest)(implicit hc: HeaderCarrier) = {
     val token = newToken()
@@ -56,7 +56,7 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
     } yield Created
   }
 
-  def requestVerification() = Action.async(parse.json) {
+  def requestVerification(): Action[JsValue] = Action.async(parse.json) {
     implicit httpRequest =>
       withJsonBody[EmailVerificationRequest] { request =>
         verifiedEmailRepo.isVerified(request.email) flatMap {
@@ -89,8 +89,8 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
     data.getBytes("UTF-8").map("%02x".format(_)).mkString
   }
 
-  def validateToken() = Action.async(parse.json) {
-    def createEmailIfNotExist(email: String)(implicit hc: HeaderCarrier) =
+  def validateToken(): Action[JsValue] = Action.async(parse.json) {
+    def createEmailIfNotExist(email: String)(implicit hc: HeaderCarrier): Future[Result] =
       verifiedEmailRepo.find(email) flatMap {
         case Some(verifiedEmail) => Future.successful(NoContent)
         case None => verifiedEmailRepo.insert(email) map (_ => Created)
@@ -110,7 +110,7 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
       }
   }
 
-  def verifiedEmail() = Action.async(parse.json) { implicit request =>
+  def verifiedEmail(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[VerifiedEmail] { verifiedEmail =>
       verifiedEmailRepo.find(verifiedEmail.email).map {
         case Some(email) => Ok(toJson(email))

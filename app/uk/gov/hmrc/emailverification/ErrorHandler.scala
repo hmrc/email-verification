@@ -24,7 +24,7 @@ import play.api.mvc.{RequestHeader, Result}
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.emailverification.models.ErrorResponse
-import uk.gov.hmrc.http.{JsValidationException, NotFoundException, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, JsValidationException, NotFoundException, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.http.JsonErrorHandler
@@ -36,7 +36,7 @@ class ErrorHandler @Inject()(configuration: Configuration, auditConnector: Audit
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
 
-    implicit val headerCarrier = HeaderCarrierConverter.fromHeadersAndSessionAndRequest(request.headers, request = Some(request))
+    implicit val headerCarrier: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSessionAndRequest(request.headers, request = Some(request))
 
     statusCode match {
       case play.mvc.Http.Status.NOT_FOUND =>
@@ -48,7 +48,7 @@ class ErrorHandler @Inject()(configuration: Configuration, auditConnector: Audit
     }
   }
   override def onServerError(request: RequestHeader, ex: Throwable): Future[Result] = {
-    implicit val headerCarrier = HeaderCarrierConverter.fromHeadersAndSessionAndRequest(request.headers, request = Some(request))
+    implicit val headerCarrier: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSessionAndRequest(request.headers, request = Some(request))
 
     Logger.error(s"! Internal server error, for (${request.method}) [${request.uri}] -> ", ex)
 

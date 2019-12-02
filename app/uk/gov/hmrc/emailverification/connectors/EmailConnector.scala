@@ -21,11 +21,11 @@ import javax.inject.Inject
 import play.api.Mode.Mode
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.emailverification.models.SendEmailRequest
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.play.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 
 class EmailConnector @Inject() (appConfig: AppConfig,
@@ -36,7 +36,7 @@ class EmailConnector @Inject() (appConfig: AppConfig,
 
   val baseServiceUrl: String = baseUrl("email")
 
-  def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext) =
+  def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] =
     httpClient.POST(s"$baseServiceUrl$servicePath/hmrc/email", SendEmailRequest(Seq(to), templateId, params))
 
   override protected def mode: Mode = environment.mode

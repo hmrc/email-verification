@@ -9,7 +9,7 @@ import support.BaseISpec
 
 
 class TokenValidationISpec extends BaseISpec {
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   "validating the token" should {
     "return 201 if the token is valid and 204 if email is already verified" in {

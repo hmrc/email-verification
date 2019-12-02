@@ -32,7 +32,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 class VerifiedEmailMongoRepositorySpec extends TestSupport with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport with ScalaFutures with IntegrationPatience {
   val email = "user@email.com"
   val anotherEmail = "another.user@email.com"
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   "insert" should {
     "insert a document when it does not exist" in {

@@ -13,30 +13,30 @@ object WireMockConfig {
 trait WireMockHelper extends BeforeAndAfterAll with BeforeAndAfterEach {
   self: Suite =>
   lazy val wireMockServer = new WireMockServer(wireMockConfig().port(stubPort))
-  val stubPort = WireMockConfig.stubPort
-  val stubHost = WireMockConfig.stubHost
+  val stubPort: Int = WireMockConfig.stubPort
+  val stubHost: String = WireMockConfig.stubHost
 
-  private def startMockServer() = {
+  private def startMockServer(): Unit = {
     wireMockServer.start()
     WireMock.configureFor(stubHost, stubPort)
   }
 
-  private def stopMockServer() = {
+  private def stopMockServer(): Unit = {
     wireMockServer.stop()
     wireMockServer.resetMappings()
   }
 
-  override def beforeAll() = {
+  override def beforeAll(): Unit = {
     super.beforeAll()
     startMockServer()
   }
 
-  override def afterAll() = {
+  override def afterAll(): Unit = {
     stopMockServer()
     super.afterAll()
   }
 
-  override def beforeEach() = {
+  override def beforeEach(): Unit = {
     super.beforeEach()
     WireMock.reset()
   }
