@@ -39,9 +39,9 @@ class VerifiedEmailMongoRepository @Inject() (mongoComponent: ReactiveMongoCompo
 
   private val majority = WriteConcern.Default
 
-  def isVerified(email: String)(implicit hc: HeaderCarrier) = this.find(email).map(_.isDefined)
+  def isVerified(email: String)(implicit hc: HeaderCarrier): Future[Boolean] = this.find(email).map(_.isDefined)
 
-  def find(email: String)(implicit hc: HeaderCarrier) = super.find("email" -> email).map(_.headOption)
+  def find(email: String)(implicit hc: HeaderCarrier): Future[Option[VerifiedEmail]] = super.find("email" -> email).map(_.headOption)
 
   def insert(email: String)(implicit hc: HeaderCarrier): Future[WriteResult] = {
     val document = VerifiedEmail(email)

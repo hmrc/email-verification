@@ -1,5 +1,6 @@
 package uk.gov.hmrc.emailverification
 
+import org.scalatest.Assertion
 import play.api.libs.json.Json
 import support.BaseISpec
 import support.EmailStub._
@@ -62,7 +63,7 @@ class EmailVerificationISpec extends BaseISpec {
     }
 
     "email verification for two different emails should be successful" in new Setup {
-      def submitVerificationRequest(emailToVerify: String, templateId: String, continueUrl: String) = {
+      def submitVerificationRequest(emailToVerify: String, templateId: String, continueUrl: String): Assertion = {
         withClient { ws =>
           val response = await(ws.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
           response.status shouldBe 201
@@ -132,7 +133,7 @@ class EmailVerificationISpec extends BaseISpec {
     }
   }
 
-  def assumeEmailAlreadyVerified(email: String): Unit = {
+  def assumeEmailAlreadyVerified(email: String): Assertion = {
     stubSendEmailRequest(202)
     withClient { ws =>
       await(ws.url(appClient("/verification-requests")).post(verificationRequest(email))).status shouldBe 201
@@ -143,12 +144,12 @@ class EmailVerificationISpec extends BaseISpec {
 
   trait Setup {
     val templateId = "my-lovely-template"
-    val templateParams = Map("name" -> "Mr Joe Bloggs")
+    val templateParams: Map[String, String] = Map("name" -> "Mr Joe Bloggs")
     val continueUrl = "http://some/url"
 
-    val paramsJsonStr = Json.toJson(templateParams).toString()
+    val paramsJsonStr: String = Json.toJson(templateParams).toString()
     val expectedVerificationLink = "http://localhost:9890/verification?token=UG85NW1OcWdjR29xS29EM1pIQ1NqMlpzOEduemZCeUhvZVlLNUVtU2c3emp2TXZzRmFRSzlIdjJBTkFWVVFRUkg1M21MRUY4VE1TWDhOZ0hMNmQ0WHRQQy95NDZCditzNHd6ZUhpcEoyblNsT3F0bGJmNEw5RnhjOU0xNlQ3Y2o1dFdYVUE0NGFSUElURFRrSS9HRHhoTFZxdU9YRkw4OTZ4Z0tOTWMvQTJJd1ZqR3NJZ0pTNjRJNVRUc2RpcFZ1MjdOV1dhNUQ3OG9ITkVlSGJnaUJyUT09"
-    val paramsWithVerificationLink = templateParams + ("verificationLink" -> expectedVerificationLink)
+    val paramsWithVerificationLink: Map[String, String] = templateParams + ("verificationLink" -> expectedVerificationLink)
   }
 
 }

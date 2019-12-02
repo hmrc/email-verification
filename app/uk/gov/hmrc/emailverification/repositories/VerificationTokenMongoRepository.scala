@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
+import com.github.ghik.silencer.silent
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTimeZone.UTC
 import org.joda.time.{DateTime, Period}

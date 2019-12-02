@@ -48,24 +48,24 @@ class PlatformAnalyticsConnectorSpec extends TestSupport with MockitoSugar with 
       s"send a GA event to platform-analytics - $scenario" in new Setup {
         when(
           httpMock.POST[AnalyticsRequest, HttpResponse]
-            (any(),any(),any())(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+            (any[String](),any[AnalyticsRequest](),any[Seq[(String,String)]]())(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
         ).thenReturn(response)
 
         noException should be thrownBy await(analyticsPlatformConnector.sendEvents(event))
 
-        verify(httpMock).POST[AnalyticsRequest, HttpResponse](any(),any(), eqTo(Seq.empty))(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+        verify(httpMock).POST[AnalyticsRequest, HttpResponse](any[String](),any[AnalyticsRequest](), eqTo(Seq.empty))(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
       }
     }
 
     "swallow exceptions and log an error" in new Setup {
       withCaptureOfLoggingFrom(Logger) { logEvents =>
         when(
-          httpMock.POST[AnalyticsRequest, HttpResponse](any(),any(),any())(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+          httpMock.POST[AnalyticsRequest, HttpResponse](any[String](),any[AnalyticsRequest](),any[Seq[(String,String)]]())(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
         ).thenReturn(Future.failed(new RuntimeException("blow up")))
 
         noException should be thrownBy await(analyticsPlatformConnector.sendEvents(event))
 
-        verify(httpMock).POST[AnalyticsRequest, HttpResponse](any(), any(), eqTo(Seq.empty))(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+        verify(httpMock).POST[AnalyticsRequest, HttpResponse](any[String](), any[AnalyticsRequest](), eqTo(Seq.empty))(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
 
         eventually {
           logEvents.filter(_.getLevel == Level.ERROR).loneElement.getMessage should include(s"Couldn't send analytics event")
@@ -81,12 +81,12 @@ class PlatformAnalyticsConnectorSpec extends TestSupport with MockitoSugar with 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
-    val httpMock = mock[HttpClient]
-    val environment = mock[Environment]
-    val configuration = mock[Configuration]
+    val httpMock: HttpClient = mock[HttpClient]
+    val environment:Environment = mock[Environment]
+    val configuration:Configuration = mock[Configuration]
 
-    when(configuration.getString(any(),any())) thenReturn Some(aServiceUrl)
-    when(configuration.getInt(any())) thenReturn Some(10)
+    when(configuration.getString(any[String](),any[Option[Set[String]]]())) thenReturn Some(aServiceUrl)
+    when(configuration.getInt(any[String]())) thenReturn Some(10)
 
     lazy val analyticsPlatformConnector = new PlatformAnalyticsConnector(httpMock, environment, configuration)
   }

@@ -31,9 +31,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class VerificationTokenMongoRepositorySpec extends TestSupport with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport {
 
-  def now = DateTime.now(DateTimeZone.UTC)
+  def now: DateTime = DateTime.now(DateTimeZone.UTC)
 
-  val repo = new VerificationTokenMongoRepository(new ReactiveMongoComponent {
+  val repo: VerificationTokenMongoRepository = new VerificationTokenMongoRepository(new ReactiveMongoComponent {
     override def mongoConnector: MongoConnector = mongoConnectorForTest
   }){
     override def dateTimeProvider: () ⇒ DateTime = () ⇒ now
@@ -42,7 +42,7 @@ class VerificationTokenMongoRepositorySpec extends TestSupport with BeforeAndAft
 
   val token = "theToken"
   val email = "user@email.com"
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   "upsert" should {
     "always update the existing document for a given email address" in {

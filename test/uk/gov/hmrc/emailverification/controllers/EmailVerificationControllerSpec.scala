@@ -19,11 +19,11 @@ package uk.gov.hmrc.emailverification.controllers
 import config.AppConfig
 import org.joda.time.{DateTime, Period}
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{eq ⇒ EQ, _}
+import org.mockito.ArgumentMatchers.{eq => EQ, _}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import reactivemongo.api.commands.{DefaultWriteResult, WriteResult}
 import uk.gov.hmrc.emailverification.MockitoSugarRush
@@ -35,6 +35,7 @@ import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import helpers.TestSupport
+import play.api.mvc.Result
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,14 +44,14 @@ class EmailVerificationControllerSpec extends TestSupport with MockitoSugarRush 
   "requestVerification" should {
     "send email containing verificationLink param and return success response" in new Setup {
       val verificationLink = "verificationLink"
-      when(verifiedEmailRepoMock.isVerified(EQ(recipient))(any())).thenReturn(Future.successful(false))
+      when(verifiedEmailRepoMock.isVerified(EQ(recipient))(any[HeaderCarrier]())).thenReturn(Future.successful(false))
       when(verificationLinkServiceMock.verificationLinkFor(token, ForwardUrl("http://some/url"))).thenReturn(verificationLink)
-      when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier], any[ExecutionContext]))
+      when(emailConnectorMock.sendEmail(any[String](), any[String](), any[Map[String,String]]())(any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.successful(HttpResponse(202)))
-      when(tokenRepoMock.upsert(any(), any(), any())(any())).thenReturn(writeResult)
+      when(tokenRepoMock.upsert(any[String](), any[String](), any[Period]())(any[HeaderCarrier]())).thenReturn(writeResult)
       when(appConfigMock.whitelistedDomains) thenReturn Set.empty[String]
 
-      val result = await(controller.requestVerification()(request.withBody(validRequest)))
+      val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
 
       status(result) shouldBe Status.CREATED
       verify(tokenRepoMock).upsert(EQ(token), EQ(recipient), EQ(Period.days(2)))(any[HeaderCarrier])
@@ -62,14 +63,14 @@ class EmailVerificationControllerSpec extends TestSupport with MockitoSugarRush 
 
     "return 400 if upstream email service returns bad request and should not create mongo entry" in new Setup {
       val verificationLink = "verificationLink"
-      when(verifiedEmailRepoMock.isVerified(EQ(recipient))(any())).thenReturn(Future.successful(false))
+      when(verifiedEmailRepoMock.isVerified(EQ(recipient))(any[HeaderCarrier]())).thenReturn(Future.successful(false))
       when(verificationLinkServiceMock.verificationLinkFor(token, ForwardUrl("http://some/url"))).thenReturn(verificationLink)
-      when(emailConnectorMock.sendEmail(any(), any(), any())(any[HeaderCarrier], any[ExecutionContext]))
+      when(emailConnectorMock.sendEmail(any[String](), any[String](), any[Map[String,String]]())(any[HeaderCarrier], any[ExecutionContext]))
         .thenReturn(Future.failed(new BadRequestException("Bad Request from email")))
-      when(tokenRepoMock.upsert(any(), any(), any())(any())).thenReturn(writeResult)
+      when(tokenRepoMock.upsert(any[String](), any[String](), any[Period]())(any[HeaderCarrier]())).thenReturn(writeResult)
       when(appConfigMock.whitelistedDomains) thenReturn Set.empty[String]
 
-      val result = await(controller.requestVerification()(request.withBody(validRequest)))
+      val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
 
       status(result) shouldBe Status.BAD_REQUEST
       (jsonBodyOf(result) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
@@ -78,38 +79,38 @@ class EmailVerificationControllerSpec extends TestSupport with MockitoSugarRush 
     }
 
     "return 409 when email already registered" in new Setup {
-      when(verifiedEmailRepoMock.isVerified(EQ(recipient))(any())).thenReturn(Future.successful(true))
+      when(verifiedEmailRepoMock.isVerified(EQ(recipient))(any[HeaderCarrier]())).thenReturn(Future.successful(true))
       when(appConfigMock.whitelistedDomains) thenReturn Set.empty[String]
 
-      val result = await(controller.requestVerification()(request.withBody(validRequest)))
+      val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
       status(result) shouldBe Status.CONFLICT
     }
   }
 
   "validateToken" should {
     "return 201 when the token is valid" in new Setup {
-      when(tokenRepoMock.findToken(EQ(someToken))(any())).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
-      when(verifiedEmailRepoMock.insert(EQ(email))(any())).thenReturn(writeResult)
-      when(verifiedEmailRepoMock.find(EQ(email))(any())).thenReturn(Future.successful(None))
+      when(tokenRepoMock.findToken(EQ(someToken))(any[HeaderCarrier]())).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
+      when(verifiedEmailRepoMock.insert(EQ(email))(any[HeaderCarrier]())).thenReturn(writeResult)
+      when(verifiedEmailRepoMock.find(EQ(email))(any[HeaderCarrier]())).thenReturn(Future.successful(None))
 
-      val result = controller.validateToken()(request.withBody(Json.obj("token" -> someToken)))
+      val result: Future[Result] = controller.validateToken()(request.withBody(Json.obj("token" -> someToken)))
 
       status(result) shouldBe Status.CREATED
-      verify(verifiedEmailRepoMock).insert(EQ(email))(any())
-      verify(verifiedEmailRepoMock).find(EQ(email))(any())
+      verify(verifiedEmailRepoMock).insert(EQ(email))(any[HeaderCarrier]())
+      verify(verifiedEmailRepoMock).find(EQ(email))(any[HeaderCarrier]())
       val captor: ArgumentCaptor[Seq[GaEvent]] = ArgumentCaptor.forClass(classOf[Seq[GaEvent]])
       verify(analyticsConnectorMock).sendEvents(captor.capture():_*)(any[HeaderCarrier],any[ExecutionContext])
       captor.getValue.head shouldBe GaEvents.verificationSuccess
     }
 
     "return 204 when the token is valid and the email was already validated" in new Setup {
-      when(tokenRepoMock.findToken(EQ(someToken))(any())).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
-      when(verifiedEmailRepoMock.find(EQ(email))(any())).thenReturn(Future.successful(Some(VerifiedEmail(email))))
+      when(tokenRepoMock.findToken(EQ(someToken))(any[HeaderCarrier]())).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
+      when(verifiedEmailRepoMock.find(EQ(email))(any[HeaderCarrier]())).thenReturn(Future.successful(Some(VerifiedEmail(email))))
 
-      val result = controller.validateToken()(request.withBody(Json.obj("token" -> someToken)))
+      val result: Future[Result] = controller.validateToken()(request.withBody(Json.obj("token" -> someToken)))
 
       status(result) shouldBe Status.NO_CONTENT
-      verify(verifiedEmailRepoMock).find(EQ(email))(any())
+      verify(verifiedEmailRepoMock).find(EQ(email))(any[HeaderCarrier]())
       verifyNoMoreInteractions(verifiedEmailRepoMock)
       val captor: ArgumentCaptor[Seq[GaEvent]] = ArgumentCaptor.forClass(classOf[Seq[GaEvent]])
       verify(analyticsConnectorMock).sendEvents(captor.capture():_*)(any[HeaderCarrier],any[ExecutionContext])
@@ -117,9 +118,9 @@ class EmailVerificationControllerSpec extends TestSupport with MockitoSugarRush 
     }
 
     "return 400 when the token does not exist in mongo" in new Setup {
-      when(tokenRepoMock.findToken(EQ(someToken))(any())).thenReturn(Future.successful(None))
+      when(tokenRepoMock.findToken(EQ(someToken))(any[HeaderCarrier]())).thenReturn(Future.successful(None))
 
-      val result = await(controller.validateToken()(request.withBody(Json.obj("token" -> someToken))))
+      val result: Result = await(controller.validateToken()(request.withBody(Json.obj("token" -> someToken))))
 
       status(result) shouldBe Status.BAD_REQUEST
       val captor: ArgumentCaptor[Seq[GaEvent]] = ArgumentCaptor.forClass(classOf[Seq[GaEvent]])
@@ -131,19 +132,19 @@ class EmailVerificationControllerSpec extends TestSupport with MockitoSugarRush 
 
   "verifiedEmail" should {
     "return 200 with verified email in the body" in new Setup {
-      when(verifiedEmailRepoMock.find(EQ(email))(any())).thenReturn(Future.successful(Some(VerifiedEmail(email))))
-      val response = controller.verifiedEmail()(request.withBody(Json.obj("email" -> email)))
+      when(verifiedEmailRepoMock.find(EQ(email))(any[HeaderCarrier]())).thenReturn(Future.successful(Some(VerifiedEmail(email))))
+      val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> email)))
       status(response) shouldBe 200
       jsonBodyOf(response).as[VerifiedEmail] shouldBe VerifiedEmail(email)
-      verify(verifiedEmailRepoMock).find(EQ(email))(any())
+      verify(verifiedEmailRepoMock).find(EQ(email))(any[HeaderCarrier]())
       verifyNoMoreInteractions(verifiedEmailRepoMock)
     }
 
     "return 404 if email not found" in new Setup {
-      when(verifiedEmailRepoMock.find(EQ(email))(any())).thenReturn(Future.successful(None))
-      val response = controller.verifiedEmail()(request.withBody(Json.obj("email" -> email)))
+      when(verifiedEmailRepoMock.find(EQ(email))(any[HeaderCarrier]())).thenReturn(Future.successful(None))
+      val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> email)))
       status(response) shouldBe 404
-      verify(verifiedEmailRepoMock).find(EQ(email))(any())
+      verify(verifiedEmailRepoMock).find(EQ(email))(any[HeaderCarrier]())
       verifyNoMoreInteractions(verifiedEmailRepoMock)
     }
   }
@@ -158,21 +159,21 @@ class EmailVerificationControllerSpec extends TestSupport with MockitoSugarRush 
     val someToken = "some-token"
     val request = FakeRequest()
     implicit val appConfigMock : AppConfig = mock[AppConfig]
-    val auditConnector = mock[AuditConnector]
+    val auditConnector:AuditConnector = mock[AuditConnector]
 
-    when(analyticsConnectorMock.sendEvents(any())(any[HeaderCarrier], any[MdcLoggingExecutionContext])).thenReturn(Future.successful(()))
+    when(analyticsConnectorMock.sendEvents(any[GaEvent]())(any[HeaderCarrier], any[MdcLoggingExecutionContext])).thenReturn(Future.successful(()))
 
     val token = "theToken"
 
-    val controller = new EmailVerificationController (emailConnectorMock,verificationLinkServiceMock,tokenRepoMock,verifiedEmailRepoMock,analyticsConnectorMock,auditConnector){
+    val controller: EmailVerificationController = new EmailVerificationController (emailConnectorMock,verificationLinkServiceMock,tokenRepoMock,verifiedEmailRepoMock,analyticsConnectorMock,auditConnector){
       override def newToken(): String = token
     }
 
-    val templateId = "my-template"
-    val recipient = "user@example.com"
-    val params = Map("name" -> "Mr Joe Bloggs")
-    val paramsJsonStr = Json.toJson(params).toString()
-    val email = "user@email.com"
+    val templateId: String = "my-template"
+    val recipient: String = "user@example.com"
+    val params: Map[String, String] = Map("name" -> "Mr Joe Bloggs")
+    val paramsJsonStr: String = Json.toJson(params).toString()
+    val email: String = "user@email.com"
     val writeResult: Future[WriteResult] = Future.successful(DefaultWriteResult(
       ok = true,
       n = 0,
@@ -182,7 +183,7 @@ class EmailVerificationControllerSpec extends TestSupport with MockitoSugarRush 
       errmsg = None
     ))
 
-    val validRequest = Json.parse(
+    val validRequest: JsValue = Json.parse(
       s"""{
           |  "email": "$recipient",
           |  "templateId": "$templateId",
