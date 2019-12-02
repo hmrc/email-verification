@@ -19,6 +19,10 @@ trait MicroService {
   lazy val appDependencies : Seq[ModuleID] = ???
   lazy val plugins : Seq[Plugins] = Seq.empty
   lazy val playSettings : Seq[Setting[_]] = Seq.empty
+  lazy val silencerDependency: Seq[ModuleID] = Seq(
+    compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.4.3" cross CrossVersion.full),
+    "com.github.ghik" % "silencer-lib" % "1.4.3" % Provided cross CrossVersion.full
+  )
 
   private lazy val scoverageSettings = {
 
@@ -45,10 +49,23 @@ trait MicroService {
     .settings(scalaSettings: _*)
     .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
+    .settings(scalaVersion := "2.11.12")
     .settings(
-      libraryDependencies ++= appDependencies,
+      libraryDependencies ++= appDependencies ++ silencerDependency,
       retrieveManaged := true,
-      evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false)
+      evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
+        scalacOptions ++= Seq(
+        "-encoding", "UTF-8",   // source files are in UTF-8
+        "-deprecation",         // warn about use of deprecated APIs
+        "-unchecked",           // warn about unchecked type parameters
+        "-feature",             // warn about misused language features
+        "-Xfatal-warnings",     // fatal warnings become compile error
+        "-language:postfixOps", // allow postfix operator notation
+        "-Yno-adapted-args",    // warns about confusing tuples or arg lists
+        "-Ywarn-value-discard", // warns about unused non-Unit returned expressions
+        "-Ywarn-dead-code",     // warns about unreachable code
+        "-Xlint"                // enable handy linter warnings
+      )
     )
     .configs(IntegrationTest)
     .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
