@@ -16,14 +16,12 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import com.github.ghik.silencer.silent
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTimeZone.UTC
 import org.joda.time.{DateTime, Period}
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.WriteConcern
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
@@ -42,13 +40,11 @@ class VerificationTokenMongoRepository @Inject() (mongoComponent: ReactiveMongoC
     domainFormat   = VerificationDoc.format,
     idFormat       = ReactiveMongoFormats.objectIdFormats) {
 
-  private val majority = WriteConcern.Default
-
   def upsert(token: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[WriteResult] = {
     val selector = Json.obj("email" -> email)
     val update = VerificationDoc(email, token, dateTimeProvider().plus(validity))
 
-    collection.update(ordered=false, majority).one(selector, update, upsert = true)
+    collection.update(ordered=false).one(selector, update, upsert = true)
   }
 
   def findToken(token: String)(implicit hc: HeaderCarrier): Future[Option[VerificationDoc]] = find("token" -> token).map(_.headOption)

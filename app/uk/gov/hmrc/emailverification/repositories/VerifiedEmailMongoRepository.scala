@@ -19,7 +19,6 @@ package uk.gov.hmrc.emailverification.repositories
 import javax.inject.{Inject, Singleton}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.WriteConcern
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
@@ -37,15 +36,13 @@ class VerifiedEmailMongoRepository @Inject() (mongoComponent: ReactiveMongoCompo
     domainFormat = VerifiedEmail.format,
     idFormat = ReactiveMongoFormats.objectIdFormats) {
 
-  private val majority = WriteConcern.Default
-
   def isVerified(email: String)(implicit hc: HeaderCarrier): Future[Boolean] = this.find(email).map(_.isDefined)
 
   def find(email: String)(implicit hc: HeaderCarrier): Future[Option[VerifiedEmail]] = super.find("email" -> email).map(_.headOption)
 
   def insert(email: String)(implicit hc: HeaderCarrier): Future[WriteResult] = {
     val document = VerifiedEmail(email)
-    collection.insert(ordered=false, majority).one(document)
+    collection.insert(ordered=false).one(document)
   }
 
   override def indexes: Seq[Index] = Seq(
