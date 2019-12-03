@@ -17,12 +17,12 @@
 package uk.gov.hmrc.emailverification.models
 
 import org.joda.time.DateTime
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json, OFormat}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 case class VerificationDoc(email: String, token: String, expireAt: DateTime)
 
 object VerificationDoc {
-  implicit val dateTimeFormats = ReactiveMongoFormats.dateTimeFormats
-  implicit val format = Json.format[VerificationDoc]
+  implicit val dateTimeFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
+  implicit val format: OFormat[VerificationDoc] = Json.format[VerificationDoc]
 }

@@ -4,8 +4,8 @@ import _root_.play.api.libs.json.{JsValue, Json}
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.typesafe.config.Config
-import org.scalatest.Matchers
-import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{Assertion, Matchers}
+import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.crypto.Crypted.fromBase64
 import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
 
@@ -19,7 +19,7 @@ object EmailStub extends MockitoSugar with Matchers {
   def verificationRequest(emailToVerify: String = "test@example.com",
                           templateId: String = "some-template-id",
                           continueUrl: String = "http://example.com/continue",
-                          paramsJsonStr: String = "{}") =
+                          paramsJsonStr: String = "{}"): JsValue =
     Json.parse(s"""{
                    |  "email": "$emailToVerify",
                    |  "templateId": "$templateId",
@@ -28,16 +28,16 @@ object EmailStub extends MockitoSugar with Matchers {
                    |  "continueUrl" : "$continueUrl"
                    |}""".stripMargin)
 
-  def stubSendEmailRequest(status: Int, body: String) =
+  def stubSendEmailRequest(status: Int, body: String): Unit =
     stubFor(post(emailMatchingStrategy).willReturn(aResponse()
       .withStatus(status)
       .withBody(body)))
 
-  def stubSendEmailRequest(status: Int) =
+  def stubSendEmailRequest(status: Int): Unit =
     stubFor(post(emailMatchingStrategy).willReturn(aResponse()
       .withStatus(status)))
 
-  def verifyEmailSent(to: String, continueUrl: String, templateId: String, params: Map[String, String])(implicit config:Config): Unit = {
+  def verifyEmailSent(to: String, continueUrl: String, templateId: String, params: Map[String, String])(implicit config:Config): Assertion = {
     val emailSendRequestJson = lastVerificationEMail
 
     (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
@@ -49,7 +49,7 @@ object EmailStub extends MockitoSugar with Matchers {
     token.isDefined shouldBe true
   }
 
-  def decryptedToken(emailSendRequestJson: JsValue) (implicit config:Config) = {
+  def decryptedToken(emailSendRequestJson: JsValue) (implicit config:Config): (Option[String], String) = {
     val verificationLink = (emailSendRequestJson \ "parameters" \ "verificationLink").as[String]
 
     val decryptedTokenJson = decryptToJson(verificationLink.split("token=")(1))
@@ -62,7 +62,7 @@ object EmailStub extends MockitoSugar with Matchers {
     Json.parse(emailSendRequest)
   }
 
-  def decryptToJson(encrypted: String)(implicit config: Config) = {
+  def decryptToJson(encrypted: String)(implicit config: Config): JsValue = {
     val base64DecodedEncrypted = fromBase64(encrypted)
     val decrypted = crypto.decrypt(base64DecodedEncrypted).value
     Json.parse(decrypted)

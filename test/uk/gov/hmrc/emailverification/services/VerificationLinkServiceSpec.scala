@@ -42,11 +42,11 @@ class VerificationLinkServiceSpec extends TestSupport with MockitoSugarRush {
 
   trait Setup {
     val token = "fixedNonce"
-    val fixedTime = DateTime.parse("2016-08-18T12:45:11.631+0100")
+    val fixedTime: DateTime = DateTime.parse("2016-08-18T12:45:11.631+0100")
 
-    val cryptoMock = mock[CryptoWithKeysFromConfig]
+    val cryptoMock:CryptoWithKeysFromConfig = mock[CryptoWithKeysFromConfig]
     val config :Config = mock[Config]
-    val appConfig = mock[AppConfig]
+    val appConfig: AppConfig = mock[AppConfig]
     val configuration :Configuration = mock[Configuration]
     when(configuration.underlying) thenReturn config
     when(config.getString("token.encryption.key")) thenReturn "gvBoGdgzqG1AarzF1LY0zQ=="

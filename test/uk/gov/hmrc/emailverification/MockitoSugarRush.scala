@@ -17,10 +17,10 @@
 package uk.gov.hmrc.emailverification
 
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 
 import scala.reflect.ClassTag
 
 trait MockitoSugarRush extends MockitoSugar {
-  override def mock[T <: AnyRef](implicit classTag: ClassTag[T]) = super.mock(defaultAnswer = RETURNS_SMART_NULLS)
+  override def mock[T <: AnyRef](implicit classTag: ClassTag[T]): T = super.mock(defaultAnswer = RETURNS_SMART_NULLS)
 }

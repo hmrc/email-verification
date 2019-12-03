@@ -51,7 +51,7 @@ class EmailConnectorSpec extends TestSupport with MockitoSugarRush with ScalaFut
       ).thenReturn(Future.successful(HttpResponse(202)))
 
       // when
-      val result = await(connector.sendEmail(recipient, templateId, params))
+      val result: HttpResponse = await(connector.sendEmail(recipient, templateId, params))
 
       // then
       result.status shouldBe 202
@@ -73,14 +73,14 @@ class EmailConnectorSpec extends TestSupport with MockitoSugarRush with ScalaFut
     implicit val hc: HeaderCarrier = HeaderCarrier()
     implicit val executionContext: ExecutionContextExecutor = ExecutionContext.Implicits.global
     val httpMock: HttpClient = mock[HttpClient]
-    val params = Map("p1" -> "v1")
+    val params: Map[String, String] = Map("p1" -> "v1")
     val templateId = "my-template"
     val recipient = "user@example.com"
-    val appConfig = mock[AppConfig]
-    val environment = mock[Environment]
+    val appConfig: AppConfig = mock[AppConfig]
+    val environment: Environment = mock[Environment]
     val configuration:Configuration = mock[Configuration]
-    when(configuration.getString(any(),any())).thenReturn(Some("emailHost"))
-    when(configuration.getInt(any())).thenReturn(Some(1337))
+    when(configuration.getString(any[String](),any[Option[Set[String]]]())).thenReturn(Some("emailHost"))
+    when(configuration.getInt(any[String]())).thenReturn(Some(1337))
     val connector = new EmailConnector(appConfig,httpMock,environment,configuration)
 
   }

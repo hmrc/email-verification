@@ -37,7 +37,7 @@ class PlatformAnalyticsConnector @Inject() (httpClient:HttpClient,
 
   def sendEvents(events: GaEvent*)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = sendEvents(AnalyticsRequest(gaClientId, events))
 
-  private def sendEvents(data: AnalyticsRequest)(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
+  private def sendEvents(data: AnalyticsRequest)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
     val url = s"$serviceUrl/platform-analytics/event"
     httpClient.POST(url, data, Seq.empty).map(_ => ()).recoverWith {
       case e: Exception =>

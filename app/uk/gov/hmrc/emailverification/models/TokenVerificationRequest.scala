@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.emailverification.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, Reads}
 
 case class TokenVerificationRequest(token: String)
 
 object TokenVerificationRequest {
-  implicit val reads = Json.reads[TokenVerificationRequest]
+  implicit val reads: Reads[TokenVerificationRequest] = Json.reads[TokenVerificationRequest]
 }

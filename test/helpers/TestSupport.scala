@@ -27,6 +27,7 @@ import scala.concurrent.duration._
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Result
+import scala.language.implicitConversions
 
 trait TestSupport extends WordSpec with Matchers with OptionValues {
   implicit lazy val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global

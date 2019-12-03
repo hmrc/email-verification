@@ -29,15 +29,15 @@ class BaseISpec(val testConfig : Map[String, _ <: Any] = Map.empty) extends Word
     "mongodb.uri" -> mongoUri
   ) ++ testConfig
 
-  implicit val config:Config = Configuration((additionalConfig).toSeq:_*).underlying
+  implicit val config:Config = Configuration(additionalConfig.toSeq:_*).underlying
 
-  lazy val mongoComponent = new ReactiveMongoComponent {
+  lazy val mongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
     override def mongoConnector: MongoConnector = mongoConnectorForTest
   }
 
-  def appClient(path: String) = resource(s"/email-verification$path")
+  def appClient(path: String): String = resource(s"/email-verification$path")
 
-    def tokenFor(email: String) = {
+    def tokenFor(email: String): String = {
       stubSendEmailRequest(202)
       withClient { ws =>
         await(ws.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify = email))).status shouldBe 201

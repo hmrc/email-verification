@@ -30,5 +30,5 @@ case class EmailVerificationRequest( email: String,
 
 object EmailVerificationRequest {
   implicit val periodReads: Reads[Period] = JsPath.read[String].map(ISOPeriodFormat.standard().parsePeriod)
-  implicit def reads(implicit appConfig: AppConfig) = Json.reads[EmailVerificationRequest]
+  implicit def reads(implicit appConfig: AppConfig): Reads[EmailVerificationRequest] = Json.reads[EmailVerificationRequest]
 }

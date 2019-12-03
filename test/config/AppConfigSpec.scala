@@ -33,10 +33,10 @@ class AppConfigSpec extends WordSpec with Matchers {
     }
 
     "throw exceptions when configuration not defined" in new Setup() {
-      val exception1 = intercept[RuntimeException](appConfig.platformFrontendHost)
+      val exception1: RuntimeException = intercept[RuntimeException](appConfig.platformFrontendHost)
       exception1.getMessage shouldBe s"Could not find config key 'platform.frontend.host'"
 
-      val exception2 = intercept[RuntimeException](appConfig.emailServicePath)
+      val exception2: RuntimeException = intercept[RuntimeException](appConfig.emailServicePath)
       exception2.getMessage shouldBe s"Could not find config key 'microservice.services.email.path'"
     }
   }
