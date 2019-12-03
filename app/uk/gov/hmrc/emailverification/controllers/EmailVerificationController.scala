@@ -117,7 +117,6 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
         case None => NotFound
       }
     }
-
   }
 
 }
