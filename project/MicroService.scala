@@ -1,19 +1,15 @@
-import play.routes.compiler.StaticRoutesGenerator
-import play.sbt.routes.RoutesKeys.routesGenerator
 import sbt.Keys._
 import sbt.Tests.{Group, SubProcess}
 import sbt._
+import uk.gov.hmrc.DefaultBuildSettings._
+import uk.gov.hmrc._
+import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
+import uk.gov.hmrc.versioning.SbtGitVersioning
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
 trait MicroService {
-
-  import uk.gov.hmrc._
-  import DefaultBuildSettings._
-  import uk.gov.hmrc.SbtAutoBuildPlugin
-  import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-  import uk.gov.hmrc.versioning.SbtGitVersioning
-
+  
   val appName: String
 
   lazy val appDependencies : Seq[ModuleID] = ???
