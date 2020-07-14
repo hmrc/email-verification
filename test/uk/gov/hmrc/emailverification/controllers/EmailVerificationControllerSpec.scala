@@ -48,7 +48,7 @@ class EmailVerificationControllerSpec extends TestSupport with MockitoSugarRush 
       when(verifiedEmailRepoMock.isVerified(EQ(recipient))(any[HeaderCarrier]())).thenReturn(Future.successful(false))
       when(verificationLinkServiceMock.verificationLinkFor(token, ForwardUrl("http://some/url"))).thenReturn(verificationLink)
       when(emailConnectorMock.sendEmail(any[String](), any[String](), any[Map[String,String]]())(any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future.successful(HttpResponse(202)))
+        .thenReturn(Future.successful(HttpResponse(202))  )
       when(tokenRepoMock.upsert(any[String](), any[String](), any[Period]())(any[HeaderCarrier]())).thenReturn(writeResult)
       when(appConfigMock.whitelistedDomains) thenReturn Set.empty[String]
 
