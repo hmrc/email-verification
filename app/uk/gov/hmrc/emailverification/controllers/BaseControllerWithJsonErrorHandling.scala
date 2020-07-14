@@ -16,16 +16,17 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
+import javax.inject.Inject
 import play.api.libs.json._
-import play.api.mvc.{Request, Result}
+import play.api.mvc.{ControllerComponents, Request, Result}
 import uk.gov.hmrc.emailverification.models.ErrorResponse
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.{BackendController, BaseController}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 
-trait BaseControllerWithJsonErrorHandling extends BaseController {
+class BaseControllerWithJsonErrorHandling @Inject()(cc: ControllerComponents) extends BackendController(cc) {
 
   private val separatorChar: String = ";"
 

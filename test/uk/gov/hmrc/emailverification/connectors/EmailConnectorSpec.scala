@@ -21,11 +21,11 @@ import helpers.TestSupport
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
-import play.api.{Configuration, Environment}
 import play.api.libs.json.Writes
 import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.models.SendEmailRequest
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
@@ -35,6 +35,7 @@ class EmailConnectorSpec extends TestSupport with MockitoSugarRush with ScalaFut
   "send email" should {
 
     "submit request to email micro service to send email and get successful response status" in new Setup {
+      when(mockServicesConfig.baseUrl(eqTo("email"))).thenReturn("emailHost://emailHost:1337")
 
       // given
       val endpointUrl = "emailHost://emailHost:1337/hmrc/email"
@@ -77,11 +78,8 @@ class EmailConnectorSpec extends TestSupport with MockitoSugarRush with ScalaFut
     val templateId = "my-template"
     val recipient = "user@example.com"
     val appConfig: AppConfig = mock[AppConfig]
-    val environment: Environment = mock[Environment]
-    val configuration:Configuration = mock[Configuration]
-    when(configuration.getString(any[String](),any[Option[Set[String]]]())).thenReturn(Some("emailHost"))
-    when(configuration.getInt(any[String]())).thenReturn(Some(1337))
-    val connector = new EmailConnector(appConfig,httpMock,environment,configuration)
+    val mockServicesConfig = mock[ServicesConfig]
+    val connector = new EmailConnector(appConfig,httpMock, mockServicesConfig)
 
   }
 }

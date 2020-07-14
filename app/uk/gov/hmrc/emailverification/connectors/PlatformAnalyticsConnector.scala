@@ -21,18 +21,16 @@ import play.api.Mode.Mode
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.emailverification.models.{AnalyticsRequest, GaEvent}
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
 
-class PlatformAnalyticsConnector @Inject() (httpClient:HttpClient,
-                                            environment: Environment,
-                                            val runModeConfiguration:Configuration) extends ServicesConfig {
+class PlatformAnalyticsConnector @Inject() (httpClient:HttpClient, servicesConfig: ServicesConfig)  {
 
-  val serviceUrl: String = baseUrl("platform-analytics")
+  val serviceUrl: String = servicesConfig.baseUrl("platform-analytics")
   val gaClientId = s"GA1.1.${Math.abs(Random.nextInt())}.${Math.abs(Random.nextInt())}"
 
   def sendEvents(events: GaEvent*)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = sendEvents(AnalyticsRequest(gaClientId, events))
@@ -45,6 +43,5 @@ class PlatformAnalyticsConnector @Inject() (httpClient:HttpClient,
         Future.successful(())
     }
   }
-  override protected def mode: Mode = environment.mode
 
 }

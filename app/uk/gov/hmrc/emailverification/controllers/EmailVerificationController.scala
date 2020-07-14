@@ -41,7 +41,9 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
                                              tokenRepo:VerificationTokenMongoRepository,
                                              verifiedEmailRepo: VerifiedEmailMongoRepository,
                                              analyticsConnector: PlatformAnalyticsConnector,
-                                             auditConnector: AuditConnector)(implicit ec:ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling {
+                                             auditConnector: AuditConnector,
+                                             controllerComponents: ControllerComponents
+                                            )(implicit ec:ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) {
 
   def newToken(): String = UUID.randomUUID().toString
 

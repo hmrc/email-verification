@@ -22,23 +22,22 @@ import play.api.Mode.Mode
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.emailverification.models.SendEmailRequest
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
 
 class EmailConnector @Inject() (appConfig: AppConfig,
                                 httpClient:HttpClient,
-                                environment:Environment,
-                                val runModeConfiguration:Configuration) extends ServicesConfig {
+                                servicesConfig: ServicesConfig
+                               ) {
   val servicePath: String = appConfig.emailServicePath
 
-  val baseServiceUrl: String = baseUrl("email")
+  lazy val baseServiceUrl: String = servicesConfig.baseUrl("email")
 
-  def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] =
+  def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     httpClient.POST(s"$baseServiceUrl$servicePath/hmrc/email", SendEmailRequest(Seq(to), templateId, params))
-
-  override protected def mode: Mode = environment.mode
+  }
 
 }

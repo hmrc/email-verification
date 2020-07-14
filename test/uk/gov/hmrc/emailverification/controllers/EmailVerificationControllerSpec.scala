@@ -36,6 +36,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import helpers.TestSupport
 import play.api.mvc.Result
+import play.api.test.Helpers.stubControllerComponents
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -165,7 +166,7 @@ class EmailVerificationControllerSpec extends TestSupport with MockitoSugarRush 
 
     val token = "theToken"
 
-    val controller: EmailVerificationController = new EmailVerificationController (emailConnectorMock,verificationLinkServiceMock,tokenRepoMock,verifiedEmailRepoMock,analyticsConnectorMock,auditConnector){
+    val controller: EmailVerificationController = new EmailVerificationController (emailConnectorMock,verificationLinkServiceMock,tokenRepoMock,verifiedEmailRepoMock,analyticsConnectorMock,auditConnector, stubControllerComponents()){
       override def newToken(): String = token
     }
 

@@ -18,7 +18,7 @@ package uk.gov.hmrc.emailverification.connectors
 
 
 import ch.qos.logback.classic.Level
-import helpers.{TestSupport, LogCapturing}
+import helpers.{LogCapturing, TestSupport}
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.LoneElement
@@ -30,6 +30,7 @@ import play.api.libs.json.Writes
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.emailverification.models.{AnalyticsRequest, GaEvent}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
+import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -83,13 +84,8 @@ class PlatformAnalyticsConnectorSpec extends TestSupport with MockitoSugar with 
     implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
     val httpMock: HttpClient = mock[HttpClient]
-    val environment:Environment = mock[Environment]
-    val configuration:Configuration = mock[Configuration]
-
-    when(configuration.getString(any[String](),any[Option[Set[String]]]())) thenReturn Some(aServiceUrl)
-    when(configuration.getInt(any[String]())) thenReturn Some(10)
-
-    lazy val analyticsPlatformConnector = new PlatformAnalyticsConnector(httpMock, environment, configuration)
+    val mockServicesConfig = mock[ServicesConfig]
+    lazy val analyticsPlatformConnector = new PlatformAnalyticsConnector(httpMock, mockServicesConfig)
   }
 
 }
