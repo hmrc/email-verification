@@ -11,6 +11,7 @@ lazy val microservice = Project("email-verification", file("."))
   .settings(defaultSettings(): _*)
   .settings(
     libraryDependencies ++= AppDependencies(),
+    dependencyOverrides ++= AppDependencies.overrides,
     retrieveManaged := true
   )
   .configs(IntegrationTest)
