@@ -18,21 +18,18 @@ package uk.gov.hmrc.emailverification.services
 
 import com.typesafe.config.Config
 import config.AppConfig
-import helpers.TestSupport
 import org.joda.time.DateTime
-import org.mockito.Mockito._
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Configuration
-import play.api.libs.json.Json
-import uk.gov.hmrc.crypto.{Crypted, CryptoWithKeysFromConfig, PlainText}
-import uk.gov.hmrc.emailverification.MockitoSugarRush
+import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
 import uk.gov.hmrc.emailverification.models.ForwardUrl
+import uk.gov.hmrc.gg.test.UnitSpec
 
-class VerificationLinkServiceSpec extends TestSupport with MockitoSugarRush {
+class VerificationLinkServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
   "createVerificationLink" should {
     "create encrypted verification Link" in new Setup {
-      val emailToVerify = "example@domain.com"
-      val templateId = "my-lovely-template"
-      val templateParams = Some(Map("name" -> "Mr Joe Bloggs"))
+      when(mockAppConfig.platformFrontendHost).thenReturn("")
+
       val continueUrl = ForwardUrl("http://continue-url.com")
 
       val base64CryptedJsonToken = "d3Uvc3JNSFd0V0FWOEEvKzhPM0M5TTBvOXZrNURNMEgxWkV5d29JSmE4UkpuQkROdEZQcHMxUG1tN3Z3eDhPU3hUOXdCbHAyd1dWR1NIWEp1SHEyZlE9PQ=="
@@ -46,11 +43,12 @@ class VerificationLinkServiceSpec extends TestSupport with MockitoSugarRush {
 
     val cryptoMock:CryptoWithKeysFromConfig = mock[CryptoWithKeysFromConfig]
     val config :Config = mock[Config]
-    val appConfig: AppConfig = mock[AppConfig]
-    val configuration :Configuration = mock[Configuration]
-    when(configuration.underlying) thenReturn config
+    val mockAppConfig: AppConfig = mock[AppConfig]
+    val configuration: Configuration = mock[Configuration]
+    when(configuration.underlying).thenReturn(config)
     when(config.getString("token.encryption.key")) thenReturn "gvBoGdgzqG1AarzF1LY0zQ=="
+    when(config.getStringList("token.encryption.previousKeys")).isLenient()
 
-    val underTest = new VerificationLinkService()(appConfig,configuration)
+    val underTest = new VerificationLinkService()(mockAppConfig,configuration)
   }
 }

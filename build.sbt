@@ -5,10 +5,13 @@ lazy val microservice = Project("email-verification", file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory): _*)
   .settings(majorVersion := 0)
   .settings(ScoverageSettings())
+  .settings(SilencerSettings())
   .settings(scalaSettings: _*)
   .settings(scalacOptions := Seq("-feature"))
   .settings(publishingSettings: _*)
   .settings(defaultSettings(): _*)
+  .settings(scalaVersion := "2.12.11")
+  .settings(scalacOptions ++= Seq("-Xfatal-warnings", "-feature", "-deprecation"))
   .settings(
     libraryDependencies ++= AppDependencies(),
     dependencyOverrides ++= AppDependencies.overrides,

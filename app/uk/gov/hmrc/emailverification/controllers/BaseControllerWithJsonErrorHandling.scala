@@ -26,7 +26,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 
-class BaseControllerWithJsonErrorHandling @Inject()(cc: ControllerComponents) extends BackendController(cc) {
+abstract class BaseControllerWithJsonErrorHandling @Inject()(cc: ControllerComponents) extends BackendController(cc) {
 
   private val separatorChar: String = ";"
 

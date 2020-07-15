@@ -23,7 +23,7 @@ import uk.gov.hmrc.emailverification.models.{AnalyticsRequest, GaEvent}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-
+import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -33,7 +33,7 @@ class PlatformAnalyticsConnector @Inject() (httpClient:HttpClient, servicesConfi
   val serviceUrl: String = servicesConfig.baseUrl("platform-analytics")
   val gaClientId = s"GA1.1.${Math.abs(Random.nextInt())}.${Math.abs(Random.nextInt())}"
 
-  def sendEvents(events: GaEvent*)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = sendEvents(AnalyticsRequest(gaClientId, events))
+  def sendEvents(events: GaEvent)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = sendEvents(AnalyticsRequest(gaClientId, Seq(events)))
 
   private def sendEvents(data: AnalyticsRequest)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
     val url = s"$serviceUrl/platform-analytics/event"

@@ -193,7 +193,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
         response.json shouldBe Json.parse(
           """{
             |  "code": "UPSTREAM_ERROR",
-            |  "message": "POST of 'http://localhost:11111/hmrc/email' returned 404 (Not Found). Response body: 'some-4xx-message'"
+            |  "message": "POST of 'http://localhost:11111/hmrc/email' returned 404. Response body: 'some-4xx-message'"
             |}""".stripMargin
         )
       }

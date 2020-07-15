@@ -18,7 +18,7 @@ package uk.gov.hmrc.emailverification.connectors
 
 
 import ch.qos.logback.classic.Level
-import helpers.{LogCapturing, TestSupport}
+import helpers.LogCapturing
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.LoneElement
@@ -29,13 +29,14 @@ import org.scalatest.prop.Tables.Table
 import play.api.libs.json.Writes
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.emailverification.models.{AnalyticsRequest, GaEvent}
+import uk.gov.hmrc.gg.test.UnitSpec
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class PlatformAnalyticsConnectorSpec extends TestSupport with MockitoSugar with LogCapturing with LoneElement with Eventually {
+class PlatformAnalyticsConnectorSpec extends UnitSpec with LogCapturing with LoneElement with Eventually {
 
   "sendEvents" should {
 
@@ -49,24 +50,28 @@ class PlatformAnalyticsConnectorSpec extends TestSupport with MockitoSugar with 
       s"send a GA event to platform-analytics - $scenario" in new Setup {
         when(
           httpMock.POST[AnalyticsRequest, HttpResponse]
-            (any[String](),any[AnalyticsRequest](),any[Seq[(String,String)]]())(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+            (any[String],any[AnalyticsRequest],any[Seq[(String,String)]])(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
         ).thenReturn(response)
+
+        when(mockServicesConfig.baseUrl(eqTo("platform-analytics"))).thenReturn("baseurl")
 
         noException should be thrownBy await(analyticsPlatformConnector.sendEvents(event))
 
-        verify(httpMock).POST[AnalyticsRequest, HttpResponse](any[String](),any[AnalyticsRequest](), eqTo(Seq.empty))(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+        verify(httpMock).POST[AnalyticsRequest, HttpResponse](any[String],any[AnalyticsRequest], eqTo(Seq.empty))(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
       }
     }
 
     "swallow exceptions and log an error" in new Setup {
       withCaptureOfLoggingFrom(Logger) { logEvents =>
         when(
-          httpMock.POST[AnalyticsRequest, HttpResponse](any[String](),any[AnalyticsRequest](),any[Seq[(String,String)]]())(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+          httpMock.POST[AnalyticsRequest, HttpResponse](any[String],any[AnalyticsRequest],any[Seq[(String,String)]])(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
         ).thenReturn(Future.failed(new RuntimeException("blow up")))
+
+        when(mockServicesConfig.baseUrl(eqTo("platform-analytics"))).thenReturn("baseurl")
 
         noException should be thrownBy await(analyticsPlatformConnector.sendEvents(event))
 
-        verify(httpMock).POST[AnalyticsRequest, HttpResponse](any[String](), any[AnalyticsRequest](), eqTo(Seq.empty))(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+        verify(httpMock).POST[AnalyticsRequest, HttpResponse](any[String], any[AnalyticsRequest], eqTo(Seq.empty))(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
 
         eventually {
           logEvents.filter(_.getLevel == Level.ERROR).loneElement.getMessage should include(s"Couldn't send analytics event")
