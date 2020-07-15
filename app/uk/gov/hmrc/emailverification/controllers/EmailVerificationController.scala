@@ -67,7 +67,7 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
             analyticsConnector.sendEvents(GaEvents.verificationRequested)
             sendEmailAndCreateVerification(request)
         } recover {
-          case ex: UpstreamErrorResponse if ex.statusCode == 400 =>
+          case ex @ UpstreamErrorResponse(_, 400, _, _) =>
             val event = ExtendedDataEvent(
               auditSource =  "email-verification",
               auditType = "AIV-60",
@@ -80,7 +80,7 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
             auditConnector.sendExtendedEvent(event)
             Logger.error("email-verification had a problem reading from repo", ex)
             BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
-          case ex: UpstreamErrorResponse if ex.statusCode == 404  =>
+          case ex @ UpstreamErrorResponse(_, 404, _, _)  =>
             Logger.error("email-verification had a problem, sendEmail returned not found", ex)
             Status(BAD_GATEWAY)(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
         }

@@ -10,7 +10,6 @@ object AppDependencies {
   )
 
   val test = Seq(
-    "org.scalatestplus.play"  %% "scalatestplus-play"       % "3.1.1"           % "test,it",
     "org.scalatest"           %% "scalatest"                % "3.0.7"           % "test,it",
     "com.github.tomakehurst"  %  "wiremock"                 % "1.58"            % "test,it",
     "org.mockito"             %  "mockito-core"             % "2.27.0"          % "test,it",
