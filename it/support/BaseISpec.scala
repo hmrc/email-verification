@@ -7,28 +7,26 @@ import play.api.test.WsTestClient
 import play.modules.reactivemongo.ReactiveMongoComponent
 import support.EmailStub._
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
-import uk.gov.hmrc.integration.ServiceSpec
+import uk.gov.hmrc.gg.test.{UnitSpec, WireMockSpec}
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-abstract class BaseISpec(val testConfig : Map[String, _ <: Any] = Map.empty) extends WordSpec with ServiceSpec with WsTestClient with Matchers with GivenWhenThen with MongoSpecSupport with WireMockHelper {
+abstract class BaseISpec(val testConfig : Map[String, _ <: Any] = Map.empty) extends WordSpec with UnitSpec with WsTestClient with Matchers with GivenWhenThen with MongoSpecSupport with WireMockSpec {
   implicit val timeout : Duration = 5.minutes
-
-  override val externalServices:Seq[String] = Nil
 
   def await[A](future: Future[A])(implicit timeout: Duration): A = Await.result(future, timeout)
 
-  override val additionalConfig : Map[String, _ <: Any] = Map(
+  override val extraConfig : Map[String, _ <: Any] = Map(
     "microservice.services.email.port" -> WireMockConfig.stubPort.toString,
     "microservice.services.platform-analytics.port" -> WireMockConfig.stubPort.toString,
     "queryParameter.encryption.key" -> "gvBoGdgzqG1AarzF1LY0zQ==",
     "mongodb.uri" -> mongoUri
   ) ++ testConfig
 
-  implicit val config:Config = Configuration(additionalConfig.toSeq:_*).underlying
+  implicit val config:Config = Configuration(extraConfig.toSeq:_*).underlying
 
   lazy val mongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
     override def mongoConnector: MongoConnector = mongoConnectorForTest

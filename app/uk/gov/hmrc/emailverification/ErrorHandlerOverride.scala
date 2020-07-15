@@ -27,12 +27,12 @@ import uk.gov.hmrc.emailverification.models.ErrorResponse
 import uk.gov.hmrc.http.{HeaderCarrier, JsValidationException, NotFoundException, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.config.HttpAuditEvent
 import uk.gov.hmrc.play.bootstrap.http.JsonErrorHandler
-import play.api.libs.concurrent.Execution.Implicits._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class ErrorHandler @Inject()(configuration: Configuration, auditConnector: AuditConnector) extends JsonErrorHandler(configuration,auditConnector){
+class ErrorHandlerOverride @Inject()(configuration: Configuration, auditConnector: AuditConnector, httpAuditEvent: HttpAuditEvent)(implicit ec: ExecutionContext) extends JsonErrorHandler(auditConnector, httpAuditEvent, configuration) {
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
 
@@ -40,27 +40,28 @@ class ErrorHandler @Inject()(configuration: Configuration, auditConnector: Audit
 
     statusCode match {
       case play.mvc.Http.Status.NOT_FOUND =>
-        auditConnector.sendEvent(dataEvent("ResourceNotFound", "Resource Endpoint Not Found", request))
+        auditConnector.sendEvent(httpAuditEvent.dataEvent("ResourceNotFound", "Resource Endpoint Not Found", request))
         Future.successful(
           NotFound(Json.toJson(ErrorResponse("NOT_FOUND", "URI not found", Some(Map("requestedUrl" → request.path)))))
         )
-      case _ ⇒ super.onClientError(request,statusCode,message)
+      case _ ⇒ super.onClientError(request, statusCode, message)
     }
   }
+
   override def onServerError(request: RequestHeader, ex: Throwable): Future[Result] = {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSessionAndRequest(request.headers, request = Some(request))
 
     Logger.error(s"! Internal server error, for (${request.method}) [${request.uri}] -> ", ex)
 
     val code = ex match {
-      case _: NotFoundException       => "ResourceNotFound"
-      case _: AuthorisationException  => "ClientError"
-      case _: JsValidationException   => "ServerValidationError"
-      case _                          => "ServerInternalError"
+      case _: NotFoundException => "ResourceNotFound"
+      case _: AuthorisationException => "ClientError"
+      case _: JsValidationException => "ServerValidationError"
+      case _ => "ServerInternalError"
     }
 
     auditConnector.sendEvent(
-      dataEvent(code, "Unexpected error", request, Map("transactionFailureReason" -> ex.getMessage)))
+      httpAuditEvent.dataEvent(code, "Unexpected error", request, Map("transactionFailureReason" -> ex.getMessage)))
     Future.successful(resolveError(ex))
   }
 

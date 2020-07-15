@@ -28,7 +28,7 @@ import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyti
 import uk.gov.hmrc.emailverification.models.{EmailVerificationRequest, ErrorResponse, GaEvents, TokenVerificationRequest, VerifiedEmail}
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
@@ -41,7 +41,9 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
                                              tokenRepo:VerificationTokenMongoRepository,
                                              verifiedEmailRepo: VerifiedEmailMongoRepository,
                                              analyticsConnector: PlatformAnalyticsConnector,
-                                             auditConnector: AuditConnector)(implicit ec:ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling {
+                                             auditConnector: AuditConnector,
+                                             controllerComponents: ControllerComponents
+                                            )(implicit ec:ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) {
 
   def newToken(): String = UUID.randomUUID().toString
 
@@ -65,7 +67,7 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
             analyticsConnector.sendEvents(GaEvents.verificationRequested)
             sendEmailAndCreateVerification(request)
         } recover {
-          case ex: BadRequestException =>
+          case ex @ UpstreamErrorResponse(_, 400, _, _) =>
             val event = ExtendedDataEvent(
               auditSource =  "email-verification",
               auditType = "AIV-60",
@@ -78,7 +80,7 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
             auditConnector.sendExtendedEvent(event)
             Logger.error("email-verification had a problem reading from repo", ex)
             BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
-          case ex: NotFoundException =>
+          case ex @ UpstreamErrorResponse(_, 404, _, _)  =>
             Logger.error("email-verification had a problem, sendEmail returned not found", ex)
             Status(BAD_GATEWAY)(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
         }

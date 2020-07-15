@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import helpers.TestSupport
 import org.joda.time.{DateTime, DateTimeZone, Period}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import play.modules.reactivemongo.ReactiveMongoComponent
@@ -24,12 +23,13 @@ import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.bson.BSONDocument
 import uk.gov.hmrc.emailverification.models.VerificationDoc
+import uk.gov.hmrc.gg.test.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class VerificationTokenMongoRepositorySpec extends TestSupport with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport {
+
+class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport {
 
   def now: DateTime = DateTime.now(DateTimeZone.UTC)
 

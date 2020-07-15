@@ -25,7 +25,7 @@ import uk.gov.hmrc.emailverification.models.{ForwardUrl, VerificationToken}
 
 class VerificationLinkService @Inject() (implicit appConfig: AppConfig,configuration: Configuration){
 
-  val platformFrontendHost: String     = appConfig.platformFrontendHost
+  lazy val platformFrontendHost: String     = appConfig.platformFrontendHost
   val crypto: CryptoWithKeysFromConfig = new CryptoWithKeysFromConfig(baseConfigKey = "token.encryption",configuration.underlying)
 
   def verificationLinkFor(token: String, continueUrl: ForwardUrl) =

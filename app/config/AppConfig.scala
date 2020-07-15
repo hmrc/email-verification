@@ -24,10 +24,10 @@ class AppConfig @Inject() (val config:Configuration){
   lazy val platformFrontendHost: String = getString("platform.frontend.host")
   lazy val emailServicePath: String = getString("microservice.services.email.path")
   lazy val whitelistedDomains: Set[String] = config
-    .getString("whitelisted-domains")
+    .getOptional[String]("whitelisted-domains")
     .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSet)
     .getOrElse(Set.empty[String])
 
-  private def getString(key: String) = config.getString(key).getOrElse(throw new RuntimeException(s"Could not find config key '$key'"))
+  private def getString(key: String) = config.get[String](key)
 }
 

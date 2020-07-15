@@ -17,38 +17,38 @@
 package uk.gov.hmrc.emailverification.connectors
 
 import config.AppConfig
-import helpers.TestSupport
-import org.mockito.ArgumentMatchers.{eq => eqTo, _}
-import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
-import play.api.{Configuration, Environment}
 import play.api.libs.json.Writes
-import uk.gov.hmrc.emailverification.MockitoSugarRush
 import uk.gov.hmrc.emailverification.models.SendEmailRequest
-import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
+import uk.gov.hmrc.gg.test.UnitSpec
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
-class EmailConnectorSpec extends TestSupport with MockitoSugarRush with ScalaFutures {
+class EmailConnectorSpec extends UnitSpec with ScalaFutures {
 
   "send email" should {
 
     "submit request to email micro service to send email and get successful response status" in new Setup {
+      when(mockServicesConfig.baseUrl(eqTo("email"))).thenReturn("emailHost://emailHost:1337")
+      when(mockAppConfig.emailServicePath).thenReturn("/emailservicepath")
 
       // given
-      val endpointUrl = "emailHost://emailHost:1337/hmrc/email"
-      when(httpMock.POST[SendEmailRequest, HttpResponse]
+      val endpointUrl = "emailHost://emailHost:1337/emailservicepath/hmrc/email"
+      when(httpMock.POST[SendEmailRequest, Either[UpstreamErrorResponse, HttpResponse]]
         (
           url = eqTo(endpointUrl),
           body = any[SendEmailRequest],
-          headers = any[Seq[(String, String)]]())
+          headers = any[Seq[(String, String)]])
         (
-          wts = any[Writes[SendEmailRequest]](),
-          rds = any[HttpReads[HttpResponse]](),
+          wts = any[Writes[SendEmailRequest]],
+          rds = any[HttpReads[Either[UpstreamErrorResponse, HttpResponse]]],
           hc = any[HeaderCarrier],
           ec = any[ExecutionContext])
-      ).thenReturn(Future.successful(HttpResponse(202)))
+      ).thenReturn(Future.successful(Right(HttpResponse(202, ""))))
 
       // when
       val result: HttpResponse = await(connector.sendEmail(recipient, templateId, params))
@@ -61,9 +61,9 @@ class EmailConnectorSpec extends TestSupport with MockitoSugarRush with ScalaFut
       verify(httpMock).POST(
         url = eqTo(endpointUrl),
         body = eqTo(expectedResponseBody),
-        headers = any[Seq[(String, String)]]())(
-        wts = any[Writes[SendEmailRequest]](),
-        rds = any[HttpReads[HttpResponse]](),
+        headers = any[Seq[(String, String)]])(
+        wts = any[Writes[SendEmailRequest]],
+        rds = any[HttpReads[HttpResponse]],
         hc = eqTo(hc),
         ec = eqTo(executionContext))
     }
@@ -71,17 +71,14 @@ class EmailConnectorSpec extends TestSupport with MockitoSugarRush with ScalaFut
 
   sealed trait Setup {
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    implicit val executionContext: ExecutionContextExecutor = ExecutionContext.Implicits.global
+    val executionContext: ExecutionContext = ExecutionContext.Implicits.global
     val httpMock: HttpClient = mock[HttpClient]
     val params: Map[String, String] = Map("p1" -> "v1")
     val templateId = "my-template"
     val recipient = "user@example.com"
-    val appConfig: AppConfig = mock[AppConfig]
-    val environment: Environment = mock[Environment]
-    val configuration:Configuration = mock[Configuration]
-    when(configuration.getString(any[String](),any[Option[Set[String]]]())).thenReturn(Some("emailHost"))
-    when(configuration.getInt(any[String]())).thenReturn(Some(1337))
-    val connector = new EmailConnector(appConfig,httpMock,environment,configuration)
+    val mockAppConfig: AppConfig = mock[AppConfig]
+    val mockServicesConfig = mock[ServicesConfig]
+    val connector = new EmailConnector(mockAppConfig,httpMock, mockServicesConfig)
 
   }
 }
