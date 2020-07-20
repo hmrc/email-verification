@@ -167,7 +167,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
 
     "return BAD_GATEWAY if upstream service fails with INTERNAL_SERVER_ERROR" in {
       val body = "some-5xx-message"
-      stubSendEmailRequest(INTERNAL_SERVER_ERROR, body)
+      expectEmailServiceToRespond(INTERNAL_SERVER_ERROR, body)
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(verificationRequest()))
@@ -184,7 +184,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
 
     "return BAD_GATEWAY if upstream service fails with 4xx" in {
       val body = "some-4xx-message"
-      stubSendEmailRequest(NOT_FOUND, body)
+      expectEmailServiceToRespond(NOT_FOUND, body)
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(verificationRequest()))

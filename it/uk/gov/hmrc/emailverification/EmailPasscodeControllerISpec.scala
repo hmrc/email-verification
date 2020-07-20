@@ -1,62 +1,68 @@
 package uk.gov.hmrc.emailverification
 
+import java.util.UUID
+
+import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator
 import org.scalatest.Assertion
 import play.api.libs.json.Json
 import support.BaseISpec
 import support.EmailStub._
 
-class EmailVerificationISpec extends BaseISpec {
+class EmailPasscodeControllerISpec extends BaseISpec {
   val emailToVerify = "example@domain.com"
+  val sessionId = UUID.randomUUID.toString
 
-  "email verification" should {
-    "send the verification email to the specified address successfully" in new Setup {
+  "request-passcode" should {
+    "send the a passcode email to the specified address successfully" in new Setup {
       Given("The email service is running")
       expectEmailServiceToRespond(202)
 
-      When("a client submits a verification request")
+      When("a client submits a passcode email request")
 
       withClient { ws =>
-        val response = await(ws.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
+        val response = await(ws.url(appClient("/request-passcode")).post(passcodeRequest(sessionId, emailToVerify, templateId)))
         response.status shouldBe 201
 
-        Then("an email is sent")
-        verifyEmailSentWithContinueUrl(emailToVerify, continueUrl, templateId, paramsWithVerificationLink)
+        Then("a passcode email is sent")
+        verifyEmailSentWithPasscode(emailToVerify, templateId, paramsWithVerificationLink)
       }
     }
 
-    "only latest email verification request token for a given email should be valid" in new Setup {
+    "only latest passcode sent to a given email should be valid" in new Setup {
       Given("The email service is running")
       expectEmailServiceToRespond(202)
 
-      When("client submits a verification request")
+      When("client submits a passcode request")
       withClient { ws =>
-        val response1 = await(ws.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
+        val response1 = await(ws.url(appClient("/request-passcode")).post(passcodeRequest(sessionId, emailToVerify, templateId)))
         response1.status shouldBe 201
-        val token1 = decryptedToken(lastVerificationEMail)._1.get
+        val passcode1 = lastPasscodeEmailed
 
-        When("client submits a second verification request for same email")
-        val response2 = await(ws.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
+        When("client submits a second passcode request for same email")
+        val response2 = await(ws.url(appClient("/request-passcode")).post(passcodeRequest(sessionId, emailToVerify, templateId)))
         response2.status shouldBe 201
-        val token2 = decryptedToken(lastVerificationEMail)._1.get
+        val passcode2 = lastPasscodeEmailed
 
-        Then("only the last verification request token should be valid")
-        await(ws.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token1))).status shouldBe 400
-        await(ws.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token2))).status shouldBe 201
+        Then("only the last passcode sent should be valid")
+        await(ws.url(appClient("/verify-passcode")).post(Json.obj("sessiondId"->sessionId, "passcode" -> passcode1))).status shouldBe 400
+        await(ws.url(appClient("/verify-passcode")).post(Json.obj("sessiondId"->sessionId, "passcode" -> passcode2))).status shouldBe 201
       }
     }
 
-    "second verification request should return successful 204 response" in new Setup {
+    "second passcode verification request with same passcode should return 204 instead of 201 response" in new Setup {
       Given("The email service is running")
       expectEmailServiceToRespond(202)
 
-      When("client submits a verification request")
+      When("client submits a passcode verification request")
       withClient { ws =>
-        val response1 = await(ws.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
+        val response1 = await(ws.url(appClient("/request-passcode")).post(passcodeRequest(sessionId, emailToVerify, templateId)))
         response1.status shouldBe 201
-        val token = decryptedToken(lastVerificationEMail)._1.get
+        val passcode = lastPasscodeEmailed
+
+        //START HERE
 
         Then("the verification request with the token should be successful")
-        await(ws.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 201
+        await(ws.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> passcode))).status shouldBe 201
         Then("an additional verification requests with the token should be successful, but return with a 204 response")
           await(ws.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 204
       }
