@@ -62,7 +62,7 @@ object EmailStub extends MockitoSugar with Matchers {
     token.isDefined shouldBe true
   }
 
-  def verifyEmailSentWithPasscode(to: String, templateId: String, params: Map[String, String])(implicit config:Config): Assertion = {
+  def verifyEmailSentWithPasscode(to: String, templateId: String)(implicit config:Config): Assertion = {
     val emailSendRequestJson = lastVerificationEMail
     (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
     (emailSendRequestJson \ "templateId").as[String] shouldBe templateId

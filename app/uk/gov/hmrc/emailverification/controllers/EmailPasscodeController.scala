@@ -16,12 +16,9 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
-import java.util.UUID
-
 import config.AppConfig
 import javax.inject.Inject
 import play.api.Logger
-import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
