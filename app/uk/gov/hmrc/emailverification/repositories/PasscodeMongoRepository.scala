@@ -27,6 +27,7 @@ import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.emailverification.models.{PasscodeDoc, VerificationDoc}
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -40,12 +41,14 @@ class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(
     domainFormat   = PasscodeDoc.format,
     idFormat       = ReactiveMongoFormats.objectIdFormats) {
 
-  def upsert(sessionId:String, passcode: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[WriteResult] = {
-    val selector = Json.obj("sessionId"->sessionId)
-    val update = PasscodeDoc(sessionId, email, passcode, dateTimeProvider().plus(validity))
+  def upsert(sessionId: SessionId, passcode: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[WriteResult] = {
+    val selector = Json.obj("sessionId"-> sessionId.value)
+    val update = PasscodeDoc(sessionId.value, email, passcode, dateTimeProvider().plus(validity))
 
     collection.update(ordered=false).one(selector, update, upsert = true)
   }
+
+  def findPasscodeBySessionId(sessionId:String)(implicit hc: HeaderCarrier): Future[Option[PasscodeDoc]] = find("sessionId"->sessionId).map(_.headOption)
 
   def findPasscode(sessionId:String, passcode: String)(implicit hc: HeaderCarrier): Future[Option[PasscodeDoc]] = find("sessionId"->sessionId, "passcode" -> passcode.toUpperCase).map(_.headOption)
 

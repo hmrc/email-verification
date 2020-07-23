@@ -20,6 +20,7 @@ abstract class BaseISpec(val testConfig : Map[String, _ <: Any] = Map.empty) ext
   def await[A](future: Future[A])(implicit timeout: Duration): A = Await.result(future, timeout)
 
   override val extraConfig : Map[String, _ <: Any] = Map(
+    "application.router" -> "testOnlyDoNotUseInAppConf.Routes",
     "microservice.services.email.port" -> WireMockConfig.stubPort.toString,
     "microservice.services.platform-analytics.port" -> WireMockConfig.stubPort.toString,
     "queryParameter.encryption.key" -> "gvBoGdgzqG1AarzF1LY0zQ==",
