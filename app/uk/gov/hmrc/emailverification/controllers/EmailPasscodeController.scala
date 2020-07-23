@@ -42,7 +42,18 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
                                         controllerComponents: ControllerComponents
                                        )(implicit ec: ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) {
 
-  private def newPasscode(): String = {
+  def testOnlyGetPasscode(): Action[AnyContent] = Action.async{ implicit request =>
+    hc.sessionId match {
+      case Some(SessionId(id)) => passcodeRepo.findPasscodeBySessionId(id).map {
+        case Some(passwordDoc) => Ok(Json.toJson(Passcode(passwordDoc.passcode)))
+        case None => NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", "No passcode found for sessionId")))
+      }
+      case None =>
+        Future.successful(BadRequest(Json.toJson(ErrorResponse("BAD_PASSCODE_REQUEST", "No session id provided"))))
+    }
+  }
+
+  private def newPasscode(): String =  {
     val codeSize = 6
     Random.alphanumeric
       .filterNot(_.isDigit)
@@ -98,6 +109,8 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
       }
   }
 
+
+
   def verifyPasscode(): Action[JsValue] = Action.async(parse.json) { implicit request: Request[JsValue] => {
     withJsonBody[PasscodeVerificationRequest] { passcodeVerificationRequest: PasscodeVerificationRequest => {
 
@@ -117,6 +130,8 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
         case None =>
           Future.successful(BadRequest(Json.toJson(ErrorResponse("NO_SESSION_ID", "No session id provided"))))
       }
+    }}
+  }}
 
 
     }
@@ -124,4 +139,3 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
   }
   }
 
-}
