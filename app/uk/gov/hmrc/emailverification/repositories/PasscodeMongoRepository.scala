@@ -41,7 +41,7 @@ class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(
     idFormat       = ReactiveMongoFormats.objectIdFormats) {
 
   def upsert(sessionId:String, passcode: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[WriteResult] = {
-    val selector = Json.obj("email" -> email)
+    val selector = Json.obj("sessionId"->sessionId)
     val update = PasscodeDoc(sessionId, email, passcode, dateTimeProvider().plus(validity))
 
     collection.update(ordered=false).one(selector, update, upsert = true)

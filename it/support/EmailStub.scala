@@ -41,6 +41,10 @@ object EmailStub extends MockitoSugar with Matchers {
                   |  "linkExpiryDuration" : "P2D"
                   |}""".stripMargin)
 
+  def passcodeVerificationRequest(sessionId: String = "some-session-id",
+                                  passcode: String = "PSSCDD"): JsValue =
+    Json.parse(s"""{"sessionId": "$sessionId", "passcode": "$passcode"}""".stripMargin)
+
   def expectEmailServiceToRespond(status: Int, body: String): Unit =
     stubFor(post(emailMatchingStrategy).willReturn(aResponse()
       .withStatus(status)

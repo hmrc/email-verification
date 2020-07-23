@@ -2,7 +2,6 @@ package uk.gov.hmrc.emailverification
 
 import java.util.UUID
 
-import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator
 import org.scalatest.Assertion
 import play.api.libs.json.Json
 import support.BaseISpec
@@ -42,8 +41,11 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         val passcode2 = lastPasscodeEmailed
 
         Then("only the last passcode sent should be valid")
-        await(ws.url(appClient("/verify-passcode")).post(Json.obj("sessiondId"->sessionId, "passcode" -> passcode1))).status shouldBe 400
-        await(ws.url(appClient("/verify-passcode")).post(Json.obj("sessiondId"->sessionId, "passcode" -> passcode2))).status shouldBe 201
+        val validationResponse1 = await(ws.url(appClient("/verify-passcode")).post(passcodeVerificationRequest(sessionId, passcode1)))
+        val validationResponse2 = await(ws.url(appClient("/verify-passcode")).post(passcodeVerificationRequest(sessionId, passcode2)))
+
+        validationResponse1.status shouldBe 400
+        validationResponse2.status shouldBe 201
       }
     }
 
@@ -51,7 +53,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       When("client submits a passcode verification request")
       withClient { ws =>
         Then("only the last passcode sent should be valid")
-        val response = await(ws.url(appClient("/verify-passcode")).post(Json.obj("sessiondId"->sessionId, "passcode" -> "NVLDWR")))
+        val response = await(ws.url(appClient("/verify-passcode")).post(passcodeVerificationRequest(sessionId, "NDJRMS")))
         response.status shouldBe 400
         (Json.parse(response.body) \ "code").as[String] shouldBe "PASSCODE_NOT_FOUND_OR_EXPIRED"
       }
@@ -68,9 +70,9 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         val passcode = lastPasscodeEmailed
 
         Then("the request to verify with passcode should be successful")
-        await(ws.url(appClient("/verify-passcode")).post(Json.obj("sessiondId"->sessionId, "passcode" -> passcode))).status shouldBe 201
+        await(ws.url(appClient("/verify-passcode")).post(passcodeVerificationRequest(sessionId, passcode))).status shouldBe 201
         Then("an additional request to verify the same passcode should be successful, but return with a 204 response")
-        await(ws.url(appClient("/verify-passcode")).post(Json.obj("sessiondId"->sessionId, "passcode" -> passcode))).status shouldBe 204
+        await(ws.url(appClient("/verify-passcode")).post(passcodeVerificationRequest(sessionId, passcode))).status shouldBe 204
       }
     }
 
@@ -81,7 +83,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
           response.status shouldBe 201
           val passcode = lastPasscodeEmailed
           And("the client verifies the token")
-          await(ws.url(appClient("/verify-passcode")).post(Json.obj("sessiondId"->sessionId, "passcode" -> passcode))).status shouldBe 201
+          await(ws.url(appClient("/verify-passcode")).post(passcodeVerificationRequest(sessionId, passcode))).status shouldBe 201
           Then("the verified email should also have been stored")
           await(ws.url(appClient("/verified-email-check")).post(Json.obj("email" -> emailToVerify))).status shouldBe 200
         }
@@ -156,7 +158,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       withClient { ws =>
         await(ws.url(appClient("/request-passcode")).post(passcodeRequest(sessionId, emailToVerify, templateId))).status shouldBe 201
         val passcode = lastPasscodeEmailed
-        await(ws.url(appClient("/verify-passcode")).post(Json.obj("sessiondId"->sessionId, "passcode" -> passcode))).status shouldBe 201
+        await(ws.url(appClient("/verify-passcode")).post(passcodeVerificationRequest(sessionId, passcode))).status shouldBe 201
       }
     }
 

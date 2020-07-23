@@ -35,7 +35,7 @@ abstract class BaseISpec(val testConfig : Map[String, _ <: Any] = Map.empty) ext
   def appClient(path: String): String = resource(s"/email-verification$path")
 
     def tokenFor(email: String): String = {
-      stubSendEmailRequest(202)
+      expectEmailServiceToRespond(202)
       withClient { ws =>
         await(ws.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify = email))).status shouldBe 201
         decryptedToken(lastVerificationEMail)._1.get
