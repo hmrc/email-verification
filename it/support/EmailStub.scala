@@ -1,7 +1,5 @@
 package support
 
-import java.util.UUID
-
 import _root_.play.api.libs.json.{JsValue, Json}
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
@@ -23,27 +21,25 @@ object EmailStub extends MockitoSugar with Matchers {
                           continueUrl: String = "http://example.com/continue",
                           paramsJsonStr: String = "{}"): JsValue =
     Json.parse(s"""{
-                   |  "email": "$emailToVerify",
-                   |  "templateId": "$templateId",
-                   |  "templateParameters": $paramsJsonStr,
-                   |  "linkExpiryDuration" : "P2D",
-                   |  "continueUrl" : "$continueUrl"
-                   |}""".stripMargin)
+                  |  "email": "$emailToVerify",
+                  |  "templateId": "$templateId",
+                  |  "templateParameters": $paramsJsonStr,
+                  |  "linkExpiryDuration" : "P2D",
+                  |  "continueUrl" : "$continueUrl"
+                  |}""".stripMargin)
 
-  def passcodeRequest(sessionId: String = UUID.randomUUID().toString,
-                      email: String = "test@example.com",
+  def passcodeRequest(email: String = "test@example.com",
                       templateId: String = "some-template-id",
                       paramsJsonStr: String = "{}"): JsValue =
-    Json.parse(s"""{ "sessionId": "$sessionId",
+    Json.parse(s"""{
                   |  "email": "$email",
                   |  "templateId": "$templateId",
                   |  "templateParameters": $paramsJsonStr,
                   |  "linkExpiryDuration" : "P2D"
                   |}""".stripMargin)
 
-  def passcodeVerificationRequest(sessionId: String = "some-session-id",
-                                  passcode: String = "PSSCDD"): JsValue =
-    Json.parse(s"""{"sessionId": "$sessionId", "passcode": "$passcode"}""".stripMargin)
+  def passcodeVerificationRequest(passcode: String = "PSSCDD"): JsValue =
+    Json.parse(s"""{"passcode": "$passcode"}""".stripMargin)
 
   def expectEmailServiceToRespond(status: Int, body: String): Unit =
     stubFor(post(emailMatchingStrategy).willReturn(aResponse()

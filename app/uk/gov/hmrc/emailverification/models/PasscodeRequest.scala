@@ -20,8 +20,7 @@ import org.joda.time.format.ISOPeriodFormat
 import org.joda.time.Period
 import play.api.libs.json.{JsPath, Json, Reads}
 
-case class PasscodeRequest(sessionId:String,
-                           email:String,
+case class PasscodeRequest(email:String,
                            templateId: String,
                            templateParameters: Option[Map[String, String]],
                            linkExpiryDuration: Period)
