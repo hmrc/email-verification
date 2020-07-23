@@ -16,15 +16,6 @@ object AppDependencies {
     "uk.gov.hmrc"             %% "reactivemongo-test"       % "4.21.0-play-26"  % "test,it"
   )
 
-  val overrides = {
-    Seq(
-      "com.typesafe.akka"          %% "akka-stream"        % "2.5.23"     force(),
-      "com.typesafe.akka"          %% "akka-protobuf"      % "2.5.23"     force(),
-      "com.typesafe.akka"          %% "akka-slf4j"         % "2.5.23"     force(),
-      "com.typesafe.akka"          %% "akka-actor"         % "2.5.23"     force(),
-      "com.typesafe.akka"          %% "akka-http-core"     % "10.0.15"    force()
-    )
-  }
 
   def apply(): Seq[ModuleID] = compile ++ test
 }

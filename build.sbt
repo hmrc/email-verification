@@ -14,7 +14,6 @@ lazy val microservice = Project("email-verification", file("."))
   .settings(scalacOptions ++= Seq("-Xfatal-warnings", "-feature", "-deprecation"))
   .settings(
     libraryDependencies ++= AppDependencies(),
-    dependencyOverrides ++= AppDependencies.overrides,
     retrieveManaged := true
   )
   .configs(IntegrationTest)
