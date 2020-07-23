@@ -47,7 +47,7 @@ class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(
     collection.update(ordered=false).one(selector, update, upsert = true)
   }
 
-  def findPasscode(sessionId:String, passcode: String)(implicit hc: HeaderCarrier): Future[Option[PasscodeDoc]] = find("sessionId"->sessionId, "passcode" -> passcode).map(_.headOption)
+  def findPasscode(sessionId:String, passcode: String)(implicit hc: HeaderCarrier): Future[Option[PasscodeDoc]] = find("sessionId"->sessionId, "passcode" -> passcode.toUpperCase).map(_.headOption)
 
   def dateTimeProvider: Function0[DateTime] = ()=>DateTime.now(UTC)
 

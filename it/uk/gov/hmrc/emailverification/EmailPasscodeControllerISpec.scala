@@ -50,16 +50,45 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "verifying an unknown passcode should return a 400 error" in new Setup {
-      When("client submits a passcode verification request")
+      When("client submits an unknown passcode to verification request")
       withClient { ws =>
-        Then("only the last passcode sent should be valid")
         val response = await(ws.url(appClient("/verify-passcode")).post(passcodeVerificationRequest(sessionId, "NDJRMS")))
         response.status shouldBe 400
         (Json.parse(response.body) \ "code").as[String] shouldBe "PASSCODE_NOT_FOUND_OR_EXPIRED"
       }
     }
 
-    "second passcode verification request with same passcode should return 204 instead of 201 response" in new Setup {
+    "uppercase passcode verification is valid" in new Setup {
+      Given("The email service is running")
+      expectEmailServiceToRespond(202)
+
+      When("client requests a passcode")
+      withClient { ws =>
+        val response1 = await(ws.url(appClient("/request-passcode")).post(passcodeRequest(sessionId, emailToVerify, templateId)))
+        response1.status shouldBe 201
+        val uppercasePasscode = lastPasscodeEmailed.toUpperCase
+
+        Then("submitting verification request with passcode in lowercase should be successful")
+        await(ws.url(appClient("/verify-passcode")).post(passcodeVerificationRequest(sessionId, uppercasePasscode))).status shouldBe 201
+      }
+    }
+
+    "lowercase passcode verification is valid" in new Setup {
+      Given("The email service is running")
+      expectEmailServiceToRespond(202)
+
+      When("client requests a passcode")
+      withClient { ws =>
+        val response1 = await(ws.url(appClient("/request-passcode")).post(passcodeRequest(sessionId, emailToVerify, templateId)))
+        response1.status shouldBe 201
+        val lowercasePasscode = lastPasscodeEmailed.toLowerCase
+
+        Then("submitting verification request with passcode in lowercase should be successful")
+        await(ws.url(appClient("/verify-passcode")).post(passcodeVerificationRequest(sessionId, lowercasePasscode))).status shouldBe 201
+      }
+    }
+
+    "second passcode verification request with same session and passcode should return 204 instead of 201 response" in new Setup {
       Given("The email service is running")
       expectEmailServiceToRespond(202)
 
