@@ -26,9 +26,9 @@ Preconditions:
 
 # Test Only Routes
 
-    | Path                             | Supported Methods | Description                                               |
-    |----------------------------------|-------------------|-----------------------------------------------------------|
-    | /test-only/passcode              | GET              | Retrieves the generated passcode that is stored in mongo                         |
+| Path                             | Supported Methods | Description                                               |
+|----------------------------------|-------------------|-----------------------------------------------------------|
+| /test-only/passcode              | GET              | Retrieves the generated passcode that is stored in mongo                         |
     
 
 ## POST /verification-requests
@@ -120,16 +120,16 @@ X-Session-ID: SomeSessionId
 
 ### Success Response
 
-    | Status    |  Description                      |
-    |-----------|-----------------------------------|
-    | 200       | Found passcode against session ID                 |
+| Status    |  Description                      |
+|-----------|-----------------------------------|
+| 200       | Found passcode against session ID                 |
 
 ### Failure Responses
 
-    | Status    |  Description                      |  Code                            |
-    |-----------|-----------------------------------|----------------------------------|
-    | 404       | Passcode not found for given session ID    | PASSCODE_NOT_FOUND_OR_EXPIRED  |
-    | 400       | Session ID not provided in headers    | BAD_PASSCODE_REQUEST  |
+| Status    |  Description                      |  Code                            |
+|-----------|-----------------------------------|----------------------------------|
+| 404       | Passcode not found for given session ID    | PASSCODE_NOT_FOUND_OR_EXPIRED  |
+| 400       | Session ID not provided in headers    | BAD_PASSCODE_REQUEST  |
 
 **Response body**
 
