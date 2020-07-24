@@ -28,13 +28,9 @@ object EmailStub extends MockitoSugar with Matchers {
                   |  "continueUrl" : "$continueUrl"
                   |}""".stripMargin)
 
-  def passcodeRequest(email: String = "test@example.com",
-                      templateId: String = "some-template-id",
-                      paramsJsonStr: String = "{}"): JsValue =
+  def passcodeRequest(email: String = "test@example.com"): JsValue =
     Json.parse(s"""{
                   |  "email": "$email",
-                  |  "templateId": "$templateId",
-                  |  "templateParameters": $paramsJsonStr,
                   |  "linkExpiryDuration" : "P2D"
                   |}""".stripMargin)
 

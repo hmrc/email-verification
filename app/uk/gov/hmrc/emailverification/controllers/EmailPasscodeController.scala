@@ -35,14 +35,14 @@ import scala.util.Random
 
 
 class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
-                                        passcodeRepo:PasscodeMongoRepository,
+                                        passcodeRepo: PasscodeMongoRepository,
                                         verifiedEmailRepo: VerifiedEmailMongoRepository,
                                         analyticsConnector: PlatformAnalyticsConnector,
                                         auditConnector: AuditConnector,
                                         controllerComponents: ControllerComponents
-                                            )(implicit ec:ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) {
+                                       )(implicit ec: ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) {
 
-  private def newPasscode(): String =  {
+  private def newPasscode(): String = {
     val codeSize = 6
     Random.alphanumeric
       .filterNot(_.isDigit)
@@ -53,11 +53,11 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
 
   private def sendEmailAndStorePasscode(request: PasscodeRequest, sessionId: SessionId)(implicit hc: HeaderCarrier) = {
     val passcode = newPasscode()
-    val paramsWithPasscode = request.templateParameters.getOrElse(Map.empty) +
+    val paramsWithPasscode = appConfig.passcodeEmailTemplateParameters +
       ("passcode" -> passcode)
 
     for {
-      _ <- emailConnector.sendEmail(request.email, request.templateId, paramsWithPasscode)
+      _ <- emailConnector.sendEmail(request.email, appConfig.passcodeEmailTemplateId, paramsWithPasscode)
       _ <- passcodeRepo.upsert(sessionId, passcode, request.email, request.linkExpiryDuration)
     } yield ()
   }
@@ -71,10 +71,10 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
             analyticsConnector.sendEvents(GaEvents.passcodeRequested)
             hc.sessionId match {
               case Some(sessionId) => {
-                sendEmailAndStorePasscode(request, sessionId).map(_=>Created).recover {
-                  case ex @ UpstreamErrorResponse(_, 400, _, _) =>
+                sendEmailAndStorePasscode(request, sessionId).map(_ => Created).recover {
+                  case ex@UpstreamErrorResponse(_, 400, _, _) =>
                     val event = ExtendedDataEvent(
-                      auditSource =  "email-verification",
+                      auditSource = "email-verification",
                       auditType = "AIV-60",
                       tags = hc.toAuditTags("requestPasscode", httpRequest.path),
                       detail = Json.obj(
@@ -85,13 +85,13 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
                     auditConnector.sendExtendedEvent(event)
                     Logger.error("email-verification had a problem, sendEmail returned bad request", ex)
                     BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
-                  case ex @ UpstreamErrorResponse(_, 404, _, _)  =>
+                  case ex@UpstreamErrorResponse(_, _, _, _) =>
                     Logger.error("email-verification had a problem, sendEmail returned not found", ex)
                     BadGateway(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
                 }
               }
               case None =>
-                Future.successful(BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", "No session id provided"))))
+                Future.successful(BadRequest(Json.toJson(ErrorResponse("BAD_REQUEST", "No session id provided"))))
             }
 
         }
@@ -101,11 +101,10 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
 
   private def storeEmailIfNotExist(email: String)(implicit hc: HeaderCarrier): Future[Result] = {
     verifiedEmailRepo.find(email) flatMap {
-      case Some(verifiedEmail) => Future.successful(NoContent)
       case None => verifiedEmailRepo.insert(email) map (_ => Created)
+      case _ => Future.successful(NoContent)
     }
   }
-
 
 
   def verifyPasscode(): Action[JsValue] = Action.async(parse.json) { implicit request: Request[JsValue] => {
@@ -126,7 +125,9 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
       }
 
 
-    }}
-  }}
+    }
+    }
+  }
+  }
 
 }

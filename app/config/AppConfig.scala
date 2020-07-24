@@ -23,6 +23,12 @@ class AppConfig @Inject() (val config:Configuration){
 
   lazy val platformFrontendHost: String = getString("platform.frontend.host")
   lazy val emailServicePath: String = getString("microservice.services.email.path")
+  lazy val passcodeEmailTemplateParameters: Map[String, String] = config
+    .getOptional[Map[String, String]]("passcodeEmailTemplateParameters")
+    .getOrElse(Map.empty)
+
+  lazy val passcodeEmailTemplateId = config.get[String]("passcodeEmailTemplateId")
+
   lazy val whitelistedDomains: Set[String] = config
     .getOptional[String]("whitelisted-domains")
     .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSet)

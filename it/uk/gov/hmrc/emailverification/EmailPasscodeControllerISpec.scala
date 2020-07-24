@@ -21,7 +21,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       withClient { ws =>
         val response = await(ws.url(appClient("/request-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify, templateId)))
+          .post(passcodeRequest(emailToVerify)))
         response.status shouldBe 201
 
         Then("a passcode email is sent")
@@ -37,14 +37,14 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       withClient { ws =>
         val response1 = await(ws.url(appClient("/request-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify, templateId)))
+          .post(passcodeRequest(emailToVerify)))
         response1.status shouldBe 201
         val passcode1 = lastPasscodeEmailed
 
         When("client submits a second passcode request for same email")
         val response2 = await(ws.url(appClient("/request-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify, templateId)))
+          .post(passcodeRequest(emailToVerify)))
         response2.status shouldBe 201
         val passcode2 = lastPasscodeEmailed
 
@@ -81,7 +81,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       withClient { ws =>
         val response1 = await(ws.url(appClient("/request-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify, templateId)))
+          .post(passcodeRequest(emailToVerify)))
         response1.status shouldBe 201
         val uppercasePasscode = lastPasscodeEmailed.toUpperCase
 
@@ -100,7 +100,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       withClient { ws =>
         val response1 = await(ws.url(appClient("/request-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify, templateId)))
+          .post(passcodeRequest(emailToVerify)))
         response1.status shouldBe 201
         val lowercasePasscode = lastPasscodeEmailed.toLowerCase
 
@@ -119,7 +119,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       withClient { ws =>
         val response1 = await(ws.url(appClient("/request-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify, templateId)))
+          .post(passcodeRequest(emailToVerify)))
         response1.status shouldBe 201
         val passcode = lastPasscodeEmailed
 
@@ -139,7 +139,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         withClient { ws =>
           val response = await(ws.url(appClient("/request-passcode"))
             .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-            .post(passcodeRequest(emailToVerify, templateId)))
+            .post(passcodeRequest(emailToVerify)))
 
           response.status shouldBe 201
           val passcode = lastPasscodeEmailed
@@ -170,7 +170,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       withClient { ws =>
         val response = await(ws.url(appClient("/request-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify, templateId)))
+          .post(passcodeRequest(emailToVerify)))
         response.status shouldBe 502
         response.body should include(body)
       }
@@ -182,7 +182,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       withClient { ws =>
         val response = await(ws.url(appClient("/request-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify, templateId)))
+          .post(passcodeRequest(emailToVerify)))
         response.status shouldBe 400
         response.body should include(body)
 
@@ -196,7 +196,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       withClient { ws =>
         val response = await(ws.url(appClient("/request-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify, templateId)))
+          .post(passcodeRequest(emailToVerify)))
         response.status shouldBe 502
         response.body should include(body)
       }
@@ -207,7 +207,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       expectEmailServiceToRespond(404, body)
       withClient { ws =>
         val response = await(ws.url(appClient("/request-passcode"))
-          .post(passcodeRequest(emailToVerify, templateId)))
+          .post(passcodeRequest(emailToVerify)))
         response.status shouldBe 400
         Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("BAD_EMAIL_REQUEST"))
         Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No session id provided"))
@@ -220,7 +220,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       withClient { ws =>
         val response = await(ws.url(appClient("/request-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(email = emailToVerify, templateId = templateId)))
+          .post(passcodeRequest(emailToVerify)))
         response.status shouldBe 409
 
         Json.parse(
@@ -243,7 +243,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       withClient { ws =>
         await(ws.url(appClient("/request-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify, templateId))).status shouldBe 201
+          .post(passcodeRequest(emailToVerify))).status shouldBe 201
         val passcode = lastPasscodeEmailed
         await(ws.url(appClient("/verify-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
