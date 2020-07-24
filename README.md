@@ -16,12 +16,12 @@ Preconditions:
 
 # API
 
-    | Path                             | Supported Methods | Description                                                                              |
-    |----------------------------------|-------------------|------------------------------------------------------------------------------------------|
-    | /verification-requests           | POST              | Create a new verification request                                                        |
-    | /verified-email-check            | POST              | Check if email address is verified                                                       |
-    | /request-passcode                | POST              | Generates a passcode and sends an email with the passcode to the specified email address |
-    | /verify-passcode                 | POST              | Verifies the passcode generated against your email address                               |
+| Path                             | Supported Methods | Description                                                                              |
+|----------------------------------|-------------------|------------------------------------------------------------------------------------------|
+| /verification-requests           | POST              | Create a new verification request                                                        |
+| /verified-email-check            | POST              | Check if email address is verified                                                       |
+| /request-passcode                | POST              | Generates a passcode and sends an email with the passcode to the specified email address |
+| /verify-passcode                 | POST              | Verifies the passcode generated against your email address                               |
     
 
 ## POST /verification-requests
@@ -50,23 +50,23 @@ __Please make sure that you validate your email address before making this reque
 
 ### Success Response
 
-    | Status    |  Description                      |
-    |-----------|-----------------------------------|
-    | 201       | Verification created successfully |
+| Status    |  Description                      |
+|-----------|-----------------------------------|
+| 201       | Verification created successfully |
 
 ### Failure Responses
 
-    | Status    |  Description                                  |  Code                    |  Note                    |
-    |-----------|-----------------------------------------------|--------------------------|--------------------------|
-    | 400       | Invalid request                               | VALIDATION_ERROR         |                          |
-    | 409       | Email has already been verified               | EMAIL_VERIFIED_ALREADY   |                          |
-    | 400       | Bad request to email, like template not found | BAD_EMAIL_REQUEST        | This can also happen if  |
-    |           |                                               |                          | the email address is not |
-    |           |                                               |                          | valid, this can include  |
-    |           |                                               |                          | leading and/or trailing  |
-    |           |                                               |                          | spaces.                  |
-    | 500       | Unexpected error                              | UNEXPECTED_ERROR         |                          |
-    | 502       | Upstream service error                        | UPSTREAM_ERROR           |                          |
+| Status    |  Description                                  |  Code                    |  Note                    |
+|-----------|-----------------------------------------------|--------------------------|--------------------------|
+| 400       | Invalid request                               | VALIDATION_ERROR         |                          |
+| 409       | Email has already been verified               | EMAIL_VERIFIED_ALREADY   |                          |
+| 400       | Bad request to email, like template not found | BAD_EMAIL_REQUEST        | This can also happen if the email address is notvalid, this can include leading and/or trailing spaces.                                       |
+|           |                                               |                          |                          |
+|           |                                               |                          |                          |
+|           |                                               |                          |                          |
+|           |                                               |                          |                          |
+| 500       | Unexpected error                              | UNEXPECTED_ERROR         |                          |
+| 502       | Upstream service error                        | UPSTREAM_ERROR           |                          |
 
 
 ## POST /verified-email-check
@@ -83,17 +83,17 @@ Check if email address is verified or not, if verified return 200 with the email
 
 ### Success Response
 
-    | Status    |  Description                      |
-    |-----------|-----------------------------------|
-    | 200       | Email is verified                 |
+| Status    |  Description                      |
+|-----------|-----------------------------------|
+| 200       | Email is verified                 |
 
 ### Failure Responses
 
-    | Status    |  Description                      |  Code                            |
-    |-----------|-----------------------------------|----------------------------------|
-    | 404       | Email not found / not verified    | EMAIL_NOT_FOUND_OR_NOT_VERIFIED  |
-    | 500       | Unexpected error                  | UNEXPECTED_ERROR                 |
-    | 502       | Upstream service error            | UPSTREAM_ERROR                   |
+| Status    |  Description                      |  Code                            |
+|-----------|-----------------------------------|----------------------------------|
+| 404       | Email not found / not verified    | EMAIL_NOT_FOUND_OR_NOT_VERIFIED  |
+| 500       | Unexpected error                  | UNEXPECTED_ERROR                 |
+| 502       | Upstream service error            | UPSTREAM_ERROR                   |
 
 **Response body**
 
@@ -118,18 +118,18 @@ Generates a passcode and sends an email with the passcode to the specified email
 
 ### Success Response
 
-    | Status    |  Description                          |
-    |-----------|---------------------------------------|
-    | 201       | Passcode is created and email is sent |
+| Status    |  Description                          |
+|-----------|---------------------------------------|
+| 201       | Passcode is created and email is sent |
 
 ### Failure Responses
 
-    | Status    |  Description                      |  Code                            |
-    |-----------|-----------------------------------|----------------------------------|
-    | 409       | Email already verified            | EMAIL_VERIFIED_ALREADY           |
-    | 400       | Upstream bad request sending email| BAD_EMAIL_REQUEST                |
-    | 400       | SessionID not provided            | BAD_REQUEST                      |
-    | 502       | Upstream error                    | UPSTREAM_ERROR                   |
+| Status    |  Description                      |  Code                            |
+|-----------|-----------------------------------|----------------------------------|
+| 409       | Email already verified            | EMAIL_VERIFIED_ALREADY           |
+| 400       | Upstream bad request sending email| BAD_EMAIL_REQUEST                |
+| 400       | SessionID not provided            | BAD_REQUEST                      |
+| 502       | Upstream error                    | UPSTREAM_ERROR                   |
 
 ## POST /verify-passcode
 Verifies the passcode generated against your email address 
@@ -145,17 +145,17 @@ Verifies the passcode generated against your email address
 
 ### Success Response
 
-    | Status    |  Description                          |
-    |-----------|---------------------------------------|
-    | 201       | Email is successfully verified        |
-    | 204       | Email is already verified             |
+| Status    |  Description                          |
+|-----------|---------------------------------------|
+| 201       | Email is successfully verified        |
+| 204       | Email is already verified             |
 
 ### Failure Responses
 
-    | Status    |  Description                      |  Code                            |
-    |-----------|-----------------------------------|----------------------------------|
-    | 400       | Passcode not found or expired     | PASSCODE_NOT_FOUND_OR_EXPIRED    |
-    | 400       | SessionID not provided            | NO_SESSION_ID                    |
+| Status    |  Description                      |  Code                            |
+|-----------|-----------------------------------|----------------------------------|
+| 400       | Passcode not found or expired     | PASSCODE_NOT_FOUND_OR_EXPIRED    |
+| 400       | SessionID not provided            | NO_SESSION_ID                    |
 
 
 ## Error response payload structure
