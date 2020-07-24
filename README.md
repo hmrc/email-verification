@@ -107,8 +107,7 @@ Generates a passcode and sends an email with the passcode to the specified email
 
 ```json
 {
-    "email": "email@email.com",
-    "linkExpiryDuration" : "P2D"
+    "email": "email@email.com"
 }
 ```
 

@@ -30,8 +30,7 @@ object EmailStub extends MockitoSugar with Matchers {
 
   def passcodeRequest(email: String = "test@example.com"): JsValue =
     Json.parse(s"""{
-                  |  "email": "$email",
-                  |  "linkExpiryDuration" : "P2D"
+                  |  "email": "$email"
                   |}""".stripMargin)
 
   def passcodeVerificationRequest(passcode: String = "PSSCDD"): JsValue =

@@ -58,7 +58,7 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
 
     for {
       _ <- emailConnector.sendEmail(request.email, appConfig.passcodeEmailTemplateId, paramsWithPasscode)
-      _ <- passcodeRepo.upsert(sessionId, passcode, request.email, request.linkExpiryDuration)
+      _ <- passcodeRepo.upsert(sessionId, passcode, request.email, appConfig.passcodeExpiryMinutes)
     } yield ()
   }
 

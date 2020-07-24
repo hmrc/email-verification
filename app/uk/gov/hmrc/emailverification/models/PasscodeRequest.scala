@@ -20,7 +20,7 @@ import org.joda.time.format.ISOPeriodFormat
 import org.joda.time.Period
 import play.api.libs.json.{JsPath, Json, Reads}
 
-case class PasscodeRequest(email:String, linkExpiryDuration: Period)
+case class PasscodeRequest(email:String)
 
 object PasscodeRequest {
   implicit val periodReads: Reads[Period] = JsPath.read[String].map(ISOPeriodFormat.standard().parsePeriod)

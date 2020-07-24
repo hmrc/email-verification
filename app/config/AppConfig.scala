@@ -28,6 +28,7 @@ class AppConfig @Inject() (val config:Configuration){
     .getOrElse(Map.empty)
 
   lazy val passcodeEmailTemplateId = config.get[String]("passcodeEmailTemplateId")
+  lazy val passcodeExpiryMinutes = config.get[Int]("passcodeExpiryMinutes")
 
   lazy val whitelistedDomains: Set[String] = config
     .getOptional[String]("whitelisted-domains")
