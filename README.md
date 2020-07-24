@@ -61,10 +61,6 @@ __Please make sure that you validate your email address before making this reque
 | 400       | Invalid request                               | VALIDATION_ERROR         |                          |
 | 409       | Email has already been verified               | EMAIL_VERIFIED_ALREADY   |                          |
 | 400       | Bad request to email, like template not found | BAD_EMAIL_REQUEST        | This can also happen if the email address is notvalid, this can include leading and/or trailing spaces.                                       |
-|           |                                               |                          |                          |
-|           |                                               |                          |                          |
-|           |                                               |                          |                          |
-|           |                                               |                          |                          |
 | 500       | Unexpected error                              | UNEXPECTED_ERROR         |                          |
 | 502       | Upstream service error                        | UPSTREAM_ERROR           |                          |
 
