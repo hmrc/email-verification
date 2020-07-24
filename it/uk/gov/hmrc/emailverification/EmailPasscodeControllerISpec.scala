@@ -25,7 +25,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         response.status shouldBe 201
 
         Then("a passcode email is sent")
-        verifyEmailSentWithPasscode(emailToVerify, templateId)
+        verifyEmailSentWithPasscode(emailToVerify)
       }
     }
 
@@ -209,7 +209,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         val response = await(ws.url(appClient("/request-passcode"))
           .post(passcodeRequest(emailToVerify)))
         response.status shouldBe 400
-        Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("BAD_EMAIL_REQUEST"))
+        Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("BAD_REQUEST"))
         Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No session id provided"))
       }
     }
