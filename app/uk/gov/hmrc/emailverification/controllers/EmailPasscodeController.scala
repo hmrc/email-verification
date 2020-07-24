@@ -98,15 +98,6 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
       }
   }
 
-
-  private def storeEmailIfNotExist(email: String)(implicit hc: HeaderCarrier): Future[Result] = {
-    verifiedEmailRepo.find(email) flatMap {
-      case None => verifiedEmailRepo.insert(email) map (_ => Created)
-      case _ => Future.successful(NoContent)
-    }
-  }
-
-
   def verifyPasscode(): Action[JsValue] = Action.async(parse.json) { implicit request: Request[JsValue] => {
     withJsonBody[PasscodeVerificationRequest] { passcodeVerificationRequest: PasscodeVerificationRequest => {
 
@@ -115,7 +106,10 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
           passcodeRepo.findPasscode(id, passcodeVerificationRequest.passcode) flatMap {
             case Some(doc) =>
               analyticsConnector.sendEvents(GaEvents.passcodeSuccess)
-              storeEmailIfNotExist(doc.email)
+              verifiedEmailRepo.find(doc.email) flatMap {
+                case None => verifiedEmailRepo.insert(doc.email) map (_ => Created)
+                case _ => Future.successful(NoContent)
+              }
             case None =>
               analyticsConnector.sendEvents(GaEvents.passcodeFailed)
               Future.successful(BadRequest(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", "Passcode not found or expired"))))
