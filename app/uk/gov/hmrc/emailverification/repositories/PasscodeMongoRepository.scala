@@ -41,14 +41,12 @@ class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(
     domainFormat   = PasscodeDoc.format,
     idFormat       = ReactiveMongoFormats.objectIdFormats) {
 
-  def upsert(sessionId: SessionId, passcode: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[WriteResult] = {
+  def upsert(sessionId: SessionId, passcode: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[Unit] = {
     val selector = Json.obj("sessionId"-> sessionId.value)
     val update = PasscodeDoc(sessionId.value, email, passcode, dateTimeProvider().plus(validity))
 
-    collection.update(ordered=false).one(selector, update, upsert = true)
+    collection.update(ordered=false).one(selector, update, upsert = true).map(_=>())
   }
-
-  def findPasscodeBySessionId(sessionId:String)(implicit hc: HeaderCarrier): Future[Option[PasscodeDoc]] = find("sessionId"->sessionId).map(_.headOption)
 
   def findPasscode(sessionId:String, passcode: String)(implicit hc: HeaderCarrier): Future[Option[PasscodeDoc]] = find("sessionId"->sessionId, "passcode" -> passcode.toUpperCase).map(_.headOption)
 

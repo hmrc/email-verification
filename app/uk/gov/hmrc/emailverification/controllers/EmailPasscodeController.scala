@@ -59,7 +59,7 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
     for {
       _ <- emailConnector.sendEmail(request.email, request.templateId, paramsWithPasscode)
       _ <- passcodeRepo.upsert(sessionId, passcode, request.email, request.linkExpiryDuration)
-    } yield Created
+    } yield ()
   }
 
   def requestPasscode(): Action[JsValue] = Action.async(parse.json) {
@@ -70,35 +70,34 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
           case false =>
             analyticsConnector.sendEvents(GaEvents.passcodeRequested)
             hc.sessionId match {
-              case Some(sessionId) => sendEmailAndStorePasscode(request, sessionId)
+              case Some(sessionId) => {
+                sendEmailAndStorePasscode(request, sessionId).map(_=>Created).recover {
+                  case ex @ UpstreamErrorResponse(_, 400, _, _) =>
+                    val event = ExtendedDataEvent(
+                      auditSource =  "email-verification",
+                      auditType = "AIV-60",
+                      tags = hc.toAuditTags("requestPasscode", httpRequest.path),
+                      detail = Json.obj(
+                        "email-address" -> request.email,
+                        "email-address-hex" -> request.email.getBytes("UTF-8").map("%02x".format(_)).mkString
+                      )
+                    )
+                    auditConnector.sendExtendedEvent(event)
+                    Logger.error("email-verification had a problem, sendEmail returned bad request", ex)
+                    BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
+                  case ex @ UpstreamErrorResponse(_, 404, _, _)  =>
+                    Logger.error("email-verification had a problem, sendEmail returned not found", ex)
+                    BadGateway(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
+                }
+              }
               case None =>
                 Future.successful(BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", "No session id provided"))))
             }
 
-        } recover {
-          case ex @ UpstreamErrorResponse(_, 400, _, _) =>
-            val event = ExtendedDataEvent(
-              auditSource =  "email-verification",
-              auditType = "AIV-60",
-              tags = hc.toAuditTags("requestPasscode", httpRequest.path),
-              detail = Json.obj(
-                "email-address" -> request.email,
-                "email-address-hex" -> toByteString(request.email)
-              )
-            )
-            auditConnector.sendExtendedEvent(event)
-            Logger.error("email-verification had a problem reading from repo", ex)
-            BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
-          case ex @ UpstreamErrorResponse(_, 404, _, _)  =>
-            Logger.error("email-verification had a problem, sendEmail returned not found", ex)
-            Status(BAD_GATEWAY)(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
         }
       }
   }
 
-  private def toByteString(data: String) : String = {
-    data.getBytes("UTF-8").map("%02x".format(_)).mkString
-  }
 
   private def storeEmailIfNotExist(email: String)(implicit hc: HeaderCarrier): Future[Result] = {
     verifiedEmailRepo.find(email) flatMap {
