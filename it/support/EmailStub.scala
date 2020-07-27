@@ -21,32 +21,46 @@ object EmailStub extends MockitoSugar with Matchers {
                           continueUrl: String = "http://example.com/continue",
                           paramsJsonStr: String = "{}"): JsValue =
     Json.parse(s"""{
-                   |  "email": "$emailToVerify",
-                   |  "templateId": "$templateId",
-                   |  "templateParameters": $paramsJsonStr,
-                   |  "linkExpiryDuration" : "P2D",
-                   |  "continueUrl" : "$continueUrl"
-                   |}""".stripMargin)
+                  |  "email": "$emailToVerify",
+                  |  "templateId": "$templateId",
+                  |  "templateParameters": $paramsJsonStr,
+                  |  "linkExpiryDuration" : "P2D",
+                  |  "continueUrl" : "$continueUrl"
+                  |}""".stripMargin)
 
-  def stubSendEmailRequest(status: Int, body: String): Unit =
+  def passcodeRequest(email: String = "test@example.com"): JsValue =
+    Json.parse(s"""{
+                  |  "email": "$email"
+                  |}""".stripMargin)
+
+  def passcodeVerificationRequest(passcode: String = "PSSCDD"): JsValue =
+    Json.parse(s"""{"passcode": "$passcode"}""".stripMargin)
+
+  def expectEmailServiceToRespond(status: Int, body: String): Unit =
     stubFor(post(emailMatchingStrategy).willReturn(aResponse()
       .withStatus(status)
       .withBody(body)))
 
-  def stubSendEmailRequest(status: Int): Unit =
+  def expectEmailServiceToRespond(status: Int): Unit =
     stubFor(post(emailMatchingStrategy).willReturn(aResponse()
       .withStatus(status)))
 
-  def verifyEmailSent(to: String, continueUrl: String, templateId: String, params: Map[String, String])(implicit config:Config): Assertion = {
+  def verifyEmailSentWithContinueUrl(to: String, continueUrl: String, templateId: String, params: Map[String, String])(implicit config:Config): Assertion = {
     val emailSendRequestJson = lastVerificationEMail
 
     (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
     (emailSendRequestJson \ "templateId").as[String] shouldBe templateId
 
-    val (token, continueUrl) = decryptedToken(emailSendRequestJson)
+    val (token, decryptedContinueUrl) = decryptedToken(emailSendRequestJson)
 
-    continueUrl shouldBe continueUrl
+    decryptedContinueUrl shouldBe continueUrl
     token.isDefined shouldBe true
+  }
+
+  def verifyEmailSentWithPasscode(to: String)(implicit config:Config): Assertion = {
+    val emailSendRequestJson = lastVerificationEMail
+    (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
+    (emailSendRequestJson \ "parameters" \ "passcode").as[String] should fullyMatch regex "[BCDFGHJKLMNPQRSTVWXYZ]{6}"
   }
 
   def decryptedToken(emailSendRequestJson: JsValue) (implicit config:Config): (Option[String], String) = {
@@ -60,6 +74,10 @@ object EmailStub extends MockitoSugar with Matchers {
     val emails = WireMock.findAll(emailEventStub).asScala
     val emailSendRequest = emails.last.getBodyAsString
     Json.parse(emailSendRequest)
+  }
+
+  def lastPasscodeEmailed: String = {
+    (lastVerificationEMail \ "parameters" \ "passcode").as[String]
   }
 
   def decryptToJson(encrypted: String)(implicit config: Config): JsValue = {

@@ -11,7 +11,7 @@ class EmailVerificationISpec extends BaseISpec {
   "email verification" should {
     "send the verification email to the specified address successfully" in new Setup {
       Given("The email service is running")
-      stubSendEmailRequest(202)
+      expectEmailServiceToRespond(202)
 
       When("a client submits a verification request")
 
@@ -20,13 +20,13 @@ class EmailVerificationISpec extends BaseISpec {
         response.status shouldBe 201
 
         Then("an email is sent")
-        verifyEmailSent(emailToVerify, continueUrl, templateId, paramsWithVerificationLink)
+        verifyEmailSentWithContinueUrl(emailToVerify, continueUrl, templateId, paramsWithVerificationLink)
       }
     }
 
     "only latest email verification request token for a given email should be valid" in new Setup {
       Given("The email service is running")
-      stubSendEmailRequest(202)
+      expectEmailServiceToRespond(202)
 
       When("client submits a verification request")
       withClient { ws =>
@@ -47,7 +47,7 @@ class EmailVerificationISpec extends BaseISpec {
 
     "second verification request should return successful 204 response" in new Setup {
       Given("The email service is running")
-      stubSendEmailRequest(202)
+      expectEmailServiceToRespond(202)
 
       When("client submits a verification request")
       withClient { ws =>
@@ -76,7 +76,7 @@ class EmailVerificationISpec extends BaseISpec {
       }
 
       Given("The email service is running")
-      stubSendEmailRequest(202)
+      expectEmailServiceToRespond(202)
 
       When("client submits first verification request ")
       submitVerificationRequest("example1@domain.com", templateId, continueUrl)
@@ -87,7 +87,7 @@ class EmailVerificationISpec extends BaseISpec {
 
     "return 502 error if email sending fails" in new Setup {
       val body = "some-5xx-message"
-      stubSendEmailRequest(500, body)
+      expectEmailServiceToRespond(500, body)
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(verificationRequest()))
         response.status shouldBe 502
@@ -97,7 +97,7 @@ class EmailVerificationISpec extends BaseISpec {
 
     "return BAD_EMAIL_REQUEST error if email sending fails with 400" in new Setup {
       val body = "some-400-message"
-      stubSendEmailRequest(400, body)
+      expectEmailServiceToRespond(400, body)
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(verificationRequest()))
         response.status shouldBe 400
@@ -109,7 +109,7 @@ class EmailVerificationISpec extends BaseISpec {
 
     "return 500 error if email sending fails with 4xx" in new Setup {
       val body = "some-4xx-message"
-      stubSendEmailRequest(404, body)
+      expectEmailServiceToRespond(404, body)
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(verificationRequest()))
         response.status shouldBe 502
@@ -134,7 +134,7 @@ class EmailVerificationISpec extends BaseISpec {
   }
 
   def assumeEmailAlreadyVerified(email: String): Assertion = {
-    stubSendEmailRequest(202)
+    expectEmailServiceToRespond(202)
     withClient { ws =>
       await(ws.url(appClient("/verification-requests")).post(verificationRequest(email))).status shouldBe 201
       val token = tokenFor(email)

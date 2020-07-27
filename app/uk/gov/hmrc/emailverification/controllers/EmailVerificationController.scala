@@ -65,24 +65,24 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
           case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY", "Email has already been verified"))))
           case false =>
             analyticsConnector.sendEvents(GaEvents.verificationRequested)
-            sendEmailAndCreateVerification(request)
-        } recover {
-          case ex @ UpstreamErrorResponse(_, 400, _, _) =>
-            val event = ExtendedDataEvent(
-              auditSource =  "email-verification",
-              auditType = "AIV-60",
-              tags = hc.toAuditTags("requestVerification", httpRequest.path),
-              detail = Json.obj(
-                "email-address" -> request.email,
-                "email-address-hex" -> toByteString(request.email)
-              )
-            )
-            auditConnector.sendExtendedEvent(event)
-            Logger.error("email-verification had a problem reading from repo", ex)
-            BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
-          case ex @ UpstreamErrorResponse(_, 404, _, _)  =>
-            Logger.error("email-verification had a problem, sendEmail returned not found", ex)
-            Status(BAD_GATEWAY)(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
+            sendEmailAndCreateVerification(request).recover {
+              case ex @ UpstreamErrorResponse(_, 400, _, _) =>
+                val event = ExtendedDataEvent(
+                  auditSource =  "email-verification",
+                  auditType = "AIV-60",
+                  tags = hc.toAuditTags("requestVerification", httpRequest.path),
+                  detail = Json.obj(
+                    "email-address" -> request.email,
+                    "email-address-hex" -> toByteString(request.email)
+                  )
+                )
+                auditConnector.sendExtendedEvent(event)
+                Logger.error("email-verification had a problem, sendEmail returned bad request", ex)
+                BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
+              case ex @ UpstreamErrorResponse(_, 404, _, _)  =>
+                Logger.error("email-verification had a problem, sendEmail returned not found", ex)
+                Status(BAD_GATEWAY)(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
+            }
         }
       }
   }

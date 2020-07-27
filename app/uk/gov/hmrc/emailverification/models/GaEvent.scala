@@ -22,6 +22,10 @@ case class GaEvent(category: String, action: String, label: String, dimensions: 
 object GaEvent { implicit val eventWrites: Writes[GaEvent] = Json.writes[GaEvent] }
 
 object GaEvents {
+  val passcodeRequested = GaEvent("sos_email_verification", "passcode_requested", "passcode_sent", Seq.empty, None)
+  val passcodeSuccess = GaEvent("sos_email_verification", "passcode_entered", "success", Seq.empty, None)
+  val passcodeFailed = GaEvent("sos_email_verification", "passcode_entered", "failure", Seq.empty, None)
+
   val verificationRequested = GaEvent("sos_email_verification", "verification_requested", "verification_sent", Seq.empty, None)
   val verificationSuccess = GaEvent("sos_email_verification", "verification_link_actioned", "success", Seq.empty, None)
   val verificationFailed = GaEvent("sos_email_verification", "verification_link_actioned", "failure", Seq.empty, None)

@@ -11,7 +11,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
   "a POST request for email verification" should {
 
     "return CREATED when given a valid payload" in new Setup {
-      stubSendEmailRequest(ACCEPTED)
+      expectEmailServiceToRespond(ACCEPTED)
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(validPayload))
@@ -21,7 +21,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
     }
 
     "return CREATED when template parameters are not provided" in new Setup {
-      stubSendEmailRequest(ACCEPTED)
+      expectEmailServiceToRespond(ACCEPTED)
       val validPayloadWithMissingTemplateParameter: JsObject = validPayload - "templateParameters"
 
       withClient { ws =>
@@ -32,7 +32,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
     }
 
     "return CREATED when continueUrl is relative" in new Setup {
-      stubSendEmailRequest(ACCEPTED)
+      expectEmailServiceToRespond(ACCEPTED)
       val validPayloadWithRelativeContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "/continue")
 
       withClient { ws =>
@@ -43,7 +43,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
     }
 
     "return CREATED when continueUrl is protocol-relative and whitelisted" in new Setup {
-      stubSendEmailRequest(ACCEPTED)
+      expectEmailServiceToRespond(ACCEPTED)
       val validPayloadWithRelativeContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "//example.com/continue")
 
       withClient { ws =>
@@ -167,7 +167,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
 
     "return BAD_GATEWAY if upstream service fails with INTERNAL_SERVER_ERROR" in {
       val body = "some-5xx-message"
-      stubSendEmailRequest(INTERNAL_SERVER_ERROR, body)
+      expectEmailServiceToRespond(INTERNAL_SERVER_ERROR, body)
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(verificationRequest()))
@@ -184,7 +184,7 @@ class PayloadHandlingISpec extends BaseISpec(payloadHandlingConfig) {
 
     "return BAD_GATEWAY if upstream service fails with 4xx" in {
       val body = "some-4xx-message"
-      stubSendEmailRequest(NOT_FOUND, body)
+      expectEmailServiceToRespond(NOT_FOUND, body)
 
       withClient { ws =>
         val response = await(ws.url(appClient("/verification-requests")).post(verificationRequest()))
