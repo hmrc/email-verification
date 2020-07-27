@@ -5,6 +5,7 @@ import play.api.libs.json.Json
 import support.BaseISpec
 import support.EmailStub._
 
+
 class EmailVerificationISpec extends BaseISpec {
   val emailToVerify = "example@domain.com"
 

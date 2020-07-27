@@ -2,14 +2,48 @@ package uk.gov.hmrc.emailverification
 
 import java.util.UUID
 
+import org.joda.time.DateTime
 import org.scalatest.Assertion
 import play.api.libs.json.{JsDefined, JsString, Json}
 import support.BaseISpec
 import support.EmailStub._
+import uk.gov.hmrc.emailverification.models.PasscodeDoc
+import uk.gov.hmrc.emailverification.repositories.PasscodeMongoRepository
+import uk.gov.hmrc.http.HeaderNames
+import scala.concurrent.ExecutionContext.Implicits.global
+
+import uk.gov.hmrc.http.HeaderNames
+
 import uk.gov.hmrc.http.HeaderNames
 
 
 class EmailPasscodeControllerISpec extends BaseISpec {
+
+  "testOnlyGetPasscode" should {
+    "return a 200 with passcode if passcode exists in repository against sessionId" in new Setup {
+      val passcode = generateUUID
+      expectPasscodeToBePopulated(passcode)
+
+      val response = await(resourceRequest("/test-only/passcode").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
+      response.status shouldBe 200
+      Json.parse(response.body) \ "passcode" shouldBe JsDefined(JsString(passcode))
+
+    }
+
+    "return a 400 if a sessionId wasnt provided with the request" in new Setup {
+      val response = await(resourceRequest("/test-only/passcode").get())
+      response.status shouldBe 400
+      Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("BAD_PASSCODE_REQUEST"))
+      Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No session id provided"))
+    }
+
+    "return a 404 if the session id is in the request but not in mongo" in new Setup {
+      val response = await(resourceRequest("/test-only/passcode").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
+      response.status shouldBe 404
+      Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("PASSCODE_NOT_FOUND_OR_EXPIRED"))
+      Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No passcode found for sessionId"))
+    }
+  }
 
   "request-passcode" should {
     "send the a passcode email to the specified address successfully" in new Setup {
@@ -140,7 +174,6 @@ class EmailPasscodeControllerISpec extends BaseISpec {
           val response = await(ws.url(appClient("/request-passcode"))
             .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
             .post(passcodeRequest(emailToVerify)))
-
           response.status shouldBe 201
           val passcode = lastPasscodeEmailed
           And("the client verifies the token")
@@ -237,6 +270,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     val templateId = "my-lovely-template"
     val emailToVerify = "example@domain.com"
     val sessionId = UUID.randomUUID.toString
+    val passcodeMongoRepository = app.injector.instanceOf(classOf[PasscodeMongoRepository])
+
 
     def assumeEmailAlreadyVerified(email: String, templateId:String): Assertion = {
       expectEmailServiceToRespond(202)
@@ -250,6 +285,14 @@ class EmailPasscodeControllerISpec extends BaseISpec {
           .post(passcodeVerificationRequest(passcode))).status shouldBe 201
       }
     }
+
+    def expectPasscodeToBePopulated(passcode: String) = {
+      val expiresAt = DateTime.now().plusHours(2)
+      val email = generateUUID
+      passcodeMongoRepository.insert(PasscodeDoc(sessionId, email, passcode, expiresAt))
+    }
+
+    def generateUUID = UUID.randomUUID().toString
 
   }
 

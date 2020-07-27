@@ -19,7 +19,7 @@ package uk.gov.hmrc.emailverification.controllers
 import config.AppConfig
 import javax.inject.Inject
 import play.api.Logger
-import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.models._
@@ -41,6 +41,17 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
                                         auditConnector: AuditConnector,
                                         controllerComponents: ControllerComponents
                                        )(implicit ec: ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) {
+
+  def testOnlyGetPasscode(): Action[AnyContent] = Action.async { implicit request =>
+    hc.sessionId match {
+      case Some(SessionId(id)) => passcodeRepo.findPasscodeBySessionId(id).map {
+        case Some(passwordDoc) => Ok(Json.toJson(Passcode(passwordDoc.passcode)))
+        case None => NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", "No passcode found for sessionId")))
+      }
+      case None =>
+        Future.successful(BadRequest(Json.toJson(ErrorResponse("BAD_PASSCODE_REQUEST", "No session id provided"))))
+    }
+  }
 
   private def newPasscode(): String = {
     val codeSize = 6
@@ -98,6 +109,7 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
       }
   }
 
+
   def verifyPasscode(): Action[JsValue] = Action.async(parse.json) { implicit request: Request[JsValue] => {
     withJsonBody[PasscodeVerificationRequest] { passcodeVerificationRequest: PasscodeVerificationRequest => {
 
@@ -117,11 +129,10 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
         case None =>
           Future.successful(BadRequest(Json.toJson(ErrorResponse("NO_SESSION_ID", "No session id provided"))))
       }
-
-
     }
     }
   }
   }
-
 }
+
+
