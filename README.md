@@ -143,7 +143,7 @@ X-Session-ID: SomeSessionId
 ## POST /request-passcode
 Generates a passcode and sends an email with the passcode to the specified email address.
 The `serviceName` field is inserted at the end of the email in the following sentence:
-`From the [serviceName] team`
+`From the [serviceName] service`
 
 
 **Request body**
@@ -151,7 +151,7 @@ The `serviceName` field is inserted at the end of the email in the following sen
 ```json
 {
     "email": "email@email.com",
-    "serviceName": "some team name"
+    "serviceName": "some service name"
 }
 ```
 
