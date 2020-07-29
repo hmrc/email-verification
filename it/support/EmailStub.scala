@@ -28,10 +28,10 @@ object EmailStub extends MockitoSugar with Matchers {
                   |  "continueUrl" : "$continueUrl"
                   |}""".stripMargin)
 
-  def passcodeRequest(email: String = "test@example.com", teamName: String = "apple"): JsValue =
+  def passcodeRequest(email: String = "test@example.com", serviceName: String = "apple"): JsValue =
     Json.parse(s"""{
                   |  "email": "$email",
-                  |  "teamName": "$teamName"
+                  |  "serviceName": "$serviceName"
                   |}""".stripMargin)
 
   def passcodeVerificationRequest(passcode: String = "PSSCDD"): JsValue =
@@ -58,11 +58,11 @@ object EmailStub extends MockitoSugar with Matchers {
     token.isDefined shouldBe true
   }
 
-  def verifyEmailSentWithPasscode(to: String, teamName: String = "apple")(implicit config:Config): Assertion = {
+  def verifyEmailSentWithPasscode(to: String, serviceName: String = "apple")(implicit config:Config): Assertion = {
     val emailSendRequestJson = lastVerificationEMail
     (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
     (emailSendRequestJson \ "parameters" \ "passcode").as[String] should fullyMatch regex "[BCDFGHJKLMNPQRSTVWXYZ]{6}"
-    (emailSendRequestJson \ "parameters" \ "team_name").as[String] should fullyMatch regex s"$teamName"
+    (emailSendRequestJson \ "parameters" \ "team_name").as[String] should fullyMatch regex s"$serviceName"
   }
 
   def decryptedToken(emailSendRequestJson: JsValue) (implicit config:Config): (Option[String], String) = {
