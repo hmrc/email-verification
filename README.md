@@ -20,9 +20,10 @@ Preconditions:
 |----------------------------------|-------------------|------------------------------------------------------------------------------------------|
 | /verification-requests           | POST              | Create a new verification request                                                        |
 | /verified-email-check            | POST              | Check if email address is verified                                                       |
-| /request-passcode                | POST              | Generates a passcode and sends an email with the passcode to the specified email address |
-| /verify-passcode                 | POST              | Verifies the passcode generated against your email address                               |
+| /request-passcode                | POST              | *1 Generates a passcode and sends an email with the passcode to the specified email address |
+| /verify-passcode                 | POST              | *2 Verifies the passcode generated against your email address                               |
     
+*represents sequence
 
 # Test Only Routes
 
@@ -140,14 +141,17 @@ X-Session-ID: SomeSessionId
 ```
 
 ## POST /request-passcode
-Generates a passcode and sends an email with the passcode to the specified email address
+Generates a passcode and sends an email with the passcode to the specified email address.
+The `serviceName` field is inserted at the end of the email in the following sentence:
+`From the [serviceName] service`
 
 
 **Request body**
 
 ```json
 {
-    "email": "email@email.com"
+    "email": "email@email.com",
+    "serviceName": "some service name"
 }
 ```
 

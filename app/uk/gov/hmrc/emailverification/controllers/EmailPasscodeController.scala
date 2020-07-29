@@ -65,10 +65,10 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
   private def sendEmailAndStorePasscode(request: PasscodeRequest, sessionId: SessionId)(implicit hc: HeaderCarrier) = {
     val passcode = newPasscode()
     val paramsWithPasscode = appConfig.passcodeEmailTemplateParameters +
-      ("passcode" -> passcode)
+      ("passcode" -> passcode, "team_name" -> request.serviceName)
 
     for {
-      _ <- emailConnector.sendEmail(request.email, appConfig.passcodeEmailTemplateId, paramsWithPasscode)
+      _ <- emailConnector.sendEmail(to = request.email, templateId = "email_verification_passcode", params = paramsWithPasscode)
       _ <- passcodeRepo.upsert(sessionId, passcode, request.email, appConfig.passcodeExpiryMinutes)
     } yield ()
   }
