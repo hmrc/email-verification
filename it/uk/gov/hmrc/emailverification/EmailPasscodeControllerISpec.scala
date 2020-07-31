@@ -2,6 +2,7 @@ package uk.gov.hmrc.emailverification
 
 import java.util.UUID
 
+import com.github.tomakehurst.wiremock.client.WireMock._
 import org.joda.time.DateTime
 import org.scalatest.Assertion
 import play.api.libs.json.{JsDefined, JsString, Json}
@@ -10,14 +11,11 @@ import support.EmailStub._
 import uk.gov.hmrc.emailverification.models.PasscodeDoc
 import uk.gov.hmrc.emailverification.repositories.PasscodeMongoRepository
 import uk.gov.hmrc.http.HeaderNames
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import uk.gov.hmrc.http.HeaderNames
 
-import uk.gov.hmrc.http.HeaderNames
-
-
-class EmailPasscodeControllerISpec extends BaseISpec {
+class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> true)) {
 
   "testOnlyGetPasscode" should {
     "return a 200 with passcode if passcode exists in repository against sessionId" in new Setup {
@@ -27,7 +25,6 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       val response = await(resourceRequest("/test-only/passcode").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
       response.status shouldBe 200
       Json.parse(response.body) \ "passcode" shouldBe JsDefined(JsString(passcode))
-
     }
 
     "return a 400 if a sessionId wasnt provided with the request" in new Setup {
@@ -59,7 +56,12 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         response.status shouldBe 201
 
         Then("a passcode email is sent")
+
+        Thread.sleep(200)
+
         verifyEmailSentWithPasscode(emailToVerify)
+        verifySendEmailWithPinFired(202)
+
       }
     }
 
@@ -93,6 +95,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
         validationResponse1.status shouldBe 400
         validationResponse2.status shouldBe 201
+
+        verifySendEmailWithPinFired(202)
       }
     }
 
@@ -105,6 +109,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         response.status shouldBe 400
         (Json.parse(response.body) \ "code").as[String] shouldBe "PASSCODE_NOT_FOUND_OR_EXPIRED"
       }
+
+      verifyCheckEmailVerifiedFired(emailVerified = false)
     }
 
     "uppercase passcode verification is valid" in new Setup {
@@ -124,6 +130,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
           .post(passcodeVerificationRequest(uppercasePasscode))).status shouldBe 201
       }
+
+      verifyCheckEmailVerifiedFired(emailVerified = true)
     }
 
     "lowercase passcode verification is valid" in new Setup {
@@ -143,6 +151,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
           .post(passcodeVerificationRequest(lowercasePasscode))).status shouldBe 201
       }
+
+      verifyCheckEmailVerifiedFired(emailVerified = true)
     }
 
     "second passcode verification request with same session and passcode should return 204 instead of 201 response" in new Setup {
@@ -165,6 +175,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         await(ws.url(appClient("/verify-passcode"))
           .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
           .post(passcodeVerificationRequest(passcode))).status shouldBe 204
+
+        verifyCheckEmailVerifiedFired(emailVerified = true, 2)
       }
     }
 
@@ -195,6 +207,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
       When("client submits second verification request ")
       submitVerificationRequest("example2@domain.com", templateId)
+
+      verifyCheckEmailVerifiedFired(emailVerified = true, 2)
     }
 
     "return 502 error if email sending fails" in new Setup {
@@ -207,6 +221,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         response.status shouldBe 502
         response.body should include(body)
       }
+
+      verifySendEmailWithPinFired(500)
     }
 
     "return BAD_EMAIL_REQUEST error if email sending fails with 400" in new Setup {
@@ -221,6 +237,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
         (Json.parse(response.body) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
       }
+
+      verifySendEmailWithPinFired(400)
     }
 
     "return 500 error if email sending fails with 4xx" in new Setup {
@@ -233,6 +251,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         response.status shouldBe 502
         response.body should include(body)
       }
+
+      verifySendEmailWithPinFired(404)
     }
 
     "return 400 error if no sessionID is provided" in new Setup {
@@ -262,6 +282,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
             |"message":"Email has already been verified"
             |}""".stripMargin).toString()
       }
+
+
     }
   }
 
@@ -293,6 +315,22 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     def generateUUID = UUID.randomUUID().toString
+
+    def verifySendEmailWithPinFired(responseCode: Int) = {
+      Thread.sleep(100)
+      verify(postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"SendEmailWithPin""""))
+        .withRequestBody(containing(s""""responseCode":"$responseCode""""))
+      )
+    }
+
+    def verifyCheckEmailVerifiedFired(emailVerified: Boolean, times: Int = 1) = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"CheckEmailVerified""""))
+        .withRequestBody(containing(s""""emailVerified":"$emailVerified""""))
+      )
+    }
 
   }
 

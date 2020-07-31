@@ -1,5 +1,6 @@
 package support
 
+import com.github.tomakehurst.wiremock.client.WireMock.reset
 import com.typesafe.config.Config
 import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
 import play.api.Configuration
@@ -14,7 +15,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-abstract class BaseISpec(val testConfig : Map[String, _ <: Any] = Map.empty) extends WordSpec with UnitSpec with WsTestClient with Matchers with GivenWhenThen with MongoSpecSupport with WireMockSpec {
+abstract class BaseISpec(val testConfig : Map[String, _ <: Any] = Map.empty) extends WordSpec with WsTestClient with Matchers with GivenWhenThen with MongoSpecSupport with WireMockSpec {
   implicit val timeout : Duration = 5.minutes
 
   def await[A](future: Future[A])(implicit timeout: Duration): A = Await.result(future, timeout)
@@ -51,6 +52,7 @@ abstract class BaseISpec(val testConfig : Map[String, _ <: Any] = Map.empty) ext
     await(verifiedRepo.drop)
     await(verifiedRepo.ensureIndexes)
     AnalyticsStub.stubAnalyticsEvent()
+    reset()
   }
 
   override def afterAll() {
