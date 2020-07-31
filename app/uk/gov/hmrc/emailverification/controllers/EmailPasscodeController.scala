@@ -24,6 +24,7 @@ import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{PasscodeMongoRepository, VerifiedEmailMongoRepository}
+import uk.gov.hmrc.emailverification.services.AuditService
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.AuditExtensions._
@@ -31,7 +32,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Random
+import scala.util.{Random, Success}
 
 
 class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
@@ -39,7 +40,8 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
                                         verifiedEmailRepo: VerifiedEmailMongoRepository,
                                         analyticsConnector: PlatformAnalyticsConnector,
                                         auditConnector: AuditConnector,
-                                        controllerComponents: ControllerComponents
+                                        controllerComponents: ControllerComponents,
+                                        auditService: AuditService
                                        )(implicit ec: ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) {
 
   def testOnlyGetPasscode(): Action[AnyContent] = Action.async { implicit request =>
@@ -62,15 +64,33 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
       .take(codeSize).mkString
   }
 
-  private def sendEmailAndStorePasscode(request: PasscodeRequest, sessionId: SessionId)(implicit hc: HeaderCarrier) = {
+  private def sendEmailAndStorePasscode(passcodeRequest: PasscodeRequest, sessionId: SessionId)(implicit request: Request[_]) = {
     val passcode = newPasscode()
     val paramsWithPasscode = appConfig.passcodeEmailTemplateParameters +
-      ("passcode" -> passcode, "team_name" -> request.serviceName)
+      ("passcode" -> passcode, "team_name" -> passcodeRequest.serviceName)
 
-    for {
-      _ <- emailConnector.sendEmail(to = request.email, templateId = "email_verification_passcode", params = paramsWithPasscode)
-      _ <- passcodeRepo.upsert(sessionId, passcode, request.email, appConfig.passcodeExpiryMinutes)
-    } yield ()
+    val sendEmailAndStorePasscode = for {
+      emailResponse <- emailConnector.sendEmail(to = passcodeRequest.email, templateId = "email_verification_passcode", params = paramsWithPasscode)
+      _ <- passcodeRepo.upsert(sessionId, passcode, passcodeRequest.email, appConfig.passcodeExpiryMinutes)
+    } yield {
+      auditService.sendPinViaEmailEvent(
+        emailAddress = passcodeRequest.email,
+        passcode = passcode,
+        serviceName = passcodeRequest.serviceName,
+        responseCode = emailResponse.status
+      )
+    }
+
+    sendEmailAndStorePasscode recoverWith {
+      case e: UpstreamErrorResponse =>
+        auditService.sendPinViaEmailEvent(
+          emailAddress = passcodeRequest.email,
+          passcode = passcode,
+          serviceName = passcodeRequest.serviceName,
+          responseCode = e.statusCode
+        )
+        Future.failed(e)
+    }
   }
 
   def requestPasscode(): Action[JsValue] = Action.async(parse.json) {
@@ -119,15 +139,40 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
             case Some(doc) =>
               analyticsConnector.sendEvents(GaEvents.passcodeSuccess)
               verifiedEmailRepo.find(doc.email) flatMap {
-                case None => verifiedEmailRepo.insert(doc.email) map (_ => Created)
-                case _ => Future.successful(NoContent)
+                case None =>
+                  auditService.sendCheckEmailVerifiedEventSuccess(
+                    emailAddress = doc.email,
+                    passcode = passcodeVerificationRequest.passcode,
+                    responseCode = 201
+                  )
+                  verifiedEmailRepo.insert(doc.email) map (_ => Created)
+                case _ =>
+                  auditService.sendCheckEmailVerifiedEventSuccess(
+                    emailAddress = doc.email,
+                    passcode = passcodeVerificationRequest.passcode,
+                    responseCode = 204
+                  )
+                  Future.successful(NoContent)
               }
+
             case None =>
               analyticsConnector.sendEvents(GaEvents.passcodeFailed)
-              Future.successful(BadRequest(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", "Passcode not found or expired"))))
+              val message = "Passcode not found or expired"
+              auditService.sendCheckEmailVerifiedEventFailed(
+                verifyFailureReason = message,
+                passcode = passcodeVerificationRequest.passcode,
+                responseCode = 400
+              )
+              Future.successful(BadRequest(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", message))))
           }
         case None =>
-          Future.successful(BadRequest(Json.toJson(ErrorResponse("NO_SESSION_ID", "No session id provided"))))
+          val message = "No session id provided"
+          auditService.sendCheckEmailVerifiedEventFailed(
+            verifyFailureReason = message,
+            passcode = passcodeVerificationRequest.passcode,
+            responseCode = 400
+          )
+          Future.successful(BadRequest(Json.toJson(ErrorResponse("NO_SESSION_ID", message))))
       }
     }
     }
