@@ -16,11 +16,6 @@
 
 package uk.gov.hmrc.emailverification.services
 
-/*
- * Copyright 2020 HM Revenue & Customs
- *
- */
-
 import javax.inject.Inject
 import play.api.mvc.Request
 import uk.gov.hmrc.http.logging.Authorization
