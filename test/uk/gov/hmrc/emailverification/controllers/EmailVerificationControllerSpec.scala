@@ -19,9 +19,8 @@ package uk.gov.hmrc.emailverification.controllers
 import config.AppConfig
 import org.joda.time.{DateTime, Period}
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{eq => EQ, _}
+import org.mockito.ArgumentMatchers.{eq => EQ}
 import org.mockito.Mockito._
-import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Result
@@ -33,9 +32,8 @@ import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
 import uk.gov.hmrc.gg.test.UnitSpec
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}

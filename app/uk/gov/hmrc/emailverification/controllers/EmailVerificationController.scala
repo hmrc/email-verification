@@ -21,14 +21,14 @@ import java.util.UUID
 import config.AppConfig
 import javax.inject.Inject
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
 import play.api.libs.json.Json.toJson
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
-import uk.gov.hmrc.emailverification.models.{EmailVerificationRequest, ErrorResponse, GaEvents, TokenVerificationRequest, VerifiedEmail}
+import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent

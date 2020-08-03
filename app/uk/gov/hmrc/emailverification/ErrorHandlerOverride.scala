@@ -54,7 +54,7 @@ class ErrorHandlerOverride @Inject()(configuration: Configuration, auditConnecto
     Logger.error(s"! Internal server error, for (${request.method}) [${request.uri}] -> ", ex)
 
     val code = ex match {
-      case _: NotFoundException => "ResourceNotFound"
+      case Upstream4xxResponse(_, 404, _, _) => "ResourceNotFound"
       case _: AuthorisationException => "ClientError"
       case _: JsValidationException => "ServerValidationError"
       case _ => "ServerInternalError"
