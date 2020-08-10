@@ -16,12 +16,11 @@
 
 package uk.gov.hmrc.emailverification.models
 
-import config.AppConfig
 import play.api.libs.json.{Json, OWrites}
 
 case class VerificationToken(token: String, continueUrl: ForwardUrl)
 
 object VerificationToken {
-  implicit def writes(implicit appConfig: AppConfig): OWrites[VerificationToken] = Json.writes[VerificationToken]
+  implicit def writes: OWrites[VerificationToken] = Json.writes[VerificationToken]
 }
 

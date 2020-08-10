@@ -35,9 +35,7 @@ class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterE
 
   val repo: VerificationTokenMongoRepository = new VerificationTokenMongoRepository(new ReactiveMongoComponent {
     override def mongoConnector: MongoConnector = mongoConnectorForTest
-  }){
-    override def dateTimeProvider: () ⇒ DateTime = () ⇒ now
-  }
+  })
 
 
   val token = "theToken"

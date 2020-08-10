@@ -17,16 +17,14 @@
 package uk.gov.hmrc.emailverification.repositories
 
 import javax.inject.{Inject, Singleton}
+import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
-import org.joda.time.{DateTime, Period}
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.emailverification.models.{PasscodeDoc, VerificationDoc}
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.emailverification.models.PasscodeDoc
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -34,25 +32,23 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(implicit ec:ExecutionContext)
+class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
   extends ReactiveRepository[PasscodeDoc, BSONObjectID](
     collectionName = "passcode",
-    mongo          = mongoComponent.mongoConnector.db,
-    domainFormat   = PasscodeDoc.format,
-    idFormat       = ReactiveMongoFormats.objectIdFormats) {
+    mongo = mongoComponent.mongoConnector.db,
+    domainFormat = PasscodeDoc.format,
+    idFormat = ReactiveMongoFormats.objectIdFormats) {
 
-  def upsert(sessionId: SessionId, passcode: String, email: String, validityDurationMinutes: Int)(implicit hc: HeaderCarrier): Future[Unit] = {
-    val selector = Json.obj("sessionId"-> sessionId.value)
-    val update = PasscodeDoc(sessionId.value, email, passcode, dateTimeProvider().plusMinutes(validityDurationMinutes))
+  def upsert(sessionId: SessionId, passcode: String, email: String, validityDurationMinutes: Int): Future[Unit] = {
+    val selector = Json.obj("sessionId" -> sessionId.value)
+    val update = PasscodeDoc(sessionId.value, email, passcode, DateTime.now(UTC).plusMinutes(validityDurationMinutes))
 
-    collection.update(ordered=false).one(selector, update, upsert = true).map(_=>())
+    collection.update(ordered = false).one(selector, update, upsert = true).map(_ => ())
   }
 
-  def findPasscodeBySessionId(sessionId:String)(implicit hc: HeaderCarrier): Future[Option[PasscodeDoc]] = find("sessionId"->sessionId).map(_.headOption)
+  def findPasscodeBySessionId(sessionId: String): Future[Option[PasscodeDoc]] = find("sessionId" -> sessionId).map(_.headOption)
 
-  def findPasscode(sessionId:String, passcode: String)(implicit hc: HeaderCarrier): Future[Option[PasscodeDoc]] = find("sessionId"->sessionId, "passcode" -> passcode.toUpperCase).map(_.headOption)
-
-  def dateTimeProvider: Function0[DateTime] = ()=>DateTime.now(UTC)
+  def findPasscode(sessionId: String, passcode: String): Future[Option[PasscodeDoc]] = find("sessionId" -> sessionId, "passcode" -> passcode.toUpperCase).map(_.headOption)
 
   override def indexes: Seq[Index] = Seq(
     Index(key = Seq("sessionId" -> IndexType.Ascending), name = Some("sessionIdUnique"), unique = true),

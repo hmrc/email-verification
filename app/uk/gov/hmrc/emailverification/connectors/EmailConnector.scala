@@ -19,18 +19,18 @@ package uk.gov.hmrc.emailverification.connectors
 import config.AppConfig
 import javax.inject.Inject
 import uk.gov.hmrc.emailverification.models.SendEmailRequest
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class EmailConnector @Inject() (appConfig: AppConfig,
-                                httpClient:HttpClient,
-                                servicesConfig: ServicesConfig
-                               ) {
+class EmailConnector @Inject()(
+  appConfig: AppConfig,
+  httpClient: HttpClient,
+  servicesConfig: ServicesConfig
+) {
   lazy val servicePath: String = appConfig.emailServicePath
 
   lazy val baseServiceUrl: String = servicesConfig.baseUrl("email")

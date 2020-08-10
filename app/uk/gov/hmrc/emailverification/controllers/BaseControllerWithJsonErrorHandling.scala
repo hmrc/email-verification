@@ -20,11 +20,10 @@ import javax.inject.Inject
 import play.api.libs.json._
 import play.api.mvc.{ControllerComponents, Request, Result}
 import uk.gov.hmrc.emailverification.models.ErrorResponse
-import uk.gov.hmrc.play.bootstrap.controller.{BackendController, BaseController}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
-
 
 abstract class BaseControllerWithJsonErrorHandling @Inject()(cc: ControllerComponents) extends BackendController(cc) {
 

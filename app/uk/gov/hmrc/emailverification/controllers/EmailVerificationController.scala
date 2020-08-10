@@ -20,15 +20,15 @@ import java.util.UUID
 
 import config.AppConfig
 import javax.inject.Inject
-import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
+import play.api.Logging
 import play.api.libs.json.Json.toJson
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
-import uk.gov.hmrc.emailverification.models.{EmailVerificationRequest, ErrorResponse, GaEvents, TokenVerificationRequest, VerifiedEmail}
+import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.VerificationLinkService
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
@@ -36,19 +36,18 @@ import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class EmailVerificationController @Inject() (emailConnector: EmailConnector,
-                                             verificationLinkService: VerificationLinkService,
-                                             tokenRepo:VerificationTokenMongoRepository,
-                                             verifiedEmailRepo: VerifiedEmailMongoRepository,
-                                             analyticsConnector: PlatformAnalyticsConnector,
-                                             auditConnector: AuditConnector,
-                                             controllerComponents: ControllerComponents
-                                            )(implicit ec:ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) {
-
-  def newToken(): String = UUID.randomUUID().toString
+class EmailVerificationController @Inject()(
+  emailConnector: EmailConnector,
+  verificationLinkService: VerificationLinkService,
+  tokenRepo: VerificationTokenMongoRepository,
+  verifiedEmailRepo: VerifiedEmailMongoRepository,
+  analyticsConnector: PlatformAnalyticsConnector,
+  auditConnector: AuditConnector,
+  controllerComponents: ControllerComponents
+)(implicit ec: ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) with Logging {
 
   private def sendEmailAndCreateVerification(request: EmailVerificationRequest)(implicit hc: HeaderCarrier) = {
-    val token = newToken()
+    val token = UUID.randomUUID().toString
     val paramsWithVerificationLink = request.templateParameters.getOrElse(Map.empty) +
       ("verificationLink" -> verificationLinkService.verificationLinkFor(token, request.continueUrl))
 
@@ -66,9 +65,9 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
           case false =>
             analyticsConnector.sendEvents(GaEvents.verificationRequested)
             sendEmailAndCreateVerification(request).recover {
-              case ex @ UpstreamErrorResponse(_, 400, _, _) =>
+              case ex@UpstreamErrorResponse(_, 400, _, _) =>
                 val event = ExtendedDataEvent(
-                  auditSource =  "email-verification",
+                  auditSource = "email-verification",
                   auditType = "AIV-60",
                   tags = hc.toAuditTags("requestVerification", httpRequest.path),
                   detail = Json.obj(
@@ -77,26 +76,27 @@ class EmailVerificationController @Inject() (emailConnector: EmailConnector,
                   )
                 )
                 auditConnector.sendExtendedEvent(event)
-                Logger.error("email-verification had a problem, sendEmail returned bad request", ex)
+                logger.error("email-verification had a problem, sendEmail returned bad request", ex)
                 BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
-              case ex @ UpstreamErrorResponse(_, 404, _, _)  =>
-                Logger.error("email-verification had a problem, sendEmail returned not found", ex)
+              case ex@UpstreamErrorResponse(_, 404, _, _) =>
+                logger.error("email-verification had a problem, sendEmail returned not found", ex)
                 Status(BAD_GATEWAY)(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
             }
         }
       }
   }
 
-  private def toByteString(data: String) : String = {
+  private def toByteString(data: String): String = {
     data.getBytes("UTF-8").map("%02x".format(_)).mkString
   }
 
   def validateToken(): Action[JsValue] = Action.async(parse.json) {
-    def createEmailIfNotExist(email: String)(implicit hc: HeaderCarrier): Future[Result] =
+    def createEmailIfNotExist(email: String): Future[Result] =
       verifiedEmailRepo.find(email) flatMap {
         case Some(verifiedEmail) => Future.successful(NoContent)
         case None => verifiedEmailRepo.insert(email) map (_ => Created)
       }
+
     val tokenNotFoundOrExpiredResponse = Future.successful(BadRequest(Json.toJson(ErrorResponse("TOKEN_NOT_FOUND_OR_EXPIRED", "Token not found or expired"))))
 
     implicit httpRequest =>

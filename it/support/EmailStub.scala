@@ -12,8 +12,6 @@ import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
 import scala.collection.JavaConverters._
 
 object EmailStub extends MockitoSugar with Matchers {
-  private val emailMatchingStrategy = urlEqualTo("/hmrc/email")
-  private val emailEventStub = postRequestedFor(emailMatchingStrategy)
   private def crypto(implicit config:Config) = new CryptoWithKeysFromConfig("queryParameter.encryption", config)
 
   def verificationRequest(emailToVerify: String = "test@example.com",
@@ -38,16 +36,16 @@ object EmailStub extends MockitoSugar with Matchers {
     Json.parse(s"""{"passcode": "$passcode"}""".stripMargin)
 
   def expectEmailServiceToRespond(status: Int, body: String): Unit =
-    stubFor(post(emailMatchingStrategy).willReturn(aResponse()
+    stubFor(post(urlEqualTo("/hmrc/email")).willReturn(aResponse()
       .withStatus(status)
       .withBody(body)))
 
   def expectEmailServiceToRespond(status: Int): Unit =
-    stubFor(post(emailMatchingStrategy).willReturn(aResponse()
+    stubFor(post(urlEqualTo("/hmrc/email")).willReturn(aResponse()
       .withStatus(status)))
 
   def verifyEmailSentWithContinueUrl(to: String, continueUrl: String, templateId: String, params: Map[String, String])(implicit config:Config): Assertion = {
-    val emailSendRequestJson = lastVerificationEMail
+    val emailSendRequestJson = lastVerificationEmail
 
     (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
     (emailSendRequestJson \ "templateId").as[String] shouldBe templateId
@@ -58,8 +56,8 @@ object EmailStub extends MockitoSugar with Matchers {
     token.isDefined shouldBe true
   }
 
-  def verifyEmailSentWithPasscode(to: String, serviceName: String = "apple")(implicit config:Config): Assertion = {
-    val emailSendRequestJson = lastVerificationEMail
+  def verifyEmailSentWithPasscode(to: String, serviceName: String = "apple"): Assertion = {
+    val emailSendRequestJson = lastVerificationEmail
     (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
     (emailSendRequestJson \ "parameters" \ "passcode").as[String] should fullyMatch regex "[BCDFGHJKLMNPQRSTVWXYZ]{6}"
     (emailSendRequestJson \ "parameters" \ "team_name").as[String] should fullyMatch regex s"$serviceName"
@@ -72,14 +70,14 @@ object EmailStub extends MockitoSugar with Matchers {
     ((decryptedTokenJson \ "token").asOpt[String], (decryptedTokenJson \ "continueUrl").as[String])
   }
 
-  def lastVerificationEMail: JsValue = {
-    val emails = WireMock.findAll(emailEventStub).asScala
+  def lastVerificationEmail: JsValue = {
+    val emails = WireMock.findAll(postRequestedFor(urlEqualTo("/hmrc/email"))).asScala
     val emailSendRequest = emails.last.getBodyAsString
     Json.parse(emailSendRequest)
   }
 
   def lastPasscodeEmailed: String = {
-    (lastVerificationEMail \ "parameters" \ "passcode").as[String]
+    (lastVerificationEmail \ "parameters" \ "passcode").as[String]
   }
 
   def decryptToJson(encrypted: String)(implicit config: Config): JsValue = {

@@ -21,18 +21,22 @@ import play.api.http.Status._
 import play.api.libs.json.Json
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Logging}
 import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.emailverification.models.ErrorResponse
-import uk.gov.hmrc.http.{HeaderCarrier, JsValidationException, NotFoundException, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.backend.http.JsonErrorHandler
 import uk.gov.hmrc.play.bootstrap.config.HttpAuditEvent
-import uk.gov.hmrc.play.bootstrap.http.JsonErrorHandler
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ErrorHandlerOverride @Inject()(configuration: Configuration, auditConnector: AuditConnector, httpAuditEvent: HttpAuditEvent)(implicit ec: ExecutionContext) extends JsonErrorHandler(auditConnector, httpAuditEvent, configuration) {
+class ErrorHandlerOverride @Inject()(
+  configuration: Configuration,
+  auditConnector: AuditConnector,
+  httpAuditEvent: HttpAuditEvent
+)(implicit ec: ExecutionContext) extends JsonErrorHandler(auditConnector, httpAuditEvent, configuration) with Logging {
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
 
@@ -51,7 +55,7 @@ class ErrorHandlerOverride @Inject()(configuration: Configuration, auditConnecto
   override def onServerError(request: RequestHeader, ex: Throwable): Future[Result] = {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSessionAndRequest(request.headers, request = Some(request))
 
-    Logger.error(s"! Internal server error, for (${request.method}) [${request.uri}] -> ", ex)
+    logger.error(s"! Internal server error, for (${request.method}) [${request.uri}] -> ", ex)
 
     val code = ex match {
       case _: NotFoundException => "ResourceNotFound"
@@ -67,9 +71,8 @@ class ErrorHandlerOverride @Inject()(configuration: Configuration, auditConnecto
 
   private def resolveError(ex: Throwable): Result = {
     val (statusCode, code, message) = ex match {
-      case e: Upstream4xxResponse => (BAD_GATEWAY, "UPSTREAM_ERROR", e.getMessage)
-      case e: NotFoundException => (BAD_GATEWAY, "UPSTREAM_ERROR", e.getMessage)
-      case e: Upstream5xxResponse => (BAD_GATEWAY, "UPSTREAM_ERROR", e.getMessage)
+      case Upstream4xxResponse(message, _, _, _) => (BAD_GATEWAY, "UPSTREAM_ERROR", message)
+      case Upstream5xxResponse(message, _, _, _) => (BAD_GATEWAY, "UPSTREAM_ERROR", message)
       case e: Throwable => (INTERNAL_SERVER_ERROR, "UNEXPECTED_ERROR", e.getMessage)
     }
 

@@ -18,14 +18,11 @@ package uk.gov.hmrc.emailverification.connectors
 
 import config.AppConfig
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.Writes
 import uk.gov.hmrc.emailverification.models.SendEmailRequest
 import uk.gov.hmrc.gg.test.UnitSpec
-import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 class EmailConnectorSpec extends UnitSpec with ScalaFutures {
@@ -38,47 +35,30 @@ class EmailConnectorSpec extends UnitSpec with ScalaFutures {
 
       // given
       val endpointUrl = "emailHost://emailHost:1337/emailservicepath/hmrc/email"
-      when(httpMock.POST[SendEmailRequest, Either[UpstreamErrorResponse, HttpResponse]]
-        (
-          url = eqTo(endpointUrl),
-          body = any[SendEmailRequest],
-          headers = any[Seq[(String, String)]])
-        (
-          wts = any[Writes[SendEmailRequest]],
-          rds = any[HttpReads[Either[UpstreamErrorResponse, HttpResponse]]],
-          hc = any[HeaderCarrier],
-          ec = any[ExecutionContext])
+      val expectedRequestBody = SendEmailRequest(Seq(recipient), templateId, params)
+
+      when(mockHttp.POST[SendEmailRequest, Either[UpstreamErrorResponse, HttpResponse]]
+        (eqTo(endpointUrl), eqTo(expectedRequestBody), any)(any, any, any, any)
       ).thenReturn(Future.successful(Right(HttpResponse(202, ""))))
 
       // when
-      val result: HttpResponse = await(connector.sendEmail(recipient, templateId, params))
+      val result = await(connector.sendEmail(recipient, templateId, params)(HeaderCarrier(), executionContext))
 
       // then
       result.status shouldBe 202
-
-      // and
-      val expectedResponseBody = SendEmailRequest(Seq(recipient), templateId, params)
-      verify(httpMock).POST(
-        url = eqTo(endpointUrl),
-        body = eqTo(expectedResponseBody),
-        headers = any[Seq[(String, String)]])(
-        wts = any[Writes[SendEmailRequest]],
-        rds = any[HttpReads[HttpResponse]],
-        hc = eqTo(hc),
-        ec = eqTo(executionContext))
     }
   }
 
   sealed trait Setup {
-    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val hc = HeaderCarrier()
     val executionContext: ExecutionContext = ExecutionContext.Implicits.global
-    val httpMock: HttpClient = mock[HttpClient]
-    val params: Map[String, String] = Map("p1" -> "v1")
+    val mockHttp = mock[HttpClient]
+    val params = Map("p1" -> "v1")
     val templateId = "my-template"
     val recipient = "user@example.com"
-    val mockAppConfig: AppConfig = mock[AppConfig]
+    val mockAppConfig = mock[AppConfig]
     val mockServicesConfig = mock[ServicesConfig]
-    val connector = new EmailConnector(mockAppConfig,httpMock, mockServicesConfig)
 
+    val connector = new EmailConnector(mockAppConfig, mockHttp, mockServicesConfig)
   }
 }

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.emailverification.models
 
-import play.api.libs.json.{Json, Reads}
+import play.api.libs.json.Json
 
 case class Passcode(passcode: String) extends AnyVal
 
