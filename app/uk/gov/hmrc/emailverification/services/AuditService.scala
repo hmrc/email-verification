@@ -22,13 +22,13 @@ import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.DataEvent
-import uk.gov.hmrc.play.bootstrap.controller.BackendHeaderCarrierProvider
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvider
 
 import scala.concurrent.ExecutionContext
 
 class AuditService @Inject()(
-                              auditConnector: AuditConnector
-                            )(implicit ec: ExecutionContext) extends BackendHeaderCarrierProvider {
+  auditConnector: AuditConnector
+)(implicit ec: ExecutionContext) extends BackendHeaderCarrierProvider {
 
 
   def sendPinViaEmailEvent(emailAddress: String, passcode: String, serviceName: String, responseCode: Int)(implicit request: Request[_]) = {

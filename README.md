@@ -29,8 +29,7 @@ Preconditions:
 
 | Path                             | Supported Methods | Description                                               |
 |----------------------------------|-------------------|-----------------------------------------------------------|
-| /test-only/passcode              | GET              | Retrieves the generated passcode that is stored in mongo                         |
-    
+| /test-only/passcode              | GET              | Retrieves the generated passcode that is stored in mongo                         | 
 
 ## POST /verification-requests
 

@@ -27,22 +27,17 @@ case class ForwardUrl(url: String)
 
 object ForwardUrl {
 
-  implicit def format(implicit appConfig: AppConfig): Format[ForwardUrl] = new Format[ForwardUrl]() {
-
-    override def reads(json: JsValue): JsResult[ForwardUrl] = {
-      val url = json.as[String]
-      validate(url,appConfig) match {
-        case Left(message) => JsError(error = message)
-        case Right(forwardUrl) => JsSuccess(forwardUrl)
-      }
-    }
-
-    override def writes(forwardUrl: ForwardUrl): JsValue = {
-      JsString(forwardUrl.url)
+  implicit def reads(implicit appConfig: AppConfig): Reads[ForwardUrl] = (json: JsValue) => {
+    val url = json.as[String]
+    validate(url, appConfig) match {
+      case Left(message) => JsError(error = message)
+      case Right(forwardUrl) => JsSuccess(forwardUrl)
     }
   }
 
-  private def validate(potentialUrl: String,appConfig: AppConfig): Either[String, ForwardUrl] = {
+  implicit val writes: Writes[ForwardUrl] = (url: ForwardUrl) => JsString(url.url)
+
+  private def validate(potentialUrl: String, appConfig: AppConfig): Either[String, ForwardUrl] = {
     def validateDomain(uri: URI): Either[String, ForwardUrl] = {
       if (appConfig.whitelistedDomains.isEmpty || appConfig.whitelistedDomains.contains(uri.getDomain))
         Right(ForwardUrl(uri.toString))
@@ -69,4 +64,5 @@ object ForwardUrl {
       uri.getHost != null
     }
   }
+
 }

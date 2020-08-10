@@ -21,40 +21,35 @@ import org.joda.time.DateTimeZone.UTC
 import org.joda.time.{DateTime, Period}
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.emailverification.models.VerificationDoc
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class VerificationTokenMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec:ExecutionContext)
+class VerificationTokenMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
   extends ReactiveRepository[VerificationDoc, BSONObjectID](
     collectionName = "verificationToken",
-    mongo          = mongoComponent.mongoConnector.db,
-    domainFormat   = VerificationDoc.format,
-    idFormat       = ReactiveMongoFormats.objectIdFormats) {
+    mongo = mongoComponent.mongoConnector.db,
+    domainFormat = VerificationDoc.format,
+    idFormat = ReactiveMongoFormats.objectIdFormats) {
 
-  def upsert(token: String, email: String, validity: Period)(implicit hc: HeaderCarrier): Future[WriteResult] = {
+  def upsert(token: String, email: String, validity: Period): Future[Unit] = {
     val selector = Json.obj("email" -> email)
-    val update = VerificationDoc(email, token, dateTimeProvider().plus(validity))
+    val update = VerificationDoc(email, token, DateTime.now(UTC).plus(validity))
 
-    collection.update(ordered=false).one(selector, update, upsert = true)
+    collection.update(ordered = false).one(selector, update, upsert = true).map(_ => ())
   }
 
-  def findToken(token: String)(implicit hc: HeaderCarrier): Future[Option[VerificationDoc]] = find("token" -> token).map(_.headOption)
-
-  def dateTimeProvider: () => DateTime = () ⇒ DateTime.now(UTC)
+  def findToken(token: String): Future[Option[VerificationDoc]] = find("token" -> token).map(_.headOption)
 
   override def indexes: Seq[Index] = Seq(
     Index(Seq("token" -> IndexType.Ascending), name = Some("tokenUnique"), unique = true),
     Index(key = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0))
   )
-
 }
 

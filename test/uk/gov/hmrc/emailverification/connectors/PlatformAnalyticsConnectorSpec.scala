@@ -18,21 +18,14 @@ package uk.gov.hmrc.emailverification.connectors
 
 
 import ch.qos.logback.classic.Level
-import helpers.LogCapturing
-import org.mockito.ArgumentMatchers.{eq => eqTo, _}
-import org.mockito.Mockito._
 import org.scalatest.LoneElement
 import org.scalatest.concurrent.Eventually
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.prop.TableDrivenPropertyChecks._
 import org.scalatest.prop.Tables.Table
-import play.api.libs.json.Writes
-import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.emailverification.models.{AnalyticsRequest, GaEvent}
-import uk.gov.hmrc.gg.test.UnitSpec
-import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.gg.test.{LogCapturing, UnitSpec}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -49,33 +42,31 @@ class PlatformAnalyticsConnectorSpec extends UnitSpec with LogCapturing with Lon
     forAll(scenarios) { (scenario: String, response: Future[HttpResponse]) =>
       s"send a GA event to platform-analytics - $scenario" in new Setup {
         when(
-          httpMock.POST[AnalyticsRequest, HttpResponse]
-            (any[String],any[AnalyticsRequest],any[Seq[(String,String)]])(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+          mockHttpClient.POST[AnalyticsRequest, HttpResponse](any, any, any)(any, any, any, any)
         ).thenReturn(response)
 
         when(mockServicesConfig.baseUrl(eqTo("platform-analytics"))).thenReturn("baseurl")
 
         noException should be thrownBy await(analyticsPlatformConnector.sendEvents(event))
 
-        verify(httpMock).POST[AnalyticsRequest, HttpResponse](any[String],any[AnalyticsRequest], eqTo(Seq.empty))(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+        verify(mockHttpClient).POST[AnalyticsRequest, HttpResponse](any, any, eqTo(Seq.empty))(any, any, any, any)
       }
     }
 
     "swallow exceptions and log an error" in new Setup {
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
+      withCaptureOfLoggingFrom[PlatformAnalyticsConnector] { logEvents =>
         when(
-          httpMock.POST[AnalyticsRequest, HttpResponse](any[String],any[AnalyticsRequest],any[Seq[(String,String)]])(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+          mockHttpClient.POST[AnalyticsRequest, HttpResponse](any, any, any)(any, any, any, any)
         ).thenReturn(Future.failed(new RuntimeException("blow up")))
 
         when(mockServicesConfig.baseUrl(eqTo("platform-analytics"))).thenReturn("baseurl")
 
         noException should be thrownBy await(analyticsPlatformConnector.sendEvents(event))
 
-        verify(httpMock).POST[AnalyticsRequest, HttpResponse](any[String], any[AnalyticsRequest], eqTo(Seq.empty))(any[Writes[AnalyticsRequest]], any[HttpReads[HttpResponse]], any[HeaderCarrier], any[ExecutionContext])
+        verify(mockHttpClient).POST[AnalyticsRequest, HttpResponse](any, any, eqTo(Seq.empty))(any, any, any, any)
 
         eventually {
           logEvents.filter(_.getLevel == Level.ERROR).loneElement.getMessage should include(s"Couldn't send analytics event")
-          ()
         }
       }
     }
@@ -88,9 +79,9 @@ class PlatformAnalyticsConnectorSpec extends UnitSpec with LogCapturing with Lon
     implicit val hc: HeaderCarrier = HeaderCarrier()
     implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
-    val httpMock: HttpClient = mock[HttpClient]
+    val mockHttpClient = mock[HttpClient]
     val mockServicesConfig = mock[ServicesConfig]
-    lazy val analyticsPlatformConnector = new PlatformAnalyticsConnector(httpMock, mockServicesConfig)
+    lazy val analyticsPlatformConnector = new PlatformAnalyticsConnector(mockHttpClient, mockServicesConfig)
   }
 
 }

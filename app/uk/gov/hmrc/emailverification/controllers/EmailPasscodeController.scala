@@ -18,31 +18,31 @@ package uk.gov.hmrc.emailverification.controllers
 
 import config.AppConfig
 import javax.inject.Inject
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{PasscodeMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.AuditService
+import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.http.logging.SessionId
-import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Random, Success}
+import scala.util.Random
 
-
-class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
-                                        passcodeRepo: PasscodeMongoRepository,
-                                        verifiedEmailRepo: VerifiedEmailMongoRepository,
-                                        analyticsConnector: PlatformAnalyticsConnector,
-                                        auditConnector: AuditConnector,
-                                        controllerComponents: ControllerComponents,
-                                        auditService: AuditService
-                                       )(implicit ec: ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) {
+class EmailPasscodeController @Inject()(
+  emailConnector: EmailConnector,
+  passcodeRepo: PasscodeMongoRepository,
+  verifiedEmailRepo: VerifiedEmailMongoRepository,
+  analyticsConnector: PlatformAnalyticsConnector,
+  auditConnector: AuditConnector,
+  controllerComponents: ControllerComponents,
+  auditService: AuditService
+)(implicit ec: ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) with Logging {
 
   def testOnlyGetPasscode(): Action[AnyContent] = Action.async { implicit request =>
     hc.sessionId match {
@@ -114,10 +114,10 @@ class EmailPasscodeController @Inject()(emailConnector: EmailConnector,
                       )
                     )
                     auditConnector.sendExtendedEvent(event)
-                    Logger.error("email-verification had a problem, sendEmail returned bad request", ex)
+                    logger.error("email-verification had a problem, sendEmail returned bad request", ex)
                     BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
-                  case ex@UpstreamErrorResponse(_, _, _, _) =>
-                    Logger.error("email-verification had a problem, sendEmail returned not found", ex)
+                  case ex@UpstreamErrorResponse(_, 404, _, _) =>
+                    logger.error("email-verification had a problem, sendEmail returned not found", ex)
                     BadGateway(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
                 }
               }

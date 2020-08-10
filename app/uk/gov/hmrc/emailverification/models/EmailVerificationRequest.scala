@@ -16,19 +16,23 @@
 
 package uk.gov.hmrc.emailverification.models
 
+import com.github.ghik.silencer.silent
 import config.AppConfig
 import org.joda.time.Period
 import org.joda.time.format.ISOPeriodFormat
 import play.api.libs.json.{JsPath, Json, Reads}
 
-
-case class EmailVerificationRequest( email: String,
-                                     templateId: String,
-                                     templateParameters: Option[Map[String, String]],
-                                     linkExpiryDuration: Period,
-                                     continueUrl: ForwardUrl )
+case class EmailVerificationRequest(
+  email: String,
+  templateId: String,
+  templateParameters: Option[Map[String, String]],
+  linkExpiryDuration: Period,
+  continueUrl: ForwardUrl
+)
 
 object EmailVerificationRequest {
   implicit val periodReads: Reads[Period] = JsPath.read[String].map(ISOPeriodFormat.standard().parsePeriod)
+
+  @silent // implicit parameter is used in ForwardUrl reads
   implicit def reads(implicit appConfig: AppConfig): Reads[EmailVerificationRequest] = Json.reads[EmailVerificationRequest]
 }

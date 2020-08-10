@@ -17,18 +17,16 @@
 package uk.gov.hmrc.emailverification.connectors
 
 import javax.inject.Inject
-import play.api.Mode.Mode
-import play.api.{Configuration, Environment, Logger}
+import play.api.Logging
 import uk.gov.hmrc.emailverification.models.{AnalyticsRequest, GaEvent}
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
-
-class PlatformAnalyticsConnector @Inject() (httpClient:HttpClient, servicesConfig: ServicesConfig)  {
+class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, servicesConfig: ServicesConfig) extends Logging {
 
   val serviceUrl: String = servicesConfig.baseUrl("platform-analytics")
   val gaClientId = s"GA1.1.${Math.abs(Random.nextInt())}.${Math.abs(Random.nextInt())}"
@@ -39,7 +37,7 @@ class PlatformAnalyticsConnector @Inject() (httpClient:HttpClient, servicesConfi
     val url = s"$serviceUrl/platform-analytics/event"
     httpClient.POST(url, data, Seq.empty).map(_ => ()).recoverWith {
       case e: Exception =>
-        Logger.error(s"Couldn't send analytics event $data", e)
+        logger.error(s"Couldn't send analytics event $data", e)
         Future.successful(())
     }
   }

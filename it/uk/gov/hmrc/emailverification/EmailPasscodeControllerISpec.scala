@@ -14,8 +14,9 @@ import uk.gov.hmrc.http.HeaderNames
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
+class EmailPasscodeControllerISpec extends BaseISpec {
 
-class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> true)) {
+  override def extraConfig = super.extraConfig ++ Map("auditing.enabled" -> true)
 
   "testOnlyGetPasscode" should {
     "return a 200 with passcode if passcode exists in repository against sessionId" in new Setup {
@@ -49,20 +50,17 @@ class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> t
 
       When("a client submits a passcode email request")
 
-      withClient { ws =>
-        val response = await(ws.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify)))
-        response.status shouldBe 201
+      val response = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response.status shouldBe 201
 
-        Then("a passcode email is sent")
+      Then("a passcode email is sent")
 
-        Thread.sleep(200)
+      Thread.sleep(200)
 
-        verifyEmailSentWithPasscode(emailToVerify)
-        verifySendEmailWithPinFired(202)
-
-      }
+      verifyEmailSentWithPasscode(emailToVerify)
+      verifySendEmailWithPinFired(202)
     }
 
     "only latest passcode sent to a given email should be valid" in new Setup {
@@ -70,45 +68,41 @@ class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> t
       expectEmailServiceToRespond(202)
 
       When("client submits a passcode request")
-      withClient { ws =>
-        val response1 = await(ws.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify)))
-        response1.status shouldBe 201
-        val passcode1 = lastPasscodeEmailed
+      val response1 = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response1.status shouldBe 201
+      val passcode1 = lastPasscodeEmailed
 
-        When("client submits a second passcode request for same email")
-        val response2 = await(ws.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify)))
-        response2.status shouldBe 201
-        val passcode2 = lastPasscodeEmailed
+      When("client submits a second passcode request for same email")
+      val response2 = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response2.status shouldBe 201
+      val passcode2 = lastPasscodeEmailed
 
-        Then("only the last passcode sent should be valid")
-        val validationResponse1 = await(ws.url(appClient("/verify-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeVerificationRequest(passcode1)))
+      Then("only the last passcode sent should be valid")
+      val validationResponse1 = await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(passcode1)))
 
-        val validationResponse2 = await(ws.url(appClient("/verify-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeVerificationRequest(passcode2)))
+      val validationResponse2 = await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(passcode2)))
 
-        validationResponse1.status shouldBe 400
-        validationResponse2.status shouldBe 201
+      validationResponse1.status shouldBe 400
+      validationResponse2.status shouldBe 201
 
-        verifySendEmailWithPinFired(202)
-      }
+      verifySendEmailWithPinFired(202)
     }
 
     "verifying an unknown passcode should return a 400 error" in new Setup {
       When("client submits an unknown passcode to verification request")
-      withClient { ws =>
-        val response = await(ws.url(appClient("/verify-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeVerificationRequest("NDJRMS")))
-        response.status shouldBe 400
-        (Json.parse(response.body) \ "code").as[String] shouldBe "PASSCODE_NOT_FOUND_OR_EXPIRED"
-      }
+      val response = await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest("NDJRMS")))
+      response.status shouldBe 400
+      (Json.parse(response.body) \ "code").as[String] shouldBe "PASSCODE_NOT_FOUND_OR_EXPIRED"
 
       verifyCheckEmailVerifiedFired(emailVerified = false)
     }
@@ -118,18 +112,16 @@ class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> t
       expectEmailServiceToRespond(202)
 
       When("client requests a passcode")
-      withClient { ws =>
-        val response1 = await(ws.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify)))
-        response1.status shouldBe 201
-        val uppercasePasscode = lastPasscodeEmailed.toUpperCase
+      val response1 = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response1.status shouldBe 201
+      val uppercasePasscode = lastPasscodeEmailed.toUpperCase
 
-        Then("submitting verification request with passcode in lowercase should be successful")
-        await(ws.url(appClient("/verify-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeVerificationRequest(uppercasePasscode))).status shouldBe 201
-      }
+      Then("submitting verification request with passcode in lowercase should be successful")
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(uppercasePasscode))).status shouldBe 201
 
       verifyCheckEmailVerifiedFired(emailVerified = true)
     }
@@ -139,18 +131,16 @@ class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> t
       expectEmailServiceToRespond(202)
 
       When("client requests a passcode")
-      withClient { ws =>
-        val response1 = await(ws.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify)))
-        response1.status shouldBe 201
-        val lowercasePasscode = lastPasscodeEmailed.toLowerCase
+      val response1 = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response1.status shouldBe 201
+      val lowercasePasscode = lastPasscodeEmailed.toLowerCase
 
-        Then("submitting verification request with passcode in lowercase should be successful")
-        await(ws.url(appClient("/verify-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeVerificationRequest(lowercasePasscode))).status shouldBe 201
-      }
+      Then("submitting verification request with passcode in lowercase should be successful")
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(lowercasePasscode))).status shouldBe 201
 
       verifyCheckEmailVerifiedFired(emailVerified = true)
     }
@@ -160,43 +150,39 @@ class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> t
       expectEmailServiceToRespond(202)
 
       When("client submits a passcode verification request")
-      withClient { ws =>
-        val response1 = await(ws.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify)))
-        response1.status shouldBe 201
-        val passcode = lastPasscodeEmailed
+      val response1 = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response1.status shouldBe 201
+      val passcode = lastPasscodeEmailed
 
-        Then("the request to verify with passcode should be successful")
-        await(ws.url(appClient("/verify-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeVerificationRequest(passcode))).status shouldBe 201
-        Then("an additional request to verify the same passcode should be successful, but return with a 204 response")
-        await(ws.url(appClient("/verify-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeVerificationRequest(passcode))).status shouldBe 204
+      Then("the request to verify with passcode should be successful")
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(passcode))).status shouldBe 201
+      Then("an additional request to verify the same passcode should be successful, but return with a 204 response")
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(passcode))).status shouldBe 204
 
-        verifyCheckEmailVerifiedFired(emailVerified = true, 2)
-      }
+      verifyCheckEmailVerifiedFired(emailVerified = true, 2)
     }
 
     "passcode verification for two different emails should be successful" in new Setup {
       def submitVerificationRequest(emailToVerify: String, templateId: String): Assertion = {
-        withClient { ws =>
-          val response = await(ws.url(appClient("/request-passcode"))
-            .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-            .post(passcodeRequest(emailToVerify)))
-          response.status shouldBe 201
-          val passcode = lastPasscodeEmailed
-          And("the client verifies the token")
-          await(ws.url(appClient("/verify-passcode"))
-            .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-            .post(passcodeVerificationRequest(passcode))).status shouldBe 201
-          Then("the verified email should also have been stored")
-          await(ws.url(appClient("/verified-email-check"))
-            .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-            .post(Json.obj("email" -> emailToVerify))).status shouldBe 200
-        }
+        val response = await(wsClient.url(appClient("/request-passcode"))
+          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+          .post(passcodeRequest(emailToVerify)))
+        response.status shouldBe 201
+        val passcode = lastPasscodeEmailed
+        And("the client verifies the token")
+        await(wsClient.url(appClient("/verify-passcode"))
+          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+          .post(passcodeVerificationRequest(passcode))).status shouldBe 201
+        Then("the verified email should also have been stored")
+        await(wsClient.url(appClient("/verified-email-check"))
+          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+          .post(Json.obj("email" -> emailToVerify))).status shouldBe 200
       }
 
       Given("The email service is running")
@@ -214,13 +200,11 @@ class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> t
     "return 502 error if email sending fails" in new Setup {
       val body = "some-5xx-message"
       expectEmailServiceToRespond(500, body)
-      withClient { ws =>
-        val response = await(ws.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify)))
-        response.status shouldBe 502
-        response.body should include(body)
-      }
+      val response = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response.status shouldBe 502
+      response.body should include(body)
 
       verifySendEmailWithPinFired(500)
     }
@@ -228,15 +212,13 @@ class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> t
     "return BAD_EMAIL_REQUEST error if email sending fails with 400" in new Setup {
       val body = "some-400-message"
       expectEmailServiceToRespond(400, body)
-      withClient { ws =>
-        val response = await(ws.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify)))
-        response.status shouldBe 400
-        response.body should include(body)
+      val response = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response.status shouldBe 400
+      response.body should include(body)
 
-        (Json.parse(response.body) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
-      }
+      (Json.parse(response.body) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
 
       verifySendEmailWithPinFired(400)
     }
@@ -244,13 +226,11 @@ class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> t
     "return 500 error if email sending fails with 4xx" in new Setup {
       val body = "some-4xx-message"
       expectEmailServiceToRespond(404, body)
-      withClient { ws =>
-        val response = await(ws.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify)))
-        response.status shouldBe 502
-        response.body should include(body)
-      }
+      val response = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response.status shouldBe 502
+      response.body should include(body)
 
       verifySendEmailWithPinFired(404)
     }
@@ -258,35 +238,28 @@ class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> t
     "return 400 error if no sessionID is provided" in new Setup {
       val body = "some-4xx-message"
       expectEmailServiceToRespond(404, body)
-      withClient { ws =>
-        val response = await(ws.url(appClient("/request-passcode"))
-          .post(passcodeRequest(emailToVerify)))
-        response.status shouldBe 400
-        Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("BAD_REQUEST"))
-        Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No session id provided"))
-      }
+      val response = await(wsClient.url(appClient("/request-passcode"))
+        .post(passcodeRequest(emailToVerify)))
+      response.status shouldBe 400
+      Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("BAD_REQUEST"))
+      Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No session id provided"))
     }
 
     "return 409 if email is already verified" in new Setup {
       assumeEmailAlreadyVerified(emailToVerify, templateId)
 
-      withClient { ws =>
-        val response = await(ws.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify)))
-        response.status shouldBe 409
+      val response = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response.status shouldBe 409
 
-        Json.parse(
-          """{
-            |"code":"EMAIL_VERIFIED_ALREADY",
-            |"message":"Email has already been verified"
-            |}""".stripMargin).toString()
-      }
-
-
+      Json.parse(
+        """{
+          |"code":"EMAIL_VERIFIED_ALREADY",
+          |"message":"Email has already been verified"
+          |}""".stripMargin).toString()
     }
   }
-
 
   trait Setup {
     val templateId = "my-lovely-template"
@@ -295,17 +268,15 @@ class EmailPasscodeControllerISpec extends BaseISpec(Map("auditing.enabled" -> t
     val passcodeMongoRepository = app.injector.instanceOf(classOf[PasscodeMongoRepository])
 
 
-    def assumeEmailAlreadyVerified(email: String, templateId:String): Assertion = {
+    def assumeEmailAlreadyVerified(email: String, templateId: String): Assertion = {
       expectEmailServiceToRespond(202)
-      withClient { ws =>
-        await(ws.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify))).status shouldBe 201
-        val passcode = lastPasscodeEmailed
-        await(ws.url(appClient("/verify-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeVerificationRequest(passcode))).status shouldBe 201
-      }
+      await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify))).status shouldBe 201
+      val passcode = lastPasscodeEmailed
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(passcode))).status shouldBe 201
     }
 
     def expectPasscodeToBePopulated(passcode: String) = {
