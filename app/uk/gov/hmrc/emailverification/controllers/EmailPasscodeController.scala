@@ -80,7 +80,6 @@ class EmailPasscodeController @Inject()(
         serviceName = passcodeRequest.serviceName,
         responseCode = emailResponse.status
       )
-      ()
     }
 
     sendEmailAndStorePasscode recoverWith {

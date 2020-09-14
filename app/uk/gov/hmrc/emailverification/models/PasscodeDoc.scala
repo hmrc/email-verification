@@ -17,30 +17,34 @@
 package uk.gov.hmrc.emailverification.models
 
 import org.joda.time.DateTime
-import play.api.libs.json.{Format, JsObject, JsResult, JsValue, Json, OFormat, OWrites, Reads}
+import play.api.libs.json.{Format, JsObject, JsResult, JsValue, Json, OFormat}
+import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONInteger, BSONString}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class PasscodeDoc(sessionId:String, email: String, passcode: String, expireAt: DateTime, passcodeAttemps:Int=0, emailAttempts:Int=0)
+case class PasscodeDoc(sessionId:String, email: String, passcode: String, expireAt: DateTime, passcodeAttempts:Int=0, emailAttempts:Int=0) {
+  def bsonDocumentUpdate:BSONDocument = {
+    BSONDocument(
+      "$set" -> BSONDocument (
+        "sessionId" -> BSONString(sessionId),
+        "email" -> BSONString(email),
+        "passcode" -> BSONString(passcode),
+        "expireAt" -> BSONDateTime(expireAt.getMillis),
+        "passcodeAttempts" -> BSONInteger(0)
+      ),
+      "$inc" -> BSONDocument(
+         "emailAttempts" -> BSONInteger(1)
+       )
+    )
+  }
+}
 
 object PasscodeDoc {
   implicit val dateTimeFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
-  implicit val reads = new Reads[PasscodeDoc]() {
-    override def reads(json: JsValue): JsResult[PasscodeDoc] = Json.reads[PasscodeDoc].reads(json)
-  }
-  implicit val writes = new OWrites[PasscodeDoc]() {
-    override def writes(passcodeDoc: PasscodeDoc): JsObject = {
-      Json.obj(
-        "sessionID" -> passcodeDoc.sessionId,
-        "email" -> passcodeDoc.email,
-        "passcode" -> passcodeDoc.passcode,
-        "passcodeAttempts"->passcodeDoc.passcodeAttemps,
-        "$inc"-> Json.obj("emailAttempts"->1)
-      )
-    }
-  }
+  implicit val passcodeReads = Json.reads[PasscodeDoc]
+  implicit val passcodeWrites = Json.writes[PasscodeDoc]
   implicit val format = new OFormat[PasscodeDoc]() {
-    override def reads(json: JsValue): JsResult[PasscodeDoc] = reads(json)
-    override def writes(passcodeDoc: PasscodeDoc): JsObject = writes(passcodeDoc)
+    override def reads(json: JsValue): JsResult[PasscodeDoc] = passcodeReads.reads(json)
+    override def writes(passcodeDoc: PasscodeDoc): JsObject = passcodeWrites.writes(passcodeDoc)
   }
 
 }

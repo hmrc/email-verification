@@ -2,7 +2,6 @@ package uk.gov.hmrc.emailverification
 
 import java.util.UUID
 
-import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.joda.time.DateTime
 import org.scalatest.Assertion
@@ -22,7 +21,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
   "testOnlyGetPasscode" should {
     "return a 200 with passcode if passcode exists in repository against sessionId" in new Setup {
       val passcode = generateUUID
-      expectPasscodeToBePopulated(passcode)
+      await(expectPasscodeToBePopulated(passcode))
 
       val response = await(resourceRequest("/test-only/passcode").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
       response.status shouldBe 200
@@ -62,29 +61,6 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
       verifyEmailSentWithPasscode(emailToVerify)
       verifySendEmailWithPinFired(202)
-    }
-
-    "fail 6th email passcode request with Forbidden as limit of 5 is breached" in new Setup {
-      Given("The email service is running")
-      expectEmailServiceToRespond(202)
-
-      When("a client submits a passcode email request 5 times")
-      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify))).status shouldBe 201
-
-      Thread.sleep(200)
-      WireMock.reset()
-
-      When("a client submits a passcode email request the 6th time")
-      val response = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeRequest(emailToVerify)))
-      response.status shouldBe 403
-
-      Then("a passcode email is NOT sent")
-
-      Thread.sleep(200)
-
-      verifyNoEmailSent
     }
 
     "only latest passcode sent to a given email should be valid" in new Setup {
@@ -221,7 +197,6 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       verifyCheckEmailVerifiedFired(emailVerified = true, 2)
     }
 
-
     "return 502 error if email sending fails" in new Setup {
       val body = "some-5xx-message"
       expectEmailServiceToRespond(500, body)
@@ -260,13 +235,13 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       verifySendEmailWithPinFired(404)
     }
 
-    "return 400 error if no sessionID is provided" in new Setup {
+    "return 401 error if no sessionID is provided" in new Setup {
       val body = "some-4xx-message"
       expectEmailServiceToRespond(404, body)
       val response = await(wsClient.url(appClient("/request-passcode"))
         .post(passcodeRequest(emailToVerify)))
-      response.status shouldBe 400
-      Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("BAD_REQUEST"))
+      response.status shouldBe 401
+      Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("UNAUTHORIZED"))
       Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No session id provided"))
     }
 
@@ -307,7 +282,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     def expectPasscodeToBePopulated(passcode: String) = {
       val expiresAt = DateTime.now().plusHours(2)
       val email = generateUUID
-      passcodeMongoRepository.insert(PasscodeDoc(sessionId, email, passcode, expiresAt))
+      passcodeMongoRepository.insert(PasscodeDoc(sessionId, email, passcode, expiresAt, 0, 1))
     }
 
     def generateUUID = UUID.randomUUID().toString
