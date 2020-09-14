@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
+import config.AppConfig
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
@@ -31,19 +32,54 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.{ExecutionContext, Future}
 
+private case object MaxEmailAttemptsExceededException extends Exception()
+
 @Singleton
-class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
+class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent, config:AppConfig)(implicit ec: ExecutionContext)
   extends ReactiveRepository[PasscodeDoc, BSONObjectID](
     collectionName = "passcode",
     mongo = mongoComponent.mongoConnector.db,
     domainFormat = PasscodeDoc.format,
     idFormat = ReactiveMongoFormats.objectIdFormats) {
 
-  def upsert(sessionId: SessionId, passcode: String, email: String, validityDurationMinutes: Int): Future[Unit] = {
-    val selector = Json.obj("sessionId" -> sessionId.value)
+
+
+  /**
+   * add/update session record with passcode and email address to use.
+   * Returns the new/updated passcode doc with incremented emailAttempts count.
+   */
+  def upsertIncrementingEmailAttempts(sessionId: SessionId, passcode: String, email: String, validityDurationMinutes: Int): Future[Unit] = {
+    val selector = Json.obj(
+      "sessionId" -> sessionId.value
+    )
     val update = PasscodeDoc(sessionId.value, email, passcode, DateTime.now(UTC).plusMinutes(validityDurationMinutes))
 
     collection.update(ordered = false).one(selector, update, upsert = true).map(_ => ())
+
+//    collection.update(ordered=false)
+
+//    collection.findAndUpdate[JsObject, PasscodeDoc](
+//      selector = selector,
+//      update = update,
+//      fetchNewObject = true,
+//      upsert = true,
+//      sort = None,
+//      fields = None,
+//      bypassDocumentValidation = false,
+//      collection.update(ordered = false).writeConcern,
+//      maxTime = None,
+//      collation = None,
+//      arrayFilters = Seq())
+//      .map { result =>
+//        result.value.getOrElse(throw new RuntimeException("upsert used but no Document returned")).as[PasscodeDoc]
+//      }
+//      .map { updatedPasscodeDoc =>
+//        if(updatedPasscodeDoc.emailAttempts > config.maxEmailAttempts) {
+//          throw new EmailPasscodeException.MaxEmailsExceeded
+//        }else {
+//          ()
+//        }
+//      }
   }
 
   def findPasscodeBySessionId(sessionId: String): Future[Option[PasscodeDoc]] = find("sessionId" -> sessionId).map(_.headOption)

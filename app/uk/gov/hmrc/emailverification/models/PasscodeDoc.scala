@@ -17,12 +17,30 @@
 package uk.gov.hmrc.emailverification.models
 
 import org.joda.time.DateTime
-import play.api.libs.json.{Format, Json, OFormat}
+import play.api.libs.json.{Format, JsObject, JsResult, JsValue, Json, OFormat, OWrites, Reads}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class PasscodeDoc(sessionId:String, email: String, passcode: String, expireAt: DateTime)
+case class PasscodeDoc(sessionId:String, email: String, passcode: String, expireAt: DateTime, passcodeAttemps:Int=0, emailAttempts:Int=0)
 
 object PasscodeDoc {
   implicit val dateTimeFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
-  implicit val format: OFormat[PasscodeDoc] = Json.format[PasscodeDoc]
+  implicit val reads = new Reads[PasscodeDoc]() {
+    override def reads(json: JsValue): JsResult[PasscodeDoc] = Json.reads[PasscodeDoc].reads(json)
+  }
+  implicit val writes = new OWrites[PasscodeDoc]() {
+    override def writes(passcodeDoc: PasscodeDoc): JsObject = {
+      Json.obj(
+        "sessionID" -> passcodeDoc.sessionId,
+        "email" -> passcodeDoc.email,
+        "passcode" -> passcodeDoc.passcode,
+        "passcodeAttempts"->passcodeDoc.passcodeAttemps,
+        "$inc"-> Json.obj("emailAttempts"->1)
+      )
+    }
+  }
+  implicit val format = new OFormat[PasscodeDoc]() {
+    override def reads(json: JsValue): JsResult[PasscodeDoc] = reads(json)
+    override def writes(passcodeDoc: PasscodeDoc): JsObject = writes(passcodeDoc)
+  }
+
 }

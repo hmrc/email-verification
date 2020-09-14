@@ -64,14 +64,15 @@ class EmailPasscodeController @Inject()(
       .take(codeSize).mkString
   }
 
+
   private def sendEmailAndStorePasscode(passcodeRequest: PasscodeRequest, sessionId: SessionId)(implicit request: Request[_]) = {
     val passcode = newPasscode()
     val paramsWithPasscode = appConfig.passcodeEmailTemplateParameters +
       ("passcode" -> passcode, "team_name" -> passcodeRequest.serviceName)
 
     val sendEmailAndStorePasscode = for {
+      _ <- passcodeRepo.upsertIncrementingEmailAttempts(sessionId, passcode, passcodeRequest.email, appConfig.passcodeExpiryMinutes)
       emailResponse <- emailConnector.sendEmail(to = passcodeRequest.email, templateId = "email_verification_passcode", params = paramsWithPasscode)
-      _ <- passcodeRepo.upsert(sessionId, passcode, passcodeRequest.email, appConfig.passcodeExpiryMinutes)
     } yield {
       auditService.sendPinViaEmailEvent(
         emailAddress = passcodeRequest.email,
@@ -79,6 +80,7 @@ class EmailPasscodeController @Inject()(
         serviceName = passcodeRequest.serviceName,
         responseCode = emailResponse.status
       )
+      ()
     }
 
     sendEmailAndStorePasscode recoverWith {
@@ -103,6 +105,12 @@ class EmailPasscodeController @Inject()(
             hc.sessionId match {
               case Some(sessionId) => {
                 sendEmailAndStorePasscode(request, sessionId).map(_ => Created).recover {
+                  case ex:EmailPasscodeException.MaxEmailsExceeded => {
+                    //TODO New audit event needed here??
+                    val msg = s"Max permitted passcode emails limit of ${appConfig.maxEmailAttempts} exceeded"
+                    logger.warn(msg, ex)
+                    Forbidden(msg)
+                  }
                   case ex@UpstreamErrorResponse(_, 400, _, _) =>
                     val event = ExtendedDataEvent(
                       auditSource = "email-verification",
@@ -122,7 +130,7 @@ class EmailPasscodeController @Inject()(
                 }
               }
               case None =>
-                Future.successful(BadRequest(Json.toJson(ErrorResponse("BAD_REQUEST", "No session id provided"))))
+                Future.successful(Unauthorized(Json.toJson(ErrorResponse("UNAUTHORIZED", "No session id provided"))))
             }
 
         }

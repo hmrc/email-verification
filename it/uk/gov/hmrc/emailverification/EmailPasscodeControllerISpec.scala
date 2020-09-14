@@ -2,6 +2,7 @@ package uk.gov.hmrc.emailverification
 
 import java.util.UUID
 
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.joda.time.DateTime
 import org.scalatest.Assertion
@@ -61,6 +62,29 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
       verifyEmailSentWithPasscode(emailToVerify)
       verifySendEmailWithPinFired(202)
+    }
+
+    "fail 6th email passcode request with Forbidden as limit of 5 is breached" in new Setup {
+      Given("The email service is running")
+      expectEmailServiceToRespond(202)
+
+      When("a client submits a passcode email request 5 times")
+      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify))).status shouldBe 201
+
+      Thread.sleep(200)
+      WireMock.reset()
+
+      When("a client submits a passcode email request the 6th time")
+      val response = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response.status shouldBe 403
+
+      Then("a passcode email is NOT sent")
+
+      Thread.sleep(200)
+
+      verifyNoEmailSent
     }
 
     "only latest passcode sent to a given email should be valid" in new Setup {
@@ -196,6 +220,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
       verifyCheckEmailVerifiedFired(emailVerified = true, 2)
     }
+
 
     "return 502 error if email sending fails" in new Setup {
       val body = "some-5xx-message"

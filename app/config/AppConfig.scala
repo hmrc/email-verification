@@ -35,5 +35,8 @@ class AppConfig @Inject() (val config:Configuration){
     .getOrElse(Set.empty[String])
 
   private def getString(key: String) = config.get[String](key)
+
+  lazy val maxPasscodeAttempts = config.get[Int]("maxPasscodeAttempts")
+  lazy val maxEmailAttempts = config.get[Int]("maxEmailAttempts")
 }
 
