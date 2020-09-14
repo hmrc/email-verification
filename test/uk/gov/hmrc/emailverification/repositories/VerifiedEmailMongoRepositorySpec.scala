@@ -60,7 +60,7 @@ class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach 
       repo.find(anotherEmail).futureValue shouldBe Some(VerifiedEmail(anotherEmail))
     }
 
-}
+  }
 
   "find" should {
     "return verified email if it exist" in {

@@ -30,7 +30,7 @@ object ForwardUrl {
   implicit def reads(implicit appConfig: AppConfig): Reads[ForwardUrl] = (json: JsValue) => {
     val url = json.as[String]
     validate(url, appConfig) match {
-      case Left(message) => JsError(error = message)
+      case Left(message)     => JsError(error = message)
       case Right(forwardUrl) => JsSuccess(forwardUrl)
     }
   }
@@ -38,16 +38,16 @@ object ForwardUrl {
   implicit val writes: Writes[ForwardUrl] = (url: ForwardUrl) => JsString(url.url)
 
   private def validate(potentialUrl: String, appConfig: AppConfig): Either[String, ForwardUrl] = {
-    def validateDomain(uri: URI): Either[String, ForwardUrl] = {
-      if (appConfig.whitelistedDomains.isEmpty || appConfig.whitelistedDomains.contains(uri.getDomain))
-        Right(ForwardUrl(uri.toString))
-      else
-        Left("URL is not whitelisted")
-    }
+      def validateDomain(uri: URI): Either[String, ForwardUrl] = {
+        if (appConfig.whitelistedDomains.isEmpty || appConfig.whitelistedDomains.contains(uri.getDomain))
+          Right(ForwardUrl(uri.toString))
+        else
+          Left("URL is not whitelisted")
+      }
 
     Try(new URI(potentialUrl)).map {
       case uri if uri.hasHost => validateDomain(uri)
-      case uri => Right(ForwardUrl(uri.toString))
+      case uri                => Right(ForwardUrl(uri.toString))
     }.getOrElse(Left("URL could not be parsed"))
   }
 
@@ -55,7 +55,7 @@ object ForwardUrl {
     def getDomain: String = {
       val port = uri.getPort match {
         case 80 | -1 => ""
-        case _ => s":${uri.getPort}"
+        case _       => s":${uri.getPort}"
       }
       s"${uri.getHost}$port"
     }

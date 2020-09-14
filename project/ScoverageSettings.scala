@@ -10,7 +10,7 @@ object ScoverageSettings {
           |.*BuildInfo.*;
           |.*Routes.*;
           |.*RoutesPrefix.*;""".stripMargin,
-      ScoverageKeys.coverageMinimum := 80,
+      ScoverageKeys.coverageMinimum := 96,
       ScoverageKeys.coverageFailOnMinimum := true,
       ScoverageKeys.coverageHighlighting := true
     )

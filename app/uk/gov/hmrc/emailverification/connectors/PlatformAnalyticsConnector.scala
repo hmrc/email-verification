@@ -26,7 +26,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
-class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, servicesConfig: ServicesConfig) extends Logging {
+class PlatformAnalyticsConnector @Inject() (httpClient: HttpClient, servicesConfig: ServicesConfig) extends Logging {
 
   val serviceUrl: String = servicesConfig.baseUrl("platform-analytics")
   val gaClientId = s"GA1.1.${Math.abs(Random.nextInt())}.${Math.abs(Random.nextInt())}"

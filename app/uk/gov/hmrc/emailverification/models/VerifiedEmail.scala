@@ -18,7 +18,6 @@ package uk.gov.hmrc.emailverification.models
 
 import play.api.libs.json.{Json, OFormat}
 
-
 case class VerifiedEmail(email: String)
 
 object VerifiedEmail {

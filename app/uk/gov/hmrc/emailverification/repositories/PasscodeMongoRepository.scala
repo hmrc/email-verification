@@ -32,12 +32,12 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
+class PasscodeMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
   extends ReactiveRepository[PasscodeDoc, BSONObjectID](
     collectionName = "passcode",
-    mongo = mongoComponent.mongoConnector.db,
-    domainFormat = PasscodeDoc.format,
-    idFormat = ReactiveMongoFormats.objectIdFormats) {
+    mongo          = mongoComponent.mongoConnector.db,
+    domainFormat   = PasscodeDoc.format,
+    idFormat       = ReactiveMongoFormats.objectIdFormats) {
 
   def upsert(sessionId: SessionId, passcode: String, email: String, validityDurationMinutes: Int): Future[Unit] = {
     val selector = Json.obj("sessionId" -> sessionId.value)
@@ -51,8 +51,8 @@ class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(
   def findPasscode(sessionId: String, passcode: String): Future[Option[PasscodeDoc]] = find("sessionId" -> sessionId, "passcode" -> passcode.toUpperCase).map(_.headOption)
 
   override def indexes: Seq[Index] = Seq(
-    Index(key = Seq("sessionId" -> IndexType.Ascending), name = Some("sessionIdUnique"), unique = true),
-    Index(key = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0))
+    Index(key    = Seq("sessionId" -> IndexType.Ascending), name = Some("sessionIdUnique"), unique = true),
+    Index(key     = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0))
   )
 
 }

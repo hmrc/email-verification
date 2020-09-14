@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.emailverification.connectors
 
-
 import ch.qos.logback.classic.Level
 import org.scalatest.LoneElement
 import org.scalatest.concurrent.Eventually
