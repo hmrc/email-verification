@@ -17,18 +17,12 @@
 package uk.gov.hmrc.emailverification.models
 
 import org.joda.time.DateTime
-import play.api.libs.json.{Format, JsObject, JsResult, JsValue, Json, OFormat}
+import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class PasscodeDoc(sessionId:String, email: String, passcode: String, expireAt: DateTime, passcodeAttempts:Int=0, emailAttempts:Int=0)
+case class PasscodeDoc(sessionId:String, email: String, passcode: String, expireAt: DateTime, passcodeAttempts:Int, emailAttempts:Int)
 
 object PasscodeDoc {
   implicit val dateTimeFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
-  implicit val passcodeReads = Json.reads[PasscodeDoc]
-  implicit val passcodeWrites = Json.writes[PasscodeDoc]
-  implicit val format = new OFormat[PasscodeDoc]() {
-    override def reads(json: JsValue): JsResult[PasscodeDoc] = passcodeReads.reads(json)
-    override def writes(passcodeDoc: PasscodeDoc): JsObject = passcodeWrites.writes(passcodeDoc)
-  }
-
+  implicit val format = Json.format[PasscodeDoc]
 }

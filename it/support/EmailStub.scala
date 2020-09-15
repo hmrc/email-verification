@@ -77,7 +77,7 @@ object EmailStub extends MockitoSugar with Matchers {
   }
 
   def verifyNoEmailSent = {
-    WireMock.findAll(postRequestedFor(urlEqualTo("/hmrc/email"))).asScala.size shouldBe 0
+    WireMock.findAll(postRequestedFor(urlEqualTo("/hmrc/email"))) shouldBe empty
   }
 
   def lastPasscodeEmailed: String = {

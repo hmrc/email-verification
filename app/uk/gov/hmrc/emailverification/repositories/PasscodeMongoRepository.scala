@@ -23,10 +23,9 @@ import org.joda.time.DateTimeZone.UTC
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONInteger, BSONObjectID, BSONString}
+import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.emailverification.models.EmailPasscodeException.MaxPasscodesAttemptsExceeded
-import uk.gov.hmrc.emailverification.models.{EmailPasscodeException, PasscodeDoc}
+import uk.gov.hmrc.emailverification.models.PasscodeDoc
 import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -50,21 +49,21 @@ class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent, 
    * @see MaxEmailsExceeded
    * @see AppConfig.maxEmailAttempts
    */
-  def upsertIncrementingEmailAttempts(sessionId: SessionId, passcode: String, email: String, validityDurationMinutes: Int): Future[Unit] = {
+  def upsertIncrementingEmailAttempts(sessionId: SessionId, passcode: String, email: String, validityDurationMinutes: Int): Future[PasscodeDoc] = {
     val selector = Json.obj("sessionId" -> sessionId.value)
-    val passcodeDoc = PasscodeDoc(sessionId.value, email, passcode, DateTime.now(UTC).plusMinutes(validityDurationMinutes))
+    val passcodeDoc = PasscodeDoc(sessionId.value, email, passcode, DateTime.now(UTC).plusMinutes(validityDurationMinutes), 0, 1)
 
-    val update = BSONDocument(
-      "$set" -> BSONDocument (
-        "sessionId" -> BSONString(passcodeDoc.sessionId),
-        "email" -> BSONString(passcodeDoc.email),
-        "passcode" -> BSONString(passcodeDoc.passcode.toUpperCase),
+    val update = Json.obj (
+      "$set" -> Json.obj (
+        "sessionId" -> passcodeDoc.sessionId,
+        "email" -> passcodeDoc.email,
+        "passcode" -> passcodeDoc.passcode.toUpperCase,
         "expireAt" -> BSONDateTime(passcodeDoc.expireAt.getMillis),
-        "passcodeAttempts" -> BSONInteger(0)
+        "passcodeAttempts" -> 0
       ),
-      "$inc" -> BSONDocument(
-        "emailAttempts" -> BSONInteger(1)
-      )
+      "$inc" -> Json.obj {
+        "emailAttempts" -> 1
+      }
     )
 
     //increment email count as part of update so we only need one mongo call
@@ -83,28 +82,19 @@ class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent, 
       .map { result =>
         result.value.getOrElse(throw new RuntimeException("upsert used but no Document returned")).as[PasscodeDoc]
       }
-      .map { updatedPasscodeDoc =>
-        if(updatedPasscodeDoc.emailAttempts > config.maxEmailAttempts) {
-          throw new EmailPasscodeException.MaxEmailsExceeded
-        }else {
-          ()
-        }
-      }
   }
 
   def findPasscodeBySessionId(sessionId: String): Future[Option[PasscodeDoc]] = find("sessionId" -> sessionId).map(_.headOption)
 
   /**
-   * Returns passcode doc if one is found matching given sessionId and passcode.
-   * Future fails with MaxPasscodesAttemptsExceeded if called too many times on same sessionId
-   * @see MaxPasscodesAttemptsExceeded
-   * @see AppConfig.maxPasscodeAttempts
+   * Returns passcode doc if one is found matching given sessionId.
+   * If one is found, the passcodeAttempts field is also incremented before it's returned.
    */
-  def verifyPasscode(sessionId: SessionId, passcode: String): Future[Option[PasscodeDoc]] = {
+  def findPasscodeAndIncrementAttempts(sessionId: SessionId): Future[Option[PasscodeDoc]] = {
     val selector = Json.obj("sessionId" -> sessionId.value)
-    val update = BSONDocument(
-      "$inc" -> BSONDocument(
-        "passcodeAttempts" -> BSONInteger(1)
+    val update = Json.obj(
+      "$inc" -> Json.obj(
+        "passcodeAttempts" -> 1
       )
     )
 
@@ -122,12 +112,6 @@ class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent, 
       collation = None,
       arrayFilters = Seq())
       .map(_.value.map(_.as[PasscodeDoc]))
-      .flatMap {
-        case Some(passcodeDoc:PasscodeDoc) if passcodeDoc.passcodeAttempts > config.maxPasscodeAttempts => Future.failed(new MaxPasscodesAttemptsExceeded)
-        case Some(passcodeDoc:PasscodeDoc) if passcodeDoc.passcode != passcode.toUpperCase => Future.successful(None)
-        case Some(passcodeDoc:PasscodeDoc) => Future.successful(Some(passcodeDoc))
-        case None => Future.successful(None)
-      }
   }
 
   override def indexes: Seq[Index] = Seq(
