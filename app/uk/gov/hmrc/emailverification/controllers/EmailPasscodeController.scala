@@ -22,6 +22,7 @@ import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
+import uk.gov.hmrc.emailverification.models.EmailPasscodeException.{MaxEmailsExceeded, MaxPasscodesAttemptsExceeded}
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{PasscodeMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.AuditService
@@ -104,11 +105,9 @@ class EmailPasscodeController @Inject()(
             hc.sessionId match {
               case Some(sessionId) => {
                 sendEmailAndStorePasscode(request, sessionId).map(_ => Created).recover {
-                  case ex:EmailPasscodeException.MaxEmailsExceeded => {
-                    //TODO New audit event needed here??
-                    val msg = s"Max permitted passcode emails limit of ${appConfig.maxEmailAttempts} exceeded"
-                    logger.warn(msg, ex)
-                    Forbidden(msg)
+                  case ex:MaxEmailsExceeded => {
+                    val msg = s"Max permitted passcode emails limit per session of ${appConfig.maxEmailAttempts} reached"
+                    Forbidden(Json.toJson(ErrorResponse("MAX_EMAILS_EXCEEDED", msg)))
                   }
                   case ex@UpstreamErrorResponse(_, 400, _, _) =>
                     val event = ExtendedDataEvent(
@@ -129,7 +128,7 @@ class EmailPasscodeController @Inject()(
                 }
               }
               case None =>
-                Future.successful(Unauthorized(Json.toJson(ErrorResponse("UNAUTHORIZED", "No session id provided"))))
+                Future.successful(Unauthorized(Json.toJson(ErrorResponse("NO_SESSION_ID", "No session id provided"))))
             }
 
         }
@@ -141,9 +140,9 @@ class EmailPasscodeController @Inject()(
     withJsonBody[PasscodeVerificationRequest] { passcodeVerificationRequest: PasscodeVerificationRequest => {
 
       hc.sessionId match {
-        case Some(SessionId(id)) =>
-          passcodeRepo.findPasscode(id, passcodeVerificationRequest.passcode) flatMap {
-            case Some(doc) =>
+        case Some(id:SessionId) => {
+          passcodeRepo.verifyPasscode(id, passcodeVerificationRequest.passcode).flatMap {
+            case Some(doc: PasscodeDoc) =>
               analyticsConnector.sendEvents(GaEvents.passcodeSuccess)
               verifiedEmailRepo.find(doc.email) flatMap {
                 case None =>
@@ -168,16 +167,22 @@ class EmailPasscodeController @Inject()(
               auditService.sendCheckEmailVerifiedEventFailed(
                 verifyFailureReason = message,
                 passcode = passcodeVerificationRequest.passcode,
-                responseCode = 400
+                responseCode = 404
               )
-              Future.successful(BadRequest(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", message))))
+              Future.successful(NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", message))))
+          }.recoverWith {
+            case ex:MaxPasscodesAttemptsExceeded => {
+              val msg = s"Max permitted passcode verification attempts per session of ${appConfig.maxPasscodeAttempts} reached"
+              Future.successful(Forbidden(Json.toJson(ErrorResponse("MAX_PASSCODE_ATTEMPTS_EXCEEDED", msg))))
+            }
           }
+        }
         case None =>
           val message = "No session id provided"
           auditService.sendCheckEmailVerifiedEventFailed(
             verifyFailureReason = message,
             passcode = passcodeVerificationRequest.passcode,
-            responseCode = 400
+            responseCode = 401
           )
           Future.successful(BadRequest(Json.toJson(ErrorResponse("NO_SESSION_ID", message))))
       }

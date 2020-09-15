@@ -2,6 +2,7 @@ package uk.gov.hmrc.emailverification
 
 import java.util.UUID
 
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.joda.time.DateTime
 import org.scalatest.Assertion
@@ -63,6 +64,29 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       verifySendEmailWithPinFired(202)
     }
 
+    "block user on 6th email passcode request" in new Setup {
+      Given("The email service is running")
+      expectEmailServiceToRespond(202)
+
+      When("a client submits 5 email requests")
+
+      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
+      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
+      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
+      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
+      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
+      WireMock.reset()
+
+      Then("client submits a 6th email request")
+      val response = await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
+      Then("the user should get 403 forbidden response")
+      response.status shouldBe 403
+
+      Thread.sleep(200)
+      And("no email will have been sent")
+      verifyNoEmailSent
+    }
+
     "only latest passcode sent to a given email should be valid" in new Setup {
       Given("The email service is running")
       expectEmailServiceToRespond(202)
@@ -90,7 +114,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeVerificationRequest(passcode2)))
 
-      validationResponse1.status shouldBe 400
+      validationResponse1.status shouldBe 404
       validationResponse2.status shouldBe 201
 
       verifySendEmailWithPinFired(202)
@@ -101,10 +125,50 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       val response = await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeVerificationRequest("NDJRMS")))
-      response.status shouldBe 400
+      response.status shouldBe 404
       (Json.parse(response.body) \ "code").as[String] shouldBe "PASSCODE_NOT_FOUND_OR_EXPIRED"
 
       verifyCheckEmailVerifiedFired(emailVerified = false)
+    }
+
+    "fail with Forbidden on exceeding max permitted passcode verification attempts (default is 5)" in new Setup {
+      Given("The email service is running")
+      expectEmailServiceToRespond(202)
+
+      When("client submits a passcode email request")
+      val response1 = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      response1.status shouldBe 201
+
+      And("submits an unknown passcode for verification 5 times")
+
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest("NDJRMS"))).status shouldBe 404
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest("NDJRMS"))).status shouldBe 404
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest("NDJRMS"))).status shouldBe 404
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest("NDJRMS"))).status shouldBe 404
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest("NDJRMS"))).status shouldBe 404
+
+      Then("the next verification attempt is blocked with forbidden response, even though correct passcode is being used")
+      val response6 = await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(lastPasscodeEmailed)))
+
+      response6.status shouldBe 403
+      (Json.parse(response6.body) \ "code").as[String] shouldBe "MAX_PASSCODE_ATTEMPTS_EXCEEDED"
+
+      And("email is not verified event fired 5 times only as 6th was blocked")
+      verifyCheckEmailVerifiedFired(emailVerified = false, 5)
     }
 
     "uppercase passcode verification is valid" in new Setup {
@@ -241,7 +305,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       val response = await(wsClient.url(appClient("/request-passcode"))
         .post(passcodeRequest(emailToVerify)))
       response.status shouldBe 401
-      Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("UNAUTHORIZED"))
+      Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("NO_SESSION_ID"))
       Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No session id provided"))
     }
 

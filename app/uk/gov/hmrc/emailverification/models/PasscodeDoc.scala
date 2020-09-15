@@ -18,25 +18,9 @@ package uk.gov.hmrc.emailverification.models
 
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsObject, JsResult, JsValue, Json, OFormat}
-import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONInteger, BSONString}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class PasscodeDoc(sessionId:String, email: String, passcode: String, expireAt: DateTime, passcodeAttempts:Int=0, emailAttempts:Int=0) {
-  def bsonDocumentUpdate:BSONDocument = {
-    BSONDocument(
-      "$set" -> BSONDocument (
-        "sessionId" -> BSONString(sessionId),
-        "email" -> BSONString(email),
-        "passcode" -> BSONString(passcode),
-        "expireAt" -> BSONDateTime(expireAt.getMillis),
-        "passcodeAttempts" -> BSONInteger(0)
-      ),
-      "$inc" -> BSONDocument(
-         "emailAttempts" -> BSONInteger(1)
-       )
-    )
-  }
-}
+case class PasscodeDoc(sessionId:String, email: String, passcode: String, expireAt: DateTime, passcodeAttempts:Int=0, emailAttempts:Int=0)
 
 object PasscodeDoc {
   implicit val dateTimeFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
