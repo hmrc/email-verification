@@ -26,10 +26,9 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvide
 
 import scala.concurrent.ExecutionContext
 
-class AuditService @Inject()(
-  auditConnector: AuditConnector
+class AuditService @Inject() (
+    auditConnector: AuditConnector
 )(implicit ec: ExecutionContext) extends BackendHeaderCarrierProvider {
-
 
   def sendPinViaEmailEvent(emailAddress: String, passcode: String, serviceName: String, responseCode: Int)(implicit request: Request[_]) = {
     val details = Map(
@@ -68,7 +67,7 @@ class AuditService @Inject()(
   private def sendEvent(auditType: String, details: Map[String, String], transactionName: String)(implicit request: Request[_]) = {
     val hcDetails = hc.toAuditDetails() ++ details
 
-    val event = DataEvent(auditType = auditType, tags = hc.toAuditTags(transactionName, request.path), detail = hcDetails, auditSource = "email-verification")
+    val event = DataEvent(auditType   = auditType, tags = hc.toAuditTags(transactionName, request.path), detail = hcDetails, auditSource = "email-verification")
     auditConnector.sendEvent(event).map(_ => ())
   }
 

@@ -27,12 +27,12 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class VerifiedEmailMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
+class VerifiedEmailMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
   extends ReactiveRepository[VerifiedEmail, BSONObjectID](
     collectionName = "verifiedEmail",
-    mongo = mongoComponent.mongoConnector.db,
-    domainFormat = VerifiedEmail.format,
-    idFormat = ReactiveMongoFormats.objectIdFormats) {
+    mongo          = mongoComponent.mongoConnector.db,
+    domainFormat   = VerifiedEmail.format,
+    idFormat       = ReactiveMongoFormats.objectIdFormats) {
 
   def isVerified(email: String): Future[Boolean] = this.find(email).map(_.isDefined)
 

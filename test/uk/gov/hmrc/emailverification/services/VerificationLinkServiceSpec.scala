@@ -41,14 +41,14 @@ class VerificationLinkServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
     val token = "fixedNonce"
     val fixedTime: DateTime = DateTime.parse("2016-08-18T12:45:11.631+0100")
 
-    val cryptoMock:CryptoWithKeysFromConfig = mock[CryptoWithKeysFromConfig]
-    val config :Config = mock[Config]
+    val cryptoMock: CryptoWithKeysFromConfig = mock[CryptoWithKeysFromConfig]
+    val config: Config = mock[Config]
     val mockAppConfig: AppConfig = mock[AppConfig]
     val configuration: Configuration = mock[Configuration]
     when(configuration.underlying).thenReturn(config)
     when(config.getString("token.encryption.key")) thenReturn "gvBoGdgzqG1AarzF1LY0zQ=="
     when(config.getStringList("token.encryption.previousKeys")).isLenient()
 
-    val underTest = new VerificationLinkService()(mockAppConfig,configuration)
+    val underTest = new VerificationLinkService()(mockAppConfig, configuration)
   }
 }

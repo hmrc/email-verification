@@ -25,7 +25,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
-abstract class BaseControllerWithJsonErrorHandling @Inject()(cc: ControllerComponents) extends BackendController(cc) {
+abstract class BaseControllerWithJsonErrorHandling @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
   private val separatorChar: String = ";"
 

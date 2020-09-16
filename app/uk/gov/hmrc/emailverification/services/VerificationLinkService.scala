@@ -23,17 +23,17 @@ import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.crypto.{CryptoWithKeysFromConfig, PlainText}
 import uk.gov.hmrc.emailverification.models.{ForwardUrl, VerificationToken}
 
-class VerificationLinkService @Inject() (implicit appConfig: AppConfig,configuration: Configuration){
+class VerificationLinkService @Inject() (implicit appConfig: AppConfig, configuration: Configuration) {
 
-  lazy val platformFrontendHost: String     = appConfig.platformFrontendHost
-  val crypto: CryptoWithKeysFromConfig = new CryptoWithKeysFromConfig(baseConfigKey = "token.encryption",configuration.underlying)
+  lazy val platformFrontendHost: String = appConfig.platformFrontendHost
+  val crypto: CryptoWithKeysFromConfig = new CryptoWithKeysFromConfig(baseConfigKey = "token.encryption", configuration.underlying)
 
   def verificationLinkFor(token: String, continueUrl: ForwardUrl) =
     s"$platformFrontendHost/email-verification/verify?token=${encryptedVerificationToken(token, continueUrl)}"
 
   private def encryptedVerificationToken(token: String, continueUrl: ForwardUrl): String = {
-    def encrypt(value: String) = new String(crypto.encrypt(PlainText(value)).toBase64)
-    def tokenAsJson: JsValue = Json.toJson(VerificationToken(token, continueUrl))
+      def encrypt(value: String) = new String(crypto.encrypt(PlainText(value)).toBase64)
+      def tokenAsJson: JsValue = Json.toJson(VerificationToken(token, continueUrl))
     encrypt(tokenAsJson.toString())
   }
 

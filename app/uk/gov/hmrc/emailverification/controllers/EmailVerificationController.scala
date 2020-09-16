@@ -35,15 +35,14 @@ import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 import scala.concurrent.{ExecutionContext, Future}
 
-
-class EmailVerificationController @Inject()(
-  emailConnector: EmailConnector,
-  verificationLinkService: VerificationLinkService,
-  tokenRepo: VerificationTokenMongoRepository,
-  verifiedEmailRepo: VerifiedEmailMongoRepository,
-  analyticsConnector: PlatformAnalyticsConnector,
-  auditConnector: AuditConnector,
-  controllerComponents: ControllerComponents
+class EmailVerificationController @Inject() (
+    emailConnector:          EmailConnector,
+    verificationLinkService: VerificationLinkService,
+    tokenRepo:               VerificationTokenMongoRepository,
+    verifiedEmailRepo:       VerifiedEmailMongoRepository,
+    analyticsConnector:      PlatformAnalyticsConnector,
+    auditConnector:          AuditConnector,
+    controllerComponents:    ControllerComponents
 )(implicit ec: ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) with Logging {
 
   private def sendEmailAndCreateVerification(request: EmailVerificationRequest)(implicit hc: HeaderCarrier) = {
@@ -65,12 +64,12 @@ class EmailVerificationController @Inject()(
           case false =>
             analyticsConnector.sendEvents(GaEvents.verificationRequested)
             sendEmailAndCreateVerification(request).recover {
-              case ex@UpstreamErrorResponse(_, 400, _, _) =>
+              case ex @ UpstreamErrorResponse(_, 400, _, _) =>
                 val event = ExtendedDataEvent(
                   auditSource = "email-verification",
-                  auditType = "AIV-60",
-                  tags = hc.toAuditTags("requestVerification", httpRequest.path),
-                  detail = Json.obj(
+                  auditType   = "AIV-60",
+                  tags        = hc.toAuditTags("requestVerification", httpRequest.path),
+                  detail      = Json.obj(
                     "email-address" -> request.email,
                     "email-address-hex" -> toByteString(request.email)
                   )
@@ -78,7 +77,7 @@ class EmailVerificationController @Inject()(
                 auditConnector.sendExtendedEvent(event)
                 logger.error("email-verification had a problem, sendEmail returned bad request", ex)
                 BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
-              case ex@UpstreamErrorResponse(_, 404, _, _) =>
+              case ex @ UpstreamErrorResponse(_, 404, _, _) =>
                 logger.error("email-verification had a problem, sendEmail returned not found", ex)
                 Status(BAD_GATEWAY)(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
             }
@@ -91,11 +90,11 @@ class EmailVerificationController @Inject()(
   }
 
   def validateToken(): Action[JsValue] = Action.async(parse.json) {
-    def createEmailIfNotExist(email: String): Future[Result] =
-      verifiedEmailRepo.find(email) flatMap {
-        case Some(verifiedEmail) => Future.successful(NoContent)
-        case None => verifiedEmailRepo.insert(email) map (_ => Created)
-      }
+      def createEmailIfNotExist(email: String): Future[Result] =
+        verifiedEmailRepo.find(email) flatMap {
+          case Some(verifiedEmail) => Future.successful(NoContent)
+          case None                => verifiedEmailRepo.insert(email) map (_ => Created)
+        }
 
     val tokenNotFoundOrExpiredResponse = Future.successful(BadRequest(Json.toJson(ErrorResponse("TOKEN_NOT_FOUND_OR_EXPIRED", "Token not found or expired"))))
 
@@ -116,7 +115,7 @@ class EmailVerificationController @Inject()(
     withJsonBody[VerifiedEmail] { verifiedEmail =>
       verifiedEmailRepo.find(verifiedEmail.email).map {
         case Some(email) => Ok(toJson(email))
-        case None => NotFound
+        case None        => NotFound
       }
     }
   }

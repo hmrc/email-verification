@@ -28,7 +28,6 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-
 class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport {
 
   def now: DateTime = DateTime.now(DateTimeZone.UTC)
@@ -36,7 +35,6 @@ class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterE
   val repo: VerificationTokenMongoRepository = new VerificationTokenMongoRepository(new ReactiveMongoComponent {
     override def mongoConnector: MongoConnector = mongoConnectorForTest
   })
-
 
   val token = "theToken"
   val email = "user@email.com"
@@ -81,7 +79,6 @@ class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterE
       index shouldBe Index(Seq("expireAt" -> Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0)).copy(version = index.version)
     }
   }
-
 
   override def beforeEach() {
     super.beforeEach()
