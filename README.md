@@ -171,7 +171,7 @@ The `serviceName` field is inserted at the end of the email in the following sen
 | 502       | Upstream error                    | UPSTREAM_ERROR                   |
 
 ## POST /verify-passcode
-Verifies the passcode generated against your email address 
+Verifies a passcode matches that stored against the session id (that was sent to the email address)
 
 
 **Request body**
