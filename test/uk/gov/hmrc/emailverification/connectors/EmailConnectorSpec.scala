@@ -37,8 +37,7 @@ class EmailConnectorSpec extends UnitSpec with ScalaFutures {
       val endpointUrl = "emailHost://emailHost:1337/emailservicepath/hmrc/email"
       val expectedRequestBody = SendEmailRequest(Seq(recipient), templateId, params)
 
-      when(mockHttp.POST[SendEmailRequest, Either[UpstreamErrorResponse, HttpResponse]]
-        (eqTo(endpointUrl), eqTo(expectedRequestBody), any)(any, any, any, any)
+      when(mockHttp.POST[SendEmailRequest, Either[UpstreamErrorResponse, HttpResponse]] (eqTo(endpointUrl), eqTo(expectedRequestBody), any)(any, any, any, any)
       ).thenReturn(Future.successful(Right(HttpResponse(202, ""))))
 
       // when

@@ -19,4 +19,4 @@ package uk.gov.hmrc.emailverification.models
 import play.api.libs.json.{Json, Writes}
 
 case class DimensionValue(index: String, value: String)
-object DimensionValue{ implicit val dimensionWrites: Writes[DimensionValue] = Json.writes[DimensionValue] }
+object DimensionValue { implicit val dimensionWrites: Writes[DimensionValue] = Json.writes[DimensionValue] }

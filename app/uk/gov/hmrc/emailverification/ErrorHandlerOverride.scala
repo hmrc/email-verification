@@ -32,10 +32,10 @@ import uk.gov.hmrc.play.bootstrap.config.HttpAuditEvent
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ErrorHandlerOverride @Inject()(
-  configuration: Configuration,
-  auditConnector: AuditConnector,
-  httpAuditEvent: HttpAuditEvent
+class ErrorHandlerOverride @Inject() (
+    configuration:  Configuration,
+    auditConnector: AuditConnector,
+    httpAuditEvent: HttpAuditEvent
 )(implicit ec: ExecutionContext) extends JsonErrorHandler(auditConnector, httpAuditEvent, configuration) with Logging {
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
@@ -58,10 +58,10 @@ class ErrorHandlerOverride @Inject()(
     logger.error(s"! Internal server error, for (${request.method}) [${request.uri}] -> ", ex)
 
     val code = ex match {
-      case _: NotFoundException => "ResourceNotFound"
+      case _: NotFoundException      => "ResourceNotFound"
       case _: AuthorisationException => "ClientError"
-      case _: JsValidationException => "ServerValidationError"
-      case _ => "ServerInternalError"
+      case _: JsValidationException  => "ServerValidationError"
+      case _                         => "ServerInternalError"
     }
 
     auditConnector.sendEvent(
@@ -73,7 +73,7 @@ class ErrorHandlerOverride @Inject()(
     val (statusCode, code, message) = ex match {
       case Upstream4xxResponse(message, _, _, _) => (BAD_GATEWAY, "UPSTREAM_ERROR", message)
       case Upstream5xxResponse(message, _, _, _) => (BAD_GATEWAY, "UPSTREAM_ERROR", message)
-      case e: Throwable => (INTERNAL_SERVER_ERROR, "UNEXPECTED_ERROR", e.getMessage)
+      case e: Throwable                          => (INTERNAL_SERVER_ERROR, "UNEXPECTED_ERROR", e.getMessage)
     }
 
     new Status(statusCode)(Json.toJson(ErrorResponse(code, message)))

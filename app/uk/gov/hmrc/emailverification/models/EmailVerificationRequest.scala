@@ -23,11 +23,11 @@ import org.joda.time.format.ISOPeriodFormat
 import play.api.libs.json.{JsPath, Json, Reads}
 
 case class EmailVerificationRequest(
-  email: String,
-  templateId: String,
-  templateParameters: Option[Map[String, String]],
-  linkExpiryDuration: Period,
-  continueUrl: ForwardUrl
+    email:              String,
+    templateId:         String,
+    templateParameters: Option[Map[String, String]],
+    linkExpiryDuration: Period,
+    continueUrl:        ForwardUrl
 )
 
 object EmailVerificationRequest {

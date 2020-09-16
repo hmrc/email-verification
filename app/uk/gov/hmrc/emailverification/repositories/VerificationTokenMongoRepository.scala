@@ -31,12 +31,12 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class VerificationTokenMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
+class VerificationTokenMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
   extends ReactiveRepository[VerificationDoc, BSONObjectID](
     collectionName = "verificationToken",
-    mongo = mongoComponent.mongoConnector.db,
-    domainFormat = VerificationDoc.format,
-    idFormat = ReactiveMongoFormats.objectIdFormats) {
+    mongo          = mongoComponent.mongoConnector.db,
+    domainFormat   = VerificationDoc.format,
+    idFormat       = ReactiveMongoFormats.objectIdFormats) {
 
   def upsert(token: String, email: String, validity: Period): Future[Unit] = {
     val selector = Json.obj("email" -> email)
@@ -49,7 +49,7 @@ class VerificationTokenMongoRepository @Inject()(mongoComponent: ReactiveMongoCo
 
   override def indexes: Seq[Index] = Seq(
     Index(Seq("token" -> IndexType.Ascending), name = Some("tokenUnique"), unique = true),
-    Index(key = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0))
+    Index(key     = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0))
   )
 }
 

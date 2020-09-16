@@ -19,7 +19,7 @@ package config
 import javax.inject.Inject
 import play.api.Configuration
 
-class AppConfig @Inject() (val config:Configuration){
+class AppConfig @Inject() (val config: Configuration) {
 
   lazy val platformFrontendHost: String = getString("platform.frontend.host")
   lazy val emailServicePath: String = getString("microservice.services.email.path")

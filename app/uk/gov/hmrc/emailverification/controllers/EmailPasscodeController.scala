@@ -34,21 +34,21 @@ import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
-class EmailPasscodeController @Inject()(
-  emailConnector: EmailConnector,
-  passcodeRepo: PasscodeMongoRepository,
-  verifiedEmailRepo: VerifiedEmailMongoRepository,
-  analyticsConnector: PlatformAnalyticsConnector,
-  auditConnector: AuditConnector,
-  controllerComponents: ControllerComponents,
-  auditService: AuditService
+class EmailPasscodeController @Inject() (
+    emailConnector:       EmailConnector,
+    passcodeRepo:         PasscodeMongoRepository,
+    verifiedEmailRepo:    VerifiedEmailMongoRepository,
+    analyticsConnector:   PlatformAnalyticsConnector,
+    auditConnector:       AuditConnector,
+    controllerComponents: ControllerComponents,
+    auditService:         AuditService
 )(implicit ec: ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) with Logging {
 
   def testOnlyGetPasscode(): Action[AnyContent] = Action.async { implicit request =>
     hc.sessionId match {
       case Some(SessionId(id)) => passcodeRepo.findPasscodeBySessionId(id).map {
         case Some(passwordDoc) => Ok(Json.toJson(Passcode(passwordDoc.passcode)))
-        case None => NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", "No passcode found for sessionId")))
+        case None              => NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", "No passcode found for sessionId")))
       }
       case None =>
         Future.successful(BadRequest(Json.toJson(ErrorResponse("BAD_PASSCODE_REQUEST", "No session id provided"))))
@@ -107,7 +107,7 @@ class EmailPasscodeController @Inject()(
                   }
                   case _ => {
                     sendEmail(request.email, passcode, request.serviceName).map(_ => Created).recover {
-                      case ex@UpstreamErrorResponse(_, 400, _, _) =>
+                      case ex @ UpstreamErrorResponse(_, 400, _, _) =>
                         val event = ExtendedDataEvent(
                           auditSource = "email-verification",
                           auditType = "AIV-60",
