@@ -20,7 +20,7 @@ import org.joda.time.DateTime
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class PasscodeDoc(sessionId:String, email: String, passcode: String, expireAt: DateTime, passcodeAttempts:Int, emailAttempts:Int)
+case class PasscodeDoc(sessionId: String, email: String, passcode: String, expireAt: DateTime, passcodeAttempts: Int, emailAttempts: Int)
 
 object PasscodeDoc {
   implicit val dateTimeFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats

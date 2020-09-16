@@ -33,14 +33,12 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent, config:AppConfig)(implicit ec: ExecutionContext)
+class PasscodeMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent, config: AppConfig)(implicit ec: ExecutionContext)
   extends ReactiveRepository[PasscodeDoc, BSONObjectID](
     collectionName = "passcode",
-    mongo = mongoComponent.mongoConnector.db,
-    domainFormat = PasscodeDoc.format,
-    idFormat = ReactiveMongoFormats.objectIdFormats) {
-
-
+    mongo          = mongoComponent.mongoConnector.db,
+    domainFormat   = PasscodeDoc.format,
+    idFormat       = ReactiveMongoFormats.objectIdFormats) {
 
   /**
    * add/update session record with passcode and email address to use.
@@ -68,16 +66,16 @@ class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent, 
 
     //increment email count as part of update so we only need one mongo call
     collection.findAndUpdate(
-      selector = selector,
-      update = update,
-      fetchNewObject = true,
-      upsert = true,
-      sort = None,
-      fields = None,
+      selector                 = selector,
+      update                   = update,
+      fetchNewObject           = true,
+      upsert                   = true,
+      sort                     = None,
+      fields                   = None,
       bypassDocumentValidation = false,
       collection.update(ordered = false).writeConcern,
-      maxTime = None,
-      collation = None,
+      maxTime      = None,
+      collation    = None,
       arrayFilters = Seq())
       .map { result =>
         result.value.getOrElse(throw new RuntimeException("upsert used but no Document returned")).as[PasscodeDoc]
@@ -100,23 +98,23 @@ class PasscodeMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent, 
 
     //increment passcode attempt count as part of the fetch so we only need one mongo call
     collection.findAndUpdate(
-      selector = selector,
-      update = update,
-      fetchNewObject = true,
-      upsert = false,
-      sort = None,
-      fields = None,
+      selector                 = selector,
+      update                   = update,
+      fetchNewObject           = true,
+      upsert                   = false,
+      sort                     = None,
+      fields                   = None,
       bypassDocumentValidation = false,
       collection.update(ordered = false).writeConcern,
-      maxTime = None,
-      collation = None,
+      maxTime      = None,
+      collation    = None,
       arrayFilters = Seq())
       .map(_.value.map(_.as[PasscodeDoc]))
   }
 
   override def indexes: Seq[Index] = Seq(
-    Index(key = Seq("sessionId" -> IndexType.Ascending), name = Some("sessionIdUnique"), unique = true),
-    Index(key = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0))
+    Index(key    = Seq("sessionId" -> IndexType.Ascending), name = Some("sessionIdUnique"), unique = true),
+    Index(key     = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0))
   )
 
 }
