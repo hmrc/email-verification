@@ -24,20 +24,20 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       val passcode = generateUUID
       await(expectPasscodeToBePopulated(passcode))
 
-      val response = await(resourceRequest("/test-only/passcode").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
+      val response = await(resourceRequest("/test-only/passcodes").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
       response.status shouldBe 200
-      Json.parse(response.body) \ "passcode" shouldBe JsDefined(JsString(passcode))
+      (Json.parse(response.body) \ "passcodes" \ 0 \ "passcode") shouldBe JsDefined(JsString(passcode))
     }
 
-    "return a 400 if a sessionId wasnt provided with the request" in new Setup {
-      val response = await(resourceRequest("/test-only/passcode").get())
-      response.status shouldBe 400
-      Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("BAD_PASSCODE_REQUEST"))
+    "return a 401 if a sessionId wasnt provided with the request" in new Setup {
+      val response = await(resourceRequest("/test-only/passcodes").get())
+      response.status shouldBe 401
+      Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("NO_SESSION_ID"))
       Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No session id provided"))
     }
 
     "return a 404 if the session id is in the request but not in mongo" in new Setup {
-      val response = await(resourceRequest("/test-only/passcode").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
+      val response = await(resourceRequest("/test-only/passcodes").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
       response.status shouldBe 404
       Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("PASSCODE_NOT_FOUND_OR_EXPIRED"))
       Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No passcode found for sessionId"))
@@ -45,7 +45,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
   }
 
   "request-passcode" should {
-    "send the a passcode email to the specified address successfully" in new Setup {
+    "send a passcode email to the specified address successfully" in new Setup {
       Given("The email service is running")
       expectEmailServiceToRespond(202)
 
@@ -64,11 +64,11 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       verifySendEmailWithPinFired(202)
     }
 
-    "block user on 6th email passcode request" in new Setup {
+    "block user on 6th passcode request to the same email address" in new Setup {
       Given("The email service is running")
       expectEmailServiceToRespond(202)
 
-      When("a client submits 5 email requests")
+      When("a client submits 5 requests to the same email address")
 
       await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
       await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
@@ -78,6 +78,27 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       WireMock.reset()
 
       Then("client submits a 6th email request")
+      val response = await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
+      Then("the user should get 403 forbidden response")
+      response.status shouldBe 403
+
+      Thread.sleep(200)
+      And("no email will have been sent")
+      verifyNoEmailSent
+    }
+
+    "block user on 11th different email passcode request" in new Setup {
+      Given("The email service is running")
+      expectEmailServiceToRespond(202)
+
+      When("a client submits 10 different emails")
+
+      (1 to 10).map { count =>
+        await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(s"email$count@somewhere.com")))
+      }
+      WireMock.reset()
+
+      Then("client submits 11th email request")
       val response = await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
       Then("the user should get 403 forbidden response")
       response.status shouldBe 403
@@ -108,11 +129,11 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       Then("only the last passcode sent should be valid")
       val validationResponse1 = await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest(passcode1)))
+        .post(passcodeVerificationRequest(emailToVerify, passcode1)))
 
       val validationResponse2 = await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest(passcode2)))
+        .post(passcodeVerificationRequest(emailToVerify, passcode2)))
 
       validationResponse1.status shouldBe 404
       validationResponse2.status shouldBe 201
@@ -124,7 +145,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       When("client submits an unknown passcode to verification request")
       val response = await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest("NDJRMS")))
+        .post(passcodeVerificationRequest(emailToVerify, "NDJRMS")))
       response.status shouldBe 404
       (Json.parse(response.body) \ "code").as[String] shouldBe "PASSCODE_NOT_FOUND_OR_EXPIRED"
 
@@ -145,24 +166,24 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
       await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest("NDJRMS"))).status shouldBe 404
+        .post(passcodeVerificationRequest(emailToVerify, "NDJRMS"))).status shouldBe 404
       await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest("NDJRMS"))).status shouldBe 404
+        .post(passcodeVerificationRequest(emailToVerify, "NDJRMS"))).status shouldBe 404
       await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest("NDJRMS"))).status shouldBe 404
+        .post(passcodeVerificationRequest(emailToVerify, "NDJRMS"))).status shouldBe 404
       await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest("NDJRMS"))).status shouldBe 404
+        .post(passcodeVerificationRequest(emailToVerify, "NDJRMS"))).status shouldBe 404
       await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest("NDJRMS"))).status shouldBe 404
+        .post(passcodeVerificationRequest(emailToVerify, "NDJRMS"))).status shouldBe 404
 
       Then("the next verification attempt is blocked with forbidden response, even though correct passcode is being used")
       val response6 = await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest(lastPasscodeEmailed)))
+        .post(passcodeVerificationRequest(emailToVerify, lastPasscodeEmailed)))
 
       response6.status shouldBe 403
       (Json.parse(response6.body) \ "code").as[String] shouldBe "MAX_PASSCODE_ATTEMPTS_EXCEEDED"
@@ -185,7 +206,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       Then("submitting verification request with passcode in lowercase should be successful")
       await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest(uppercasePasscode))).status shouldBe 201
+        .post(passcodeVerificationRequest(emailToVerify, uppercasePasscode))).status shouldBe 201
 
       verifyCheckEmailVerifiedFired(emailVerified = true)
     }
@@ -204,7 +225,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       Then("submitting verification request with passcode in lowercase should be successful")
       await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest(lowercasePasscode))).status shouldBe 201
+        .post(passcodeVerificationRequest(emailToVerify, lowercasePasscode))).status shouldBe 201
 
       verifyCheckEmailVerifiedFired(emailVerified = true)
     }
@@ -223,40 +244,42 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       Then("the request to verify with passcode should be successful")
       await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest(passcode))).status shouldBe 201
+        .post(passcodeVerificationRequest(emailToVerify, passcode))).status shouldBe 201
       Then("an additional request to verify the same passcode should be successful, but return with a 204 response")
       await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest(passcode))).status shouldBe 204
+        .post(passcodeVerificationRequest(emailToVerify, passcode))).status shouldBe 204
 
       verifyCheckEmailVerifiedFired(emailVerified = true, 2)
     }
 
-    "passcode verification for two different emails should be successful" in new Setup {
-      def submitVerificationRequest(emailToVerify: String, templateId: String): Assertion = {
-        val response = await(wsClient.url(appClient("/request-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeRequest(emailToVerify)))
-        response.status shouldBe 201
-        val passcode = lastPasscodeEmailed
-        And("the client verifies the token")
-        await(wsClient.url(appClient("/verify-passcode"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(passcodeVerificationRequest(passcode))).status shouldBe 201
-        Then("the verified email should also have been stored")
-        await(wsClient.url(appClient("/verified-email-check"))
-          .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-          .post(Json.obj("email" -> emailToVerify))).status shouldBe 200
-      }
-
+    "passcode verification for two different emails on same session should be successful" in new Setup {
       Given("The email service is running")
       expectEmailServiceToRespond(202)
 
-      When("client submits first verification request ")
-      submitVerificationRequest("example1@domain.com", templateId)
+      When("user sends two passcode requests for two different email addresses")
+      val email1 = "example1@domain.com"
+      val response1 = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(email1)))
+      response1.status shouldBe 201
+      val passcode1 = lastPasscodeEmailed
 
-      When("client submits second verification request ")
-      submitVerificationRequest("example2@domain.com", templateId)
+      val email2 = "example2@domain.com"
+      val response2 = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(email2)))
+      response2.status shouldBe 201
+      val passcode2 = lastPasscodeEmailed
+
+      Then("both passcodes can be verified")
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(email1, passcode1))).status shouldBe 201
+
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(email2, passcode2))).status shouldBe 201
 
       verifyCheckEmailVerifiedFired(emailVerified = true, 2)
     }
@@ -340,7 +363,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       val passcode = lastPasscodeEmailed
       await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
-        .post(passcodeVerificationRequest(passcode))).status shouldBe 201
+        .post(passcodeVerificationRequest(emailToVerify, passcode))).status shouldBe 201
     }
 
     def expectPasscodeToBePopulated(passcode: String) = {

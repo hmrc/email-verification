@@ -22,6 +22,7 @@ import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.ReadConcern
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
@@ -40,6 +41,15 @@ class PasscodeMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent,
     domainFormat   = PasscodeDoc.format,
     idFormat       = ReactiveMongoFormats.objectIdFormats) {
 
+  def getSessionEmailsCount(sessionId: SessionId): Future[Long] = {
+    collection.count(
+      selector    = Some(Json.obj("sessionId" -> sessionId.value)),
+      limit       = Some(config.maxDifferentEmails),
+      skip        = 0,
+      hint        = None,
+      readConcern = ReadConcern.Available)
+  }
+
   /**
    * add/update session record with passcode and email address to use.
    * Returns the new/updated passcode doc with incremented emailAttempts count.
@@ -48,7 +58,7 @@ class PasscodeMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent,
    * @see AppConfig.maxEmailAttempts
    */
   def upsertIncrementingEmailAttempts(sessionId: SessionId, passcode: String, email: String, validityDurationMinutes: Int): Future[PasscodeDoc] = {
-    val selector = Json.obj("sessionId" -> sessionId.value)
+    val selector = Json.obj("sessionId" -> sessionId.value, "email" -> email)
     val passcodeDoc = PasscodeDoc(sessionId.value, email, passcode, DateTime.now(UTC).plusMinutes(validityDurationMinutes), 0, 1)
 
     val update = Json.obj (
@@ -82,14 +92,16 @@ class PasscodeMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent,
       }
   }
 
-  def findPasscodeBySessionId(sessionId: String): Future[Option[PasscodeDoc]] = find("sessionId" -> sessionId).map(_.headOption)
+  def findPasscodesBySessionId(sessionId: String): Future[List[PasscodeDoc]] = find("sessionId" -> sessionId)
+
+  def findPasscodeBySessionIdAndEmail(sessionId: String, email: String): Future[List[PasscodeDoc]] = find("sessionId" -> sessionId, "email" -> email)
 
   /**
-   * Returns passcode doc if one is found matching given sessionId.
+   * Returns passcode doc if one is found matching given sessionId and email.
    * If one is found, the passcodeAttempts field is also incremented before it's returned.
    */
-  def findPasscodeAndIncrementAttempts(sessionId: SessionId): Future[Option[PasscodeDoc]] = {
-    val selector = Json.obj("sessionId" -> sessionId.value)
+  def findPasscodeAndIncrementAttempts(sessionId: SessionId, email: String): Future[Option[PasscodeDoc]] = {
+    val selector = Json.obj("sessionId" -> sessionId.value, "email" -> email)
     val update = Json.obj(
       "$inc" -> Json.obj(
         "passcodeAttempts" -> 1
@@ -112,8 +124,18 @@ class PasscodeMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent,
       .map(_.value.map(_.as[PasscodeDoc]))
   }
 
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+    if (config.dropPasscodeSessionIdIndexAtStartup) {
+      collection.indexesManager.drop("sessionIdUnique").flatMap { _ =>
+        super.ensureIndexes
+      }
+    } else {
+      super.ensureIndexes
+    }
+  }
+
   override def indexes: Seq[Index] = Seq(
-    Index(key    = Seq("sessionId" -> IndexType.Ascending), name = Some("sessionIdUnique"), unique = true),
+    Index(key    = Seq("sessionId" -> IndexType.Ascending, "email" -> IndexType.Ascending), name = Some("sessionIdUnique"), unique = true),
     Index(key     = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0))
   )
 

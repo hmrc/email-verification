@@ -27,9 +27,9 @@ Preconditions:
 
 # Test Only Routes
 
-| Path                             | Supported Methods | Description                                               |
-|----------------------------------|-------------------|-----------------------------------------------------------|
-| /test-only/passcode              | GET              | Retrieves the generated passcode that is stored in mongo                         | 
+| Path                             | Supported Methods | Description                                                    |
+|----------------------------------|-------------------|----------------------------------------------------------------|
+| /test-only/passcodes             | GET               | Retrieve the sessions emails and their passcodes from mongo    |                        | 
 
 ## POST /verification-requests
 
@@ -167,7 +167,7 @@ The `serviceName` field is inserted at the end of the email in the following sen
 | 409       | Email already verified            | EMAIL_VERIFIED_ALREADY           |
 | 400       | Upstream bad request sending email| BAD_EMAIL_REQUEST                |
 | 401       | SessionID not provided            | NO_SESSION_ID                    |
-| 403       | Max emails per session exceeded   | MAX_EMAILS_EXCEEDED              |
+| 403       | Max emails attempts exceeded      | MAX_EMAILS_EXCEEDED              |
 | 502       | Upstream error                    | UPSTREAM_ERROR                   |
 
 ## POST /verify-passcode
@@ -178,6 +178,7 @@ Verifies the passcode generated against your email address
 
 ```json
 {
+    "email" : "someone@somewhere.com",
     "passcode": "ABCDEF"
 }
 ```
