@@ -91,10 +91,10 @@ class EmailPasscodeController @Inject() (
     }
   }
 
-  case object EmailAlreadyVerified extends Exception()
-  case object MissingSessionId extends Exception()
-  case object MaxDifferentEmailsExceeded extends Exception()
-  case object MaxEmailsToAddressExceeded extends Exception()
+  case object EmailAlreadyVerified extends Exception("email address has already been verified")
+  case object MissingSessionId extends Exception("missing session id")
+  case object MaxDifferentEmailsExceeded extends Exception("Maximum permitted number of emails sent to different addresses reached")
+  case object MaxEmailsToAddressExceeded extends Exception("Maximum permitted number of emails sent to same address reached")
 
   def requestPasscode(): Action[JsValue] = Action.async(parse.json) {
     implicit httpRequest =>
@@ -104,9 +104,9 @@ class EmailPasscodeController @Inject() (
           _ <- if (!emailAlreadyVerified) Future.unit else Future.failed(EmailAlreadyVerified)
           _ = analyticsConnector.sendEvents(GaEvents.passcodeRequested)
           sessionId <- hc.sessionId.fold[Future[SessionId]](Future.failed(MissingSessionId))(Future.successful(_))
-          passcode: String = newPasscode()
           sessionEmailCount <- passcodeRepo.getSessionEmailsCount(sessionId)
           _ <- if (sessionEmailCount < appConfig.maxDifferentEmails) Future.unit else Future.failed(MaxDifferentEmailsExceeded)
+          passcode: String = newPasscode()
           passcodeDoc <- passcodeRepo.upsertIncrementingEmailAttempts(sessionId, passcode, request.email, appConfig.passcodeExpiryMinutes)
           _ <- if (passcodeDoc.emailAttempts <= appConfig.maxEmailAttempts) Future.unit else Future.failed(MaxEmailsToAddressExceeded)
           _ <- sendEmail(request.email, passcode, request.serviceName)
