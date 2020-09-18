@@ -1,10 +1,10 @@
 # email-verification
 
-email-verification is a service to support a verification flow that starts by creating a verification for an email address and sending out an email with verification link.
+email-verification is a service to support a verification flow that starts by creating a verification for an email address and sending out an email with verification link or a passcode.
 
-Users can verify the email address by clicking on the link in the email.
+Users can verify the email address by clicking on the link in the email, or typing in the passcode they received.
 
-Endpoints are provided to trigger a verification email, verify email by clicking the link and retrieve a verification status for a given email address.
+Endpoints are provided to trigger a verification email, verify email by clicking the link or entering passcode, and retrieve a verification status for a given email address.
 
 
 # How to build
@@ -21,7 +21,7 @@ Preconditions:
 | /verification-requests           | POST              | Create a new verification request                                                        |
 | /verified-email-check            | POST              | Check if email address is verified                                                       |
 | /request-passcode                | POST              | *1 Generates a passcode and sends an email with the passcode to the specified email address |
-| /verify-passcode                 | POST              | *2 Verifies the passcode generated against your email address                               |
+| /verify-passcode                 | POST              | *2 Verifies a passcode matches that stored against the email address                     |
     
 *represents sequence
 
@@ -29,7 +29,7 @@ Preconditions:
 
 | Path                             | Supported Methods | Description                                               |
 |----------------------------------|-------------------|-----------------------------------------------------------|
-| /test-only/passcode              | GET              | Retrieves the generated passcode that is stored in mongo                         | 
+| /test-only/passcode              | GET              | Retrieves the generated passcode that is stored in mongo   | 
 
 ## POST /verification-requests
 
@@ -166,11 +166,12 @@ The `serviceName` field is inserted at the end of the email in the following sen
 |-----------|-----------------------------------|----------------------------------|
 | 409       | Email already verified            | EMAIL_VERIFIED_ALREADY           |
 | 400       | Upstream bad request sending email| BAD_EMAIL_REQUEST                |
-| 400       | SessionID not provided            | BAD_REQUEST                      |
+| 401       | SessionID not provided            | NO_SESSION_ID                    |
+| 403       | Max emails per session exceeded   | MAX_EMAILS_EXCEEDED              |
 | 502       | Upstream error                    | UPSTREAM_ERROR                   |
 
 ## POST /verify-passcode
-Verifies the passcode generated against your email address 
+Verifies a passcode matches that stored against the session id (that was sent to the email address)
 
 
 **Request body**
@@ -192,9 +193,9 @@ Verifies the passcode generated against your email address
 
 | Status    |  Description                      |  Code                            |
 |-----------|-----------------------------------|----------------------------------|
-| 400       | Passcode not found or expired     | PASSCODE_NOT_FOUND_OR_EXPIRED    |
-| 400       | SessionID not provided            | NO_SESSION_ID                    |
-
+| 401       | SessionID not provided            | NO_SESSION_ID                    |
+| 403       | Max attempts per session exceeded | MAX_PASSCODE_ATTEMPTS_EXCEEDED   |
+| 404       | Passcode not found or expired     | PASSCODE_NOT_FOUND_OR_EXPIRED    |
 
 ## Error response payload structure
 Error responses are mapped to the following json structure returned as the response body

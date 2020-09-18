@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
+import config.AppConfig
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.ReadConcern
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.bson.{BSONDateTime, BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.emailverification.models.PasscodeDoc
 import uk.gov.hmrc.http.logging.SessionId
@@ -32,26 +34,108 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PasscodeMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
+class PasscodeMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent, config: AppConfig)(implicit ec: ExecutionContext)
   extends ReactiveRepository[PasscodeDoc, BSONObjectID](
     collectionName = "passcode",
     mongo          = mongoComponent.mongoConnector.db,
     domainFormat   = PasscodeDoc.format,
     idFormat       = ReactiveMongoFormats.objectIdFormats) {
 
-  def upsert(sessionId: SessionId, passcode: String, email: String, validityDurationMinutes: Int): Future[Unit] = {
-    val selector = Json.obj("sessionId" -> sessionId.value)
-    val update = PasscodeDoc(sessionId.value, email, passcode, DateTime.now(UTC).plusMinutes(validityDurationMinutes))
-
-    collection.update(ordered = false).one(selector, update, upsert = true).map(_ => ())
+  def getSessionEmailsCount(sessionId: SessionId): Future[Long] = {
+    collection.count(
+      selector    = Some(Json.obj("sessionId" -> sessionId.value)),
+      limit       = Some(config.maxDifferentEmails),
+      skip        = 0,
+      hint        = None,
+      readConcern = ReadConcern.Available)
   }
 
-  def findPasscodeBySessionId(sessionId: String): Future[Option[PasscodeDoc]] = find("sessionId" -> sessionId).map(_.headOption)
+  /**
+   * add/update session record with passcode and email address to use.
+   * Returns the new/updated passcode doc with incremented emailAttempts count.
+   * Future fails with EmailPasscodeException.MaxEmailsExceeded if the emailAttempts count then exceeds maxEmailAttempts
+   * @see MaxEmailsExceeded
+   * @see AppConfig.maxEmailAttempts
+   */
+  def upsertIncrementingEmailAttempts(sessionId: SessionId, passcode: String, email: String, validityDurationMinutes: Int): Future[PasscodeDoc] = {
+    val selector = Json.obj("sessionId" -> sessionId.value, "email" -> email)
+    val passcodeDoc = PasscodeDoc(sessionId.value, email, passcode, DateTime.now(UTC).plusMinutes(validityDurationMinutes), 0, 1)
 
-  def findPasscode(sessionId: String, passcode: String): Future[Option[PasscodeDoc]] = find("sessionId" -> sessionId, "passcode" -> passcode.toUpperCase).map(_.headOption)
+    val update = Json.obj (
+      "$set" -> Json.obj (
+        "sessionId" -> passcodeDoc.sessionId,
+        "email" -> passcodeDoc.email,
+        "passcode" -> passcodeDoc.passcode.toUpperCase,
+        "expireAt" -> BSONDateTime(passcodeDoc.expireAt.getMillis),
+        "passcodeAttempts" -> 0
+      ),
+      "$inc" -> Json.obj {
+        "emailAttempts" -> 1
+      }
+    )
+
+    //increment email count as part of update so we only need one mongo call
+    collection.findAndUpdate(
+      selector                 = selector,
+      update                   = update,
+      fetchNewObject           = true,
+      upsert                   = true,
+      sort                     = None,
+      fields                   = None,
+      bypassDocumentValidation = false,
+      collection.update(ordered = false).writeConcern,
+      maxTime      = None,
+      collation    = None,
+      arrayFilters = Seq())
+      .map { result =>
+        result.value.getOrElse(throw new RuntimeException("upsert used but no Document returned")).as[PasscodeDoc]
+      }
+  }
+
+  def findPasscodesBySessionId(sessionId: String): Future[List[PasscodeDoc]] = find("sessionId" -> sessionId)
+
+  def findPasscodeBySessionIdAndEmail(sessionId: String, email: String): Future[List[PasscodeDoc]] = find("sessionId" -> sessionId, "email" -> email)
+
+  /**
+   * Returns passcode doc if one is found matching given sessionId and email.
+   * If one is found, the passcodeAttempts field is also incremented before it's returned.
+   */
+  def findPasscodeAndIncrementAttempts(sessionId: SessionId, email: String): Future[Option[PasscodeDoc]] = {
+    val selector = Json.obj("sessionId" -> sessionId.value, "email" -> email)
+    val update = Json.obj(
+      "$inc" -> Json.obj(
+        "passcodeAttempts" -> 1
+      )
+    )
+
+    //increment passcode attempt count as part of the fetch so we only need one mongo call
+    collection.findAndUpdate(
+      selector                 = selector,
+      update                   = update,
+      fetchNewObject           = true,
+      upsert                   = false,
+      sort                     = None,
+      fields                   = None,
+      bypassDocumentValidation = false,
+      collection.update(ordered = false).writeConcern,
+      maxTime      = None,
+      collation    = None,
+      arrayFilters = Seq())
+      .map(_.value.map(_.as[PasscodeDoc]))
+  }
+
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+    if (config.dropPasscodeSessionIdIndexAtStartup) {
+      collection.indexesManager.drop("sessionIdUnique").flatMap { _ =>
+        super.ensureIndexes
+      }
+    } else {
+      super.ensureIndexes
+    }
+  }
 
   override def indexes: Seq[Index] = Seq(
-    Index(key    = Seq("sessionId" -> IndexType.Ascending), name = Some("sessionIdUnique"), unique = true),
+    Index(key    = Seq("sessionId" -> IndexType.Ascending, "email" -> IndexType.Ascending), name = Some("sessionIdUnique"), unique = true),
     Index(key     = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0))
   )
 

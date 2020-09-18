@@ -18,8 +18,8 @@ package uk.gov.hmrc.emailverification.models
 
 import play.api.libs.json.Json
 
-case class Passcode(passcode: String) extends AnyVal
+case class EmailPasscode(email: String, passcode: String)
 
-object Passcode {
-  implicit val writes = Json.writes[Passcode]
+object EmailPasscode {
+  implicit val writes = Json.writes[EmailPasscode]
 }

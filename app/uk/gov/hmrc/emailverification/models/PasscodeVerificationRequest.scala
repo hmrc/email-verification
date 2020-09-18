@@ -18,7 +18,7 @@ package uk.gov.hmrc.emailverification.models
 
 import play.api.libs.json.{Json, Reads}
 
-case class PasscodeVerificationRequest(passcode: String)
+case class PasscodeVerificationRequest(passcode: String, email: String)
 
 object PasscodeVerificationRequest {
   implicit def reads: Reads[PasscodeVerificationRequest] = Json.reads[PasscodeVerificationRequest]

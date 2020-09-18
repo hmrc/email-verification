@@ -32,8 +32,8 @@ object EmailStub extends MockitoSugar with Matchers {
                   |  "serviceName": "$serviceName"
                   |}""".stripMargin)
 
-  def passcodeVerificationRequest(passcode: String = "PSSCDD"): JsValue =
-    Json.parse(s"""{"passcode": "$passcode"}""".stripMargin)
+  def passcodeVerificationRequest(email:String, passcode: String ): JsValue =
+    Json.parse(s"""{"passcode": "$passcode", "email": "$email"}""".stripMargin)
 
   def expectEmailServiceToRespond(status: Int, body: String): Unit =
     stubFor(post(urlEqualTo("/hmrc/email")).willReturn(aResponse()
@@ -74,6 +74,10 @@ object EmailStub extends MockitoSugar with Matchers {
     val emails = WireMock.findAll(postRequestedFor(urlEqualTo("/hmrc/email"))).asScala
     val emailSendRequest = emails.last.getBodyAsString
     Json.parse(emailSendRequest)
+  }
+
+  def verifyNoEmailSent = {
+    WireMock.findAll(postRequestedFor(urlEqualTo("/hmrc/email"))) shouldBe empty
   }
 
   def lastPasscodeEmailed: String = {
