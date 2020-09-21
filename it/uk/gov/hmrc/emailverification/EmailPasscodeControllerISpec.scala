@@ -152,6 +152,16 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       verifyCheckEmailVerifiedFired(emailVerified = false)
     }
 
+    "verifying a passcode with no sessionId should return a 401 unauthorized error" in new Setup {
+      When("client submits a passcode to verification request without sessionId")
+      val response = await(wsClient.url(appClient("/verify-passcode"))
+        .post(passcodeVerificationRequest(emailToVerify, "NDJRMS")))
+      response.status shouldBe 401
+      (Json.parse(response.body) \ "code").as[String] shouldBe "NO_SESSION_ID"
+
+      verifyCheckEmailVerifiedFired(emailVerified = false)
+    }
+
     "fail with Forbidden on exceeding max permitted passcode verification attempts (default is 5)" in new Setup {
       Given("The email service is running")
       expectEmailServiceToRespond(202)
