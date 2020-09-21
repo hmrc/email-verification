@@ -198,7 +198,7 @@ class EmailPasscodeController @Inject() (
                 passcode            = passcodeVerificationRequest.passcode,
                 responseCode        = 401
               )
-              Future.successful(BadRequest(Json.toJson(ErrorResponse("NO_SESSION_ID", message))))
+              Future.successful(Unauthorized(Json.toJson(ErrorResponse("NO_SESSION_ID", message))))
           }
         }
       }
