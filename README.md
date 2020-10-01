@@ -191,11 +191,12 @@ Verifies a passcode matches that stored against the session id (that was sent to
 
 ### Failure Responses
 
-| Status    |  Description                      |  Code                            |
-|-----------|-----------------------------------|----------------------------------|
-| 401       | SessionID not provided            | NO_SESSION_ID                    |
-| 403       | Max attempts per session exceeded | MAX_PASSCODE_ATTEMPTS_EXCEEDED   |
-| 404       | Passcode not found or expired     | PASSCODE_NOT_FOUND_OR_EXPIRED    |
+| Status    |  Code                            |  Description                      |
+|-----------|----------------------------------|-----------------------------------|
+| 401       | NO_SESSION_ID                    | SessionID not provided            |
+| 403       | MAX_PASSCODE_ATTEMPTS_EXCEEDED   | Max attempts per session exceeded |
+| 404       | PASSCODE_NOT_FOUND_OR_EXPIRED    | Passcode not found or expired     |
+| 404       | PASSCODE_MISMATCH | Incorrect passcode                |
 
 ## Error response payload structure
 Error responses are mapped to the following json structure returned as the response body

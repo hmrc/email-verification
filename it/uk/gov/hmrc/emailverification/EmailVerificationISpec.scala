@@ -11,7 +11,7 @@ class EmailVerificationISpec extends BaseISpec {
   "email verification" should {
     "send the verification email to the specified address successfully" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("a client submits a verification request")
 
@@ -19,12 +19,12 @@ class EmailVerificationISpec extends BaseISpec {
       response.status shouldBe 201
 
       Then("an email is sent")
-      verifyEmailSentWithContinueUrl(emailToVerify, continueUrl, templateId, paramsWithVerificationLink)
+      verifyEmailSentWithContinueUrl(emailToVerify, continueUrl, templateId)
     }
 
     "only latest email verification request token for a given email should be valid" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("client submits a verification request")
       val response1 = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
@@ -43,7 +43,7 @@ class EmailVerificationISpec extends BaseISpec {
 
     "second verification request should return successful 204 response" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("client submits a verification request")
       val response1 = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
@@ -68,7 +68,7 @@ class EmailVerificationISpec extends BaseISpec {
       }
 
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("client submits first verification request ")
       submitVerificationRequest("example1@domain.com", templateId, continueUrl)
@@ -118,7 +118,7 @@ class EmailVerificationISpec extends BaseISpec {
   }
 
   def assumeEmailAlreadyVerified(email: String): Assertion = {
-    expectEmailServiceToRespond(202)
+    expectEmailToBeSent()
     await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email))).status shouldBe 201
     val token = tokenFor(email)
     await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 201

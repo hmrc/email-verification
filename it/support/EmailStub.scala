@@ -5,34 +5,32 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.typesafe.config.Config
 import org.scalatest.{Assertion, Matchers}
-import org.scalatestplus.mockito.MockitoSugar
+import play.api.http.Status
 import uk.gov.hmrc.crypto.Crypted.fromBase64
 import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
 
 import scala.collection.JavaConverters._
 
-object EmailStub extends MockitoSugar with Matchers {
+object EmailStub extends Matchers {
   private def crypto(implicit config:Config) = new CryptoWithKeysFromConfig("queryParameter.encryption", config)
 
   def verificationRequest(emailToVerify: String = "test@example.com",
                           templateId: String = "some-template-id",
-                          continueUrl: String = "http://example.com/continue",
-                          paramsJsonStr: String = "{}"): JsValue =
+                          continueUrl: String = "http://example.com/continue"): JsValue =
     Json.parse(s"""{
                   |  "email": "$emailToVerify",
                   |  "templateId": "$templateId",
-                  |  "templateParameters": $paramsJsonStr,
                   |  "linkExpiryDuration" : "P2D",
                   |  "continueUrl" : "$continueUrl"
                   |}""".stripMargin)
 
-  def passcodeRequest(email: String = "test@example.com", serviceName: String = "apple"): JsValue =
+  def passcodeRequest(email: String): JsValue =
     Json.parse(s"""{
                   |  "email": "$email",
-                  |  "serviceName": "$serviceName"
+                  |  "serviceName": "apple"
                   |}""".stripMargin)
 
-  def passcodeVerificationRequest(email:String, passcode: String ): JsValue =
+  def passcodeVerificationRequest(email: String, passcode: String ): JsValue =
     Json.parse(s"""{"passcode": "$passcode", "email": "$email"}""".stripMargin)
 
   def expectEmailServiceToRespond(status: Int, body: String): Unit =
@@ -40,11 +38,10 @@ object EmailStub extends MockitoSugar with Matchers {
       .withStatus(status)
       .withBody(body)))
 
-  def expectEmailServiceToRespond(status: Int): Unit =
-    stubFor(post(urlEqualTo("/hmrc/email")).willReturn(aResponse()
-      .withStatus(status)))
+  def expectEmailToBeSent(): Unit =
+    stubFor(post(urlEqualTo("/hmrc/email")).willReturn(aResponse().withStatus(Status.ACCEPTED)))
 
-  def verifyEmailSentWithContinueUrl(to: String, continueUrl: String, templateId: String, params: Map[String, String])(implicit config:Config): Assertion = {
+  def verifyEmailSentWithContinueUrl(to: String, continueUrl: String, templateId: String)(implicit config:Config): Assertion = {
     val emailSendRequestJson = lastVerificationEmail
 
     (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
@@ -56,11 +53,10 @@ object EmailStub extends MockitoSugar with Matchers {
     token.isDefined shouldBe true
   }
 
-  def verifyEmailSentWithPasscode(to: String, serviceName: String = "apple"): Assertion = {
+  def verifyEmailSentWithPasscode(to: String): Assertion = {
     val emailSendRequestJson = lastVerificationEmail
     (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
     (emailSendRequestJson \ "parameters" \ "passcode").as[String] should fullyMatch regex "[BCDFGHJKLMNPQRSTVWXYZ]{6}"
-    (emailSendRequestJson \ "parameters" \ "team_name").as[String] should fullyMatch regex s"$serviceName"
   }
 
   def decryptedToken(emailSendRequestJson: JsValue) (implicit config:Config): (Option[String], String) = {

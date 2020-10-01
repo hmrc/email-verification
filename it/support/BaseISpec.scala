@@ -30,7 +30,7 @@ trait BaseISpec extends WireMockSpec with MongoSpecSupport with GivenWhenThen {
   implicit val config: Config = Configuration.from(extraConfig).underlying
 
   def tokenFor(email: String): String = {
-    expectEmailServiceToRespond(202)
+    expectEmailToBeSent()
 
     await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify = email))).status shouldBe 201
     decryptedToken(lastVerificationEmail)._1.get
@@ -55,5 +55,6 @@ trait BaseISpec extends WireMockSpec with MongoSpecSupport with GivenWhenThen {
     super.afterAll()
     await(tokenRepo.drop)
     await(verifiedRepo.drop)
+    dropTestCollection("passcode")
   }
 }

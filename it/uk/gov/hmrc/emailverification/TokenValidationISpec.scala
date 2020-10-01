@@ -40,7 +40,7 @@ class TokenValidationISpec extends BaseISpec {
     "return 404 if email does not exist" in {
       Given("an unverified email does not  exist")
       val email = "user@email.com"
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
       await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify = email)))
 
       When("the email is checked if it is verified")
