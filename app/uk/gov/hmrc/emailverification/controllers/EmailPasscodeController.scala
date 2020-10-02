@@ -48,7 +48,7 @@ class EmailPasscodeController @Inject() (
     hc.sessionId match {
       case Some(SessionId(id)) => passcodeRepo.findPasscodesBySessionId(id).map {
         case passcodes: List[PasscodeDoc] if passcodes.isEmpty => NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", "No passcode found for sessionId")))
-        case passcodes: List[PasscodeDoc] => Ok(Json.obj{
+        case passcodes: List[PasscodeDoc] => Ok(Json.obj {
           "passcodes" -> JsArray(passcodes.map { passcodeDoc =>
             Json.toJson(EmailPasscode(passcodeDoc.email, passcodeDoc.passcode))
           })
@@ -92,8 +92,11 @@ class EmailPasscodeController @Inject() (
   }
 
   case object EmailAlreadyVerified extends Exception("email address has already been verified")
+
   case object MissingSessionId extends Exception("missing session id")
+
   case object MaxDifferentEmailsExceeded extends Exception("Maximum permitted number of emails sent to different addresses reached")
+
   case object MaxEmailsToAddressExceeded extends Exception("Maximum permitted number of emails sent to same address reached")
 
   def requestPasscode(): Action[JsValue] = Action.async(parse.json) {
@@ -101,12 +104,12 @@ class EmailPasscodeController @Inject() (
       withJsonBody[PasscodeRequest] { request =>
         (for {
           emailAlreadyVerified <- verifiedEmailRepo.isVerified(request.email)
-          _ <- if (!emailAlreadyVerified) Future.unit else Future.failed(EmailAlreadyVerified)
+          _ <- if (emailAlreadyVerified) Future.failed(EmailAlreadyVerified) else Future.unit
           _ = analyticsConnector.sendEvents(GaEvents.passcodeRequested)
           sessionId <- hc.sessionId.fold[Future[SessionId]](Future.failed(MissingSessionId))(Future.successful(_))
           sessionEmailCount <- passcodeRepo.getSessionEmailsCount(sessionId)
           _ <- if (sessionEmailCount < appConfig.maxDifferentEmails) Future.unit else Future.failed(MaxDifferentEmailsExceeded)
-          passcode: String = newPasscode()
+          passcode = newPasscode()
           passcodeDoc <- passcodeRepo.upsertIncrementingEmailAttempts(sessionId, passcode, request.email, appConfig.passcodeExpiryMinutes)
           _ <- if (passcodeDoc.emailAttempts <= appConfig.maxEmailAttempts) Future.unit else Future.failed(MaxEmailsToAddressExceeded)
           _ <- sendEmail(request.email, passcode, request.serviceName)
@@ -150,57 +153,65 @@ class EmailPasscodeController @Inject() (
   }
 
   def verifyPasscode(): Action[JsValue] = Action.async(parse.json) { implicit request: Request[JsValue] =>
-    {
-      withJsonBody[PasscodeVerificationRequest] { passcodeVerificationRequest: PasscodeVerificationRequest =>
-        {
+    withJsonBody[PasscodeVerificationRequest] { passcodeVerificationRequest =>
+      hc.sessionId match {
+        case Some(id) => {
+          passcodeRepo.findPasscodeAndIncrementAttempts(id, passcodeVerificationRequest.email).flatMap {
+            case Some(doc) if doc.passcodeAttempts > appConfig.maxPasscodeAttempts =>
+              val msg = s"Max permitted passcode verification attempts per session of ${appConfig.maxPasscodeAttempts} reached"
+              Future.successful(Forbidden(Json.toJson(ErrorResponse("MAX_PASSCODE_ATTEMPTS_EXCEEDED", msg))))
 
-          hc.sessionId match {
-            case Some(id: SessionId) => {
-              passcodeRepo.findPasscodeAndIncrementAttempts(id, passcodeVerificationRequest.email).flatMap {
-                case Some(doc: PasscodeDoc) if doc.passcodeAttempts > appConfig.maxPasscodeAttempts => {
-                  val msg = s"Max permitted passcode verification attempts per session of ${appConfig.maxPasscodeAttempts} reached"
-                  Future.successful(Forbidden(Json.toJson(ErrorResponse("MAX_PASSCODE_ATTEMPTS_EXCEEDED", msg))))
-                }
-                case Some(doc: PasscodeDoc) if doc.passcode == passcodeVerificationRequest.passcode.toUpperCase =>
-                  analyticsConnector.sendEvents(GaEvents.passcodeSuccess)
-                  verifiedEmailRepo.find(doc.email) flatMap {
-                    case None =>
-                      auditService.sendCheckEmailVerifiedEventSuccess(
-                        emailAddress = doc.email,
-                        passcode     = passcodeVerificationRequest.passcode,
-                        responseCode = 201
-                      )
-                      verifiedEmailRepo.insert(doc.email) map (_ => Created)
-                    case _ =>
-                      auditService.sendCheckEmailVerifiedEventSuccess(
-                        emailAddress = doc.email,
-                        passcode     = passcodeVerificationRequest.passcode,
-                        responseCode = 204
-                      )
-                      Future.successful(NoContent)
-                  }
-
-                case _ =>
-                  analyticsConnector.sendEvents(GaEvents.passcodeFailed)
-                  val message = "Passcode not found or expired"
-                  auditService.sendCheckEmailVerifiedEventFailed(
-                    verifyFailureReason = message,
-                    passcode            = passcodeVerificationRequest.passcode,
-                    responseCode        = 404
+            case Some(doc) if doc.passcode == passcodeVerificationRequest.passcode.toUpperCase =>
+              analyticsConnector.sendEvents(GaEvents.passcodeSuccess)
+              verifiedEmailRepo.find(doc.email) flatMap {
+                case None =>
+                  auditService.sendCheckEmailVerifiedEventSuccess(
+                    emailAddress = doc.email,
+                    passcode     = passcodeVerificationRequest.passcode,
+                    responseCode = 201
                   )
-                  Future.successful(NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", message))))
+                  verifiedEmailRepo.insert(doc.email) map (_ => Created)
+                case _ =>
+                  auditService.sendCheckEmailVerifiedEventSuccess(
+                    emailAddress = doc.email,
+                    passcode     = passcodeVerificationRequest.passcode,
+                    responseCode = 204
+                  )
+                  Future.successful(NoContent)
               }
-            }
-            case None =>
-              val message = "No session id provided"
+
+            case Some(_) =>
+              analyticsConnector.sendEvents(GaEvents.passcodeFailed)
+              auditService.sendCheckEmailVerifiedEventFailed(
+                verifyFailureReason = "Passcode mismatch",
+                passcode            = passcodeVerificationRequest.passcode,
+                responseCode        = 404
+              )
+
+              Future.successful(NotFound(Json.obj(
+                "code" -> "PASSCODE_MISMATCH",
+                "message" -> "Passcode mismatch"
+              )))
+
+            case _ =>
+              analyticsConnector.sendEvents(GaEvents.passcodeFailed)
+              val message = "Passcode not found or expired"
               auditService.sendCheckEmailVerifiedEventFailed(
                 verifyFailureReason = message,
                 passcode            = passcodeVerificationRequest.passcode,
-                responseCode        = 401
+                responseCode        = 404
               )
-              Future.successful(Unauthorized(Json.toJson(ErrorResponse("NO_SESSION_ID", message))))
+              Future.successful(NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", message))))
           }
         }
+        case None =>
+          val message = "No session id provided"
+          auditService.sendCheckEmailVerifiedEventFailed(
+            verifyFailureReason = message,
+            passcode            = passcodeVerificationRequest.passcode,
+            responseCode        = 401
+          )
+          Future.successful(Unauthorized(Json.toJson(ErrorResponse("NO_SESSION_ID", message))))
       }
     }
   }

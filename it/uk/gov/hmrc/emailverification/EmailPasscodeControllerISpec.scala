@@ -44,10 +44,10 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
   }
 
-  "request-passcode" should {
+  "verifying an email" should {
     "send a passcode email to the specified address successfully" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("a client submits a passcode email request")
 
@@ -61,12 +61,12 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       Thread.sleep(200)
 
       verifyEmailSentWithPasscode(emailToVerify)
-      verifySendEmailWithPinFired(202)
+      verifySendEmailWithPinFired(ACCEPTED)
     }
 
     "block user on 6th passcode request to the same email address" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("a client submits 5 requests to the same email address")
 
@@ -89,7 +89,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
     "block user on 11th different email passcode request" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("a client submits 10 different emails")
 
@@ -110,7 +110,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
     "only latest passcode sent to a given email should be valid" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("client submits a passcode request")
       val response1 = await(wsClient.url(appClient("/request-passcode"))
@@ -138,7 +138,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       validationResponse1.status shouldBe 404
       validationResponse2.status shouldBe 201
 
-      verifySendEmailWithPinFired(202)
+      verifySendEmailWithPinFired(ACCEPTED)
     }
 
     "verifying an unknown passcode should return a 400 error" in new Setup {
@@ -150,6 +150,21 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       (Json.parse(response.body) \ "code").as[String] shouldBe "PASSCODE_NOT_FOUND_OR_EXPIRED"
 
       verifyCheckEmailVerifiedFired(emailVerified = false)
+    }
+
+    "return 404 Not Found and a PASSCODE_MISMATCH status if the passcode is incorrect" in new Setup {
+      expectEmailToBeSent()
+
+      val requestedPasscode = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify)))
+      requestedPasscode.status shouldBe CREATED
+
+      val response = await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(Json.obj("passcode" -> "DefinitelyWrong", "email" -> emailToVerify)))
+      response.status shouldBe NOT_FOUND
+      response.json shouldBe Json.obj("code" -> "PASSCODE_MISMATCH", "message" -> "Passcode mismatch")
     }
 
     "verifying a passcode with no sessionId should return a 401 unauthorized error" in new Setup {
@@ -164,7 +179,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
     "fail with Forbidden on exceeding max permitted passcode verification attempts (default is 5)" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("client submits a passcode email request")
       val response1 = await(wsClient.url(appClient("/request-passcode"))
@@ -204,7 +219,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
     "uppercase passcode verification is valid" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("client requests a passcode")
       val response1 = await(wsClient.url(appClient("/request-passcode"))
@@ -223,7 +238,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
     "lowercase passcode verification is valid" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("client requests a passcode")
       val response1 = await(wsClient.url(appClient("/request-passcode"))
@@ -242,7 +257,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
     "second passcode verification request with same session and passcode should return 204 instead of 201 response" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("client submits a passcode verification request")
       val response1 = await(wsClient.url(appClient("/request-passcode"))
@@ -265,7 +280,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
     "passcode verification for two different emails on same session should be successful" in new Setup {
       Given("The email service is running")
-      expectEmailServiceToRespond(202)
+      expectEmailToBeSent()
 
       When("user sends two passcode requests for two different email addresses")
       val email1 = "example1@domain.com"
@@ -343,7 +358,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "return 409 if email is already verified" in new Setup {
-      assumeEmailAlreadyVerified(emailToVerify, templateId)
+      assumeEmailAlreadyVerified()
 
       val response = await(wsClient.url(appClient("/request-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
@@ -365,8 +380,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     val passcodeMongoRepository = app.injector.instanceOf(classOf[PasscodeMongoRepository])
 
 
-    def assumeEmailAlreadyVerified(email: String, templateId: String): Assertion = {
-      expectEmailServiceToRespond(202)
+    def assumeEmailAlreadyVerified(): Assertion = {
+      expectEmailToBeSent()
       await(wsClient.url(appClient("/request-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeRequest(emailToVerify))).status shouldBe 201
@@ -384,7 +399,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
     def generateUUID = UUID.randomUUID().toString
 
-    def verifySendEmailWithPinFired(responseCode: Int) = {
+    def verifySendEmailWithPinFired(responseCode: Int): Unit = {
       Thread.sleep(100)
       verify(postRequestedFor(urlEqualTo("/write/audit"))
         .withRequestBody(containing(""""auditType":"SendEmailWithPin""""))
@@ -392,7 +407,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       )
     }
 
-    def verifyCheckEmailVerifiedFired(emailVerified: Boolean, times: Int = 1) = {
+    def verifyCheckEmailVerifiedFired(emailVerified: Boolean, times: Int = 1): Unit = {
       Thread.sleep(100)
       verify(times, postRequestedFor(urlEqualTo("/write/audit"))
         .withRequestBody(containing(""""auditType":"CheckEmailVerified""""))

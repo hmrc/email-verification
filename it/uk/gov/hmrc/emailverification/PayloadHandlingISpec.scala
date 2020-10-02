@@ -9,7 +9,7 @@ class PayloadHandlingISpec extends BaseISpec {
   "a POST request for email verification" should {
 
     "return CREATED when given a valid payload" in new Setup {
-      expectEmailServiceToRespond(ACCEPTED)
+      expectEmailToBeSent()
 
       val response = await(wsClient.url(appClient("/verification-requests")).post(validPayload))
 
@@ -17,7 +17,7 @@ class PayloadHandlingISpec extends BaseISpec {
     }
 
     "return CREATED when template parameters are not provided" in new Setup {
-      expectEmailServiceToRespond(ACCEPTED)
+      expectEmailToBeSent()
       val validPayloadWithMissingTemplateParameter: JsObject = validPayload - "templateParameters"
 
       val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithMissingTemplateParameter))
@@ -26,7 +26,7 @@ class PayloadHandlingISpec extends BaseISpec {
     }
 
     "return CREATED when continueUrl is relative" in new Setup {
-      expectEmailServiceToRespond(ACCEPTED)
+      expectEmailToBeSent()
       val validPayloadWithRelativeContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "/continue")
 
       val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithRelativeContinueUrl))
@@ -35,7 +35,7 @@ class PayloadHandlingISpec extends BaseISpec {
     }
 
     "return CREATED when continueUrl is protocol-relative and whitelisted" in new Setup {
-      expectEmailServiceToRespond(ACCEPTED)
+      expectEmailToBeSent()
       val validPayloadWithRelativeContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "//example.com/continue")
 
       val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithRelativeContinueUrl))
