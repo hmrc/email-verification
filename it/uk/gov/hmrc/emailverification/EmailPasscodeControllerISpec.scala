@@ -39,7 +39,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     "return a 404 if the session id is in the request but not in mongo" in new Setup {
       val response = await(resourceRequest("/test-only/passcodes").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
       response.status shouldBe 404
-      Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("PASSCODE_NOT_FOUND_OR_EXPIRED"))
+      Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("PASSCODE_NOT_FOUND"))
       Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No passcode found for sessionId"))
     }
   }
@@ -147,7 +147,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeVerificationRequest(emailToVerify, "NDJRMS")))
       response.status shouldBe 404
-      (Json.parse(response.body) \ "code").as[String] shouldBe "PASSCODE_NOT_FOUND_OR_EXPIRED"
+      (Json.parse(response.body) \ "code").as[String] shouldBe "PASSCODE_NOT_FOUND"
 
       verifyCheckEmailVerifiedFired(emailVerified = false)
     }
