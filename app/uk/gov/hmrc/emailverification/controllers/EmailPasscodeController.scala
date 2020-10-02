@@ -47,7 +47,7 @@ class EmailPasscodeController @Inject() (
   def testOnlyGetPasscodes(): Action[AnyContent] = Action.async { implicit request =>
     hc.sessionId match {
       case Some(SessionId(id)) => passcodeRepo.findPasscodesBySessionId(id).map {
-        case passcodes: List[PasscodeDoc] if passcodes.isEmpty => NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", "No passcode found for sessionId")))
+        case passcodes: List[PasscodeDoc] if passcodes.isEmpty => NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND", "No passcode found for sessionId")))
         case passcodes: List[PasscodeDoc] => Ok(Json.obj {
           "passcodes" -> JsArray(passcodes.map { passcodeDoc =>
             Json.toJson(EmailPasscode(passcodeDoc.email, passcodeDoc.passcode))
@@ -195,13 +195,13 @@ class EmailPasscodeController @Inject() (
 
             case _ =>
               analyticsConnector.sendEvents(GaEvents.passcodeFailed)
-              val message = "Passcode not found or expired"
+              val message = "Passcode not found"
               auditService.sendCheckEmailVerifiedEventFailed(
                 verifyFailureReason = message,
                 passcode            = passcodeVerificationRequest.passcode,
                 responseCode        = 404
               )
-              Future.successful(NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND_OR_EXPIRED", message))))
+              Future.successful(NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND", message))))
           }
         }
         case None =>

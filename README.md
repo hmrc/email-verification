@@ -178,7 +178,8 @@ Verifies a passcode matches that stored against the session id (that was sent to
 
 ```json
 {
-    "passcode": "ABCDEF"
+    "passcode": "ABCDEF",
+    "email": "email@example.com"
 }
 ```
 
@@ -195,7 +196,7 @@ Verifies a passcode matches that stored against the session id (that was sent to
 |-----------|----------------------------------|-----------------------------------|
 | 401       | NO_SESSION_ID                    | SessionID not provided            |
 | 403       | MAX_PASSCODE_ATTEMPTS_EXCEEDED   | Max attempts per session exceeded |
-| 404       | PASSCODE_NOT_FOUND_OR_EXPIRED    | Passcode not found or expired     |
+| 404       | PASSCODE_NOT_FOUND    | Passcode not found (or expired)     |
 | 404       | PASSCODE_MISMATCH | Incorrect passcode                |
 
 ## Error response payload structure
@@ -204,8 +205,8 @@ with the appropriate http error status code. E.g.:
 
 ```json
 {
-  "code": "TOKEN_NOT_FOUND_OR_EXPIRED",
-  "message":"Token not found or expired."
+  "code": "PASSCODE_NOT_FOUND",
+  "message":"Passcode not found"
 }
 ```
 
