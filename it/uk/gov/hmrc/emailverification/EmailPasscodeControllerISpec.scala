@@ -45,6 +45,15 @@ class EmailPasscodeControllerISpec extends BaseISpec {
   }
 
   "verifying an email" should {
+    "return 400 if the lang is not en or cy" in new Setup {
+      val response = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify, lang = "notenorcy")))
+
+      response.status shouldBe 400
+    }
+
+
     "send a passcode email to the specified address successfully" in new Setup {
       Given("The email service is running")
       expectEmailToBeSent()
@@ -61,6 +70,25 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       Thread.sleep(200)
 
       verifyEmailSentWithPasscode(emailToVerify)
+      verifySendEmailWithPinFired(ACCEPTED)
+    }
+
+    "send a passcode email with the welsh template when the lang is cy" in new Setup {
+      Given("The email service is running")
+      expectEmailToBeSent()
+
+      When("a client submits a passcode email request")
+
+      val response = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify, lang = "cy")))
+      response.status shouldBe 201
+
+      Then("a passcode email is sent")
+
+      Thread.sleep(200)
+
+      verifyEmailSentWithPasscode(emailToVerify, templateId = "email_verification_passcode_welsh")
       verifySendEmailWithPinFired(ACCEPTED)
     }
 

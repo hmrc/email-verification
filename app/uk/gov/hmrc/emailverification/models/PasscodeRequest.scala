@@ -16,11 +16,23 @@
 
 package uk.gov.hmrc.emailverification.models
 
-import org.joda.time.format.ISOPeriodFormat
 import org.joda.time.Period
-import play.api.libs.json.{JsPath, Json, Reads}
+import org.joda.time.format.ISOPeriodFormat
+import play.api.libs.json._
 
-case class PasscodeRequest(email: String, serviceName: String)
+sealed trait Language
+case object English extends Language
+case object Welsh extends Language
+
+object Language {
+  implicit val reads: Reads[Language] = {
+    case JsString("en") => JsSuccess(English)
+    case JsString("cy") => JsSuccess(Welsh)
+    case _              => JsError("Lang must be en or cy")
+  }
+}
+
+case class PasscodeRequest(email: String, serviceName: String, lang: Language)
 
 object PasscodeRequest {
   implicit val periodReads: Reads[Period] = JsPath.read[String].map(ISOPeriodFormat.standard().parsePeriod)

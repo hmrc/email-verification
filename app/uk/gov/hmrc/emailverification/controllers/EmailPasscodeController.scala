@@ -68,23 +68,29 @@ class EmailPasscodeController @Inject() (
       .take(codeSize).mkString
   }
 
-  private def sendEmail(email: String, passcode: String, serviceName: String)(implicit request: Request[_]) = {
+  private def sendEmail(passcodeRequest: PasscodeRequest, passcode: String)(implicit request: Request[_]) = {
+
+    val templateId = passcodeRequest.lang match {
+      case English => "email_verification_passcode"
+      case Welsh   => "email_verification_passcode_welsh"
+    }
+
     val paramsWithPasscode = appConfig.passcodeEmailTemplateParameters +
-      ("passcode" -> passcode, "team_name" -> serviceName)
-    emailConnector.sendEmail(to         = email, templateId = "email_verification_passcode", params = paramsWithPasscode).map { emailResponse =>
+      ("passcode" -> passcode, "team_name" -> passcodeRequest.serviceName)
+    emailConnector.sendEmail(to         = passcodeRequest.email, templateId = templateId, params = paramsWithPasscode).map { emailResponse =>
       auditService.sendPinViaEmailEvent(
-        emailAddress = email,
+        emailAddress = passcodeRequest.email,
         passcode     = passcode,
-        serviceName  = serviceName,
+        serviceName  = passcodeRequest.serviceName,
         responseCode = emailResponse.status
       )
       ()
     }.recoverWith {
       case e: UpstreamErrorResponse =>
         auditService.sendPinViaEmailEvent(
-          emailAddress = email,
+          emailAddress = passcodeRequest.email,
           passcode     = passcode,
-          serviceName  = serviceName,
+          serviceName  = passcodeRequest.serviceName,
           responseCode = e.statusCode
         )
         Future.failed(e)
@@ -106,13 +112,13 @@ class EmailPasscodeController @Inject() (
           emailAlreadyVerified <- verifiedEmailRepo.isVerified(request.email)
           _ <- if (emailAlreadyVerified) Future.failed(EmailAlreadyVerified) else Future.unit
           _ = analyticsConnector.sendEvents(GaEvents.passcodeRequested)
-          sessionId <- hc.sessionId.fold[Future[SessionId]](Future.failed(MissingSessionId))(Future.successful(_))
+          sessionId <- hc.sessionId.fold[Future[SessionId]](Future.failed(MissingSessionId))(Future.successful)
           sessionEmailCount <- passcodeRepo.getSessionEmailsCount(sessionId)
           _ <- if (sessionEmailCount < appConfig.maxDifferentEmails) Future.unit else Future.failed(MaxDifferentEmailsExceeded)
           passcode = newPasscode()
           passcodeDoc <- passcodeRepo.upsertIncrementingEmailAttempts(sessionId, passcode, request.email, appConfig.passcodeExpiryMinutes)
           _ <- if (passcodeDoc.emailAttempts <= appConfig.maxEmailAttempts) Future.unit else Future.failed(MaxEmailsToAddressExceeded)
-          _ <- sendEmail(request.email, passcode, request.serviceName)
+          _ <- sendEmail(request, passcode)
         } yield {
           Created
         }).recover {
