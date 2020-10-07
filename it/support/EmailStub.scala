@@ -24,10 +24,11 @@ object EmailStub extends Matchers {
                   |  "continueUrl" : "$continueUrl"
                   |}""".stripMargin)
 
-  def passcodeRequest(email: String): JsValue =
+  def passcodeRequest(email: String, lang: String = "en"): JsValue =
     Json.parse(s"""{
                   |  "email": "$email",
-                  |  "serviceName": "apple"
+                  |  "serviceName": "apple",
+                  |  "lang": "$lang"
                   |}""".stripMargin)
 
   def passcodeVerificationRequest(email: String, passcode: String ): JsValue =
@@ -53,9 +54,10 @@ object EmailStub extends Matchers {
     token.isDefined shouldBe true
   }
 
-  def verifyEmailSentWithPasscode(to: String): Assertion = {
+  def verifyEmailSentWithPasscode(to: String, templateId: String = "email_verification_passcode"): Assertion = {
     val emailSendRequestJson = lastVerificationEmail
     (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
+    (emailSendRequestJson \ "templateId").as[String] shouldBe templateId
     (emailSendRequestJson \ "parameters" \ "passcode").as[String] should fullyMatch regex "[BCDFGHJKLMNPQRSTVWXYZ]{6}"
   }
 

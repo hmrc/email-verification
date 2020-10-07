@@ -142,7 +142,8 @@ X-Session-ID: SomeSessionId
 ## POST /request-passcode
 Generates a passcode and sends an email with the passcode to the specified email address.
 The `serviceName` field is inserted at the end of the email in the following sentence:
-`From the [serviceName] service`
+`From the [serviceName] service`. The `lang` field must be either "en" or "cy", as English and Welsh are the only supported
+languages. 
 
 
 **Request body**
@@ -150,7 +151,8 @@ The `serviceName` field is inserted at the end of the email in the following sen
 ```json
 {
     "email": "email@email.com",
-    "serviceName": "some service name"
+    "serviceName": "some service name",
+    "lang": "en"
 }
 ```
 
