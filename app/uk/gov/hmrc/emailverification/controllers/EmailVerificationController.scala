@@ -27,7 +27,7 @@ import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
-import uk.gov.hmrc.emailverification.services.VerificationLinkService
+import uk.gov.hmrc.emailverification.services.{AuditService, VerificationLinkService}
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -42,6 +42,7 @@ class EmailVerificationController @Inject() (
     verifiedEmailRepo:       VerifiedEmailMongoRepository,
     analyticsConnector:      PlatformAnalyticsConnector,
     auditConnector:          AuditConnector,
+    auditService:            AuditService,
     controllerComponents:    ControllerComponents
 )(implicit ec: ExecutionContext, appConfig: AppConfig) extends BaseControllerWithJsonErrorHandling(controllerComponents) with Logging {
 
@@ -114,8 +115,22 @@ class EmailVerificationController @Inject() (
   def verifiedEmail(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[VerifiedEmail] { verifiedEmail =>
       verifiedEmailRepo.find(verifiedEmail.email).map {
-        case Some(email) => Ok(toJson(email))
-        case None        => NotFound
+        case Some(email) => {
+          auditService.sendCheckEmailVerifiedEvent(
+            emailAddress  = verifiedEmail.email,
+            failureReason = None,
+            responseCode  = OK
+          )
+          Ok(toJson(email))
+        }
+        case None => {
+          auditService.sendCheckEmailVerifiedEvent(
+            emailAddress  = verifiedEmail.email,
+            failureReason = Some("email address verification record not found"),
+            responseCode  = NOT_FOUND
+          )
+          NotFound
+        }
       }
     }
   }

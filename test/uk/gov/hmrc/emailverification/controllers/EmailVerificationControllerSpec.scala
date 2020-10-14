@@ -28,7 +28,7 @@ import play.api.test.Helpers.stubControllerComponents
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
-import uk.gov.hmrc.emailverification.services.VerificationLinkService
+import uk.gov.hmrc.emailverification.services.{AuditService, VerificationLinkService}
 import uk.gov.hmrc.gg.test.UnitSpec
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -55,6 +55,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       val captor: ArgumentCaptor[GaEvent] = ArgumentCaptor.forClass(classOf[GaEvent])
       verify(mockAnalyticsConnector).sendEvents(captor.capture())(any, any)
       captor.getValue shouldBe GaEvents.verificationRequested
+
     }
 
     "return 400 if upstream email service returns bad request and should not create mongo entry" in new Setup {
@@ -135,6 +136,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       contentAsJson(response).as[VerifiedEmail] shouldBe VerifiedEmail(email)
       verify(mockVerifiedEmailRepo).find(eqTo(email))
       verifyNoMoreInteractions(mockVerifiedEmailRepo)
+      verify(mockAuditService).sendCheckEmailVerifiedEvent(*, *, eqTo(OK))(*)
     }
 
     "return 404 if email not found" in new Setup {
@@ -143,6 +145,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       status(response) shouldBe 404
       verify(mockVerifiedEmailRepo).find(eqTo(email))
       verifyNoMoreInteractions(mockVerifiedEmailRepo)
+      verify(mockAuditService).sendCheckEmailVerifiedEvent(*, *, eqTo(NOT_FOUND))(*)
     }
   }
 
@@ -156,6 +159,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
     val request = FakeRequest()
     val mockAppConfig = mock[AppConfig]
     val mockAuditConnector = mock[AuditConnector]
+    val mockAuditService = mock[AuditService]
 
     val controller = new EmailVerificationController(
       mockEmailConnector,
@@ -164,6 +168,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       mockVerifiedEmailRepo,
       mockAnalyticsConnector,
       mockAuditConnector,
+      mockAuditService,
       stubControllerComponents()
     )(ExecutionContext.global, mockAppConfig)
     val templateId = "my-template"

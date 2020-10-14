@@ -27,9 +27,7 @@ import uk.gov.hmrc.emailverification.repositories.{PasscodeMongoRepository, Veri
 import uk.gov.hmrc.emailverification.services.AuditService
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.http.logging.SessionId
-import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
@@ -78,7 +76,7 @@ class EmailPasscodeController @Inject() (
     val paramsWithPasscode = appConfig.passcodeEmailTemplateParameters +
       ("passcode" -> passcode, "team_name" -> passcodeRequest.serviceName)
     emailConnector.sendEmail(to         = passcodeRequest.email, templateId = templateId, params = paramsWithPasscode).map { emailResponse =>
-      auditService.sendPinViaEmailEvent(
+      auditService.sendPasscodeViaEmailEvent(
         emailAddress = passcodeRequest.email,
         passcode     = passcode,
         serviceName  = passcodeRequest.serviceName,
@@ -87,7 +85,7 @@ class EmailPasscodeController @Inject() (
       ()
     }.recoverWith {
       case e: UpstreamErrorResponse =>
-        auditService.sendPinViaEmailEvent(
+        auditService.sendPasscodeViaEmailEvent(
           emailAddress = passcodeRequest.email,
           passcode     = passcode,
           serviceName  = passcodeRequest.serviceName,
@@ -101,9 +99,13 @@ class EmailPasscodeController @Inject() (
 
   case object MissingSessionId extends Exception("missing session id")
 
-  case object MaxDifferentEmailsExceeded extends Exception("Maximum permitted number of emails sent to different addresses reached")
+  case class MaxDifferentEmailsExceeded(differentEmailsCount: Long) extends Exception("Maximum permitted number of emails sent to different addresses reached")
 
-  case object MaxEmailsToAddressExceeded extends Exception("Maximum permitted number of emails sent to same address reached")
+  case class MaxEmailsToAddressExceeded(differentEmailsCount: Long, passcodeDoc: PasscodeDoc) extends Exception("Maximum permitted number of emails sent to same address reached")
+
+  case class SendEmailReturnedBadRequest(differentEmailsCount: Long, passcodeDoc: PasscodeDoc, ex: UpstreamErrorResponse) extends Exception("sendEmail failed with BadRequest")
+
+  case class SendEmailReturnedNotFound(differentEmailsCount: Long, passcodeDoc: PasscodeDoc, ex: UpstreamErrorResponse) extends Exception("sendEmail failed with NotFound")
 
   def requestPasscode(): Action[JsValue] = Action.async(parse.json) {
     implicit httpRequest =>
@@ -114,46 +116,53 @@ class EmailPasscodeController @Inject() (
           _ = analyticsConnector.sendEvents(GaEvents.passcodeRequested)
           sessionId <- hc.sessionId.fold[Future[SessionId]](Future.failed(MissingSessionId))(Future.successful)
           sessionEmailCount <- passcodeRepo.getSessionEmailsCount(sessionId)
-          _ <- if (sessionEmailCount < appConfig.maxDifferentEmails) Future.unit else Future.failed(MaxDifferentEmailsExceeded)
+          _ <- if (sessionEmailCount < appConfig.maxDifferentEmails) Future.unit else Future.failed(MaxDifferentEmailsExceeded(sessionEmailCount))
           passcode = newPasscode()
           passcodeDoc <- passcodeRepo.upsertIncrementingEmailAttempts(sessionId, passcode, request.email, appConfig.passcodeExpiryMinutes)
-          _ <- if (passcodeDoc.emailAttempts <= appConfig.maxEmailAttempts) Future.unit else Future.failed(MaxEmailsToAddressExceeded)
-          _ <- sendEmail(request, passcode)
+          _ <- if (passcodeDoc.emailAttempts <= appConfig.maxEmailAttempts) Future.unit else Future.failed(MaxEmailsToAddressExceeded(sessionEmailCount, passcodeDoc))
+          _ <- sendEmail(request, passcode).recoverWith { //transforming the exception here to add in sessionEmailCount, passcodeDoc wanted for audit events
+            case ex @ UpstreamErrorResponse(_, 400, _, _) => {
+              logger.error("email-verification had a problem, sendEmail returned bad request", ex)
+              Future.failed(SendEmailReturnedBadRequest(sessionEmailCount, passcodeDoc, ex))
+            }
+            case ex @ UpstreamErrorResponse(_, _, _, _) => {
+              logger.error("email-verification had a problem, sendEmail returned not found", ex)
+              Future.failed(SendEmailReturnedNotFound(sessionEmailCount, passcodeDoc, ex))
+            }
+          }
         } yield {
           Created
         }).recover {
           case MissingSessionId => {
+            auditService.sendEmailRequestMissingSessionIdEvent(request.email, UNAUTHORIZED)
             val msg = "No session id provided"
             Unauthorized(Json.toJson(ErrorResponse("NO_SESSION_ID", msg)))
           }
           case EmailAlreadyVerified => {
+            auditService.sendEmailAddressAlreadyVerifiedEvent(request.email, request.serviceName, CONFLICT)
             val msg = "Email has already been verified"
             Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY", msg)))
           }
-          case MaxDifferentEmailsExceeded => {
+          case MaxDifferentEmailsExceeded(differentEmailsCount) => {
+            auditService.sendMaxDifferentEmailsExceededEvent(request.email, request.serviceName, differentEmailsCount, FORBIDDEN)
             val msg = s"Max permitted number of different email addresses used per session of ${appConfig.maxDifferentEmails} reached"
             Forbidden(Json.toJson(ErrorResponse("MAX_EMAILS_EXCEEDED", msg)))
           }
-          case MaxEmailsToAddressExceeded => {
+          case MaxEmailsToAddressExceeded(differentEmailsCount, passcodeDoc) => {
+            auditService.sendMaxEmailsExceededEvent(request.email, request.serviceName, differentEmailsCount, passcodeDoc, FORBIDDEN)
             val msg = s"Max permitted number of emails sent to the same address of ${appConfig.maxEmailAttempts} reached"
             Forbidden(Json.toJson(ErrorResponse("MAX_EMAILS_EXCEEDED", msg)))
           }
-          case ex @ UpstreamErrorResponse(_, 400, _, _) =>
-            val event = ExtendedDataEvent(
-              auditSource = "email-verification",
-              auditType   = "AIV-60",
-              tags        = hc.toAuditTags("requestPasscode", httpRequest.path),
-              detail      = Json.obj(
-                "email-address" -> request.email,
-                "email-address-hex" -> request.email.getBytes("UTF-8").map("%02x".format(_)).mkString
-              )
-            )
-            auditConnector.sendExtendedEvent(event)
+          case SendEmailReturnedBadRequest(sessionEmailCount, passcodeDoc, ex) => {
+            auditService.sendPasscodeEmailDeliveryErrorEvent(request.email, request.serviceName, sessionEmailCount, passcodeDoc, BAD_REQUEST)
             logger.error("email-verification had a problem, sendEmail returned bad request", ex)
             BadRequest(Json.toJson(ErrorResponse("BAD_EMAIL_REQUEST", ex.getMessage)))
-          case ex @ UpstreamErrorResponse(_, 404, _, _) =>
+          }
+          case SendEmailReturnedNotFound(sessionEmailCount, passcodeDoc, ex) => {
+            auditService.sendPasscodeEmailDeliveryErrorEvent(request.email, request.serviceName, sessionEmailCount, passcodeDoc, BAD_GATEWAY)
             logger.error("email-verification had a problem, sendEmail returned not found", ex)
             BadGateway(Json.toJson(ErrorResponse("UPSTREAM_ERROR", ex.getMessage)))
+          }
         }
       }
   }
@@ -164,6 +173,12 @@ class EmailPasscodeController @Inject() (
         case Some(id) => {
           passcodeRepo.findPasscodeAndIncrementAttempts(id, passcodeVerificationRequest.email).flatMap {
             case Some(doc) if doc.passcodeAttempts > appConfig.maxPasscodeAttempts =>
+              auditService.sendMaxPasscodeAttemptsExceededEvent(
+                emailAddress = passcodeVerificationRequest.email,
+                passcode     = passcodeVerificationRequest.passcode,
+                passcodeDoc  = doc,
+                responseCode = FORBIDDEN
+              )
               val msg = s"Max permitted passcode verification attempts per session of ${appConfig.maxPasscodeAttempts} reached"
               Future.successful(Forbidden(Json.toJson(ErrorResponse("MAX_PASSCODE_ATTEMPTS_EXCEEDED", msg))))
 
@@ -171,29 +186,29 @@ class EmailPasscodeController @Inject() (
               analyticsConnector.sendEvents(GaEvents.passcodeSuccess)
               verifiedEmailRepo.find(doc.email) flatMap {
                 case None =>
-                  auditService.sendCheckEmailVerifiedEventSuccess(
-                    emailAddress = doc.email,
+                  auditService.sendEmailAddressConfirmedEvent(
+                    emailAddress = passcodeVerificationRequest.email,
                     passcode     = passcodeVerificationRequest.passcode,
-                    responseCode = 201
-                  )
+                    passcodeDoc  = doc,
+                    responseCode = CREATED)
                   verifiedEmailRepo.insert(doc.email) map (_ => Created)
                 case _ =>
-                  auditService.sendCheckEmailVerifiedEventSuccess(
-                    emailAddress = doc.email,
+                  auditService.sendEmailAddressConfirmedEvent(
+                    emailAddress = passcodeVerificationRequest.email,
                     passcode     = passcodeVerificationRequest.passcode,
-                    responseCode = 204
-                  )
+                    passcodeDoc  = doc,
+                    responseCode = NO_CONTENT)
                   Future.successful(NoContent)
               }
 
-            case Some(_) =>
+            case Some(doc) =>
               analyticsConnector.sendEvents(GaEvents.passcodeFailed)
-              auditService.sendCheckEmailVerifiedEventFailed(
-                verifyFailureReason = "Passcode mismatch",
-                passcode            = passcodeVerificationRequest.passcode,
-                responseCode        = 404
+              auditService.sendPasscodeMatchNotFoundOrExpiredEvent(
+                emailAddress = passcodeVerificationRequest.email,
+                passcode     = passcodeVerificationRequest.passcode,
+                passcodeDoc  = doc,
+                responseCode = NOT_FOUND
               )
-
               Future.successful(NotFound(Json.obj(
                 "code" -> "PASSCODE_MISMATCH",
                 "message" -> "Passcode mismatch"
@@ -202,20 +217,20 @@ class EmailPasscodeController @Inject() (
             case _ =>
               analyticsConnector.sendEvents(GaEvents.passcodeFailed)
               val message = "Passcode not found"
-              auditService.sendCheckEmailVerifiedEventFailed(
-                verifyFailureReason = message,
-                passcode            = passcodeVerificationRequest.passcode,
-                responseCode        = 404
+              auditService.sendEmailAddressNotFoundOrExpiredEvent(
+                emailAddress = passcodeVerificationRequest.email,
+                passcode     = passcodeVerificationRequest.passcode,
+                responseCode = NOT_FOUND
               )
               Future.successful(NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND", message))))
           }
         }
         case None =>
           val message = "No session id provided"
-          auditService.sendCheckEmailVerifiedEventFailed(
-            verifyFailureReason = message,
-            passcode            = passcodeVerificationRequest.passcode,
-            responseCode        = 401
+          auditService.sendVerificationRequestMissingSessionIdEvent(
+            emailAddress = passcodeVerificationRequest.email,
+            passcode     = passcodeVerificationRequest.passcode,
+            responseCode = UNAUTHORIZED
           )
           Future.successful(Unauthorized(Json.toJson(ErrorResponse("NO_SESSION_ID", message))))
       }
