@@ -49,9 +49,7 @@ class AuditService @Inject() (
       "emailVerified" -> failureReason.fold("true")(_ => "false"),
       "responseCode" -> responseCode.toString,
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
-    ) ++ failureReason.fold[Map[String, String]](Map()) { reason =>
-        Map("verifyFailureReason" -> reason)
-      }
+    ) ++ failureReason.map("verifyFailureReason" -> _).toMap
 
     sendEvent("CheckEmailVerified", details, "HMRC Gateway - Email Verification - Check Email is verified")
   }
