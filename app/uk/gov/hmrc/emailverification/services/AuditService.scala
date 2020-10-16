@@ -17,6 +17,7 @@
 package uk.gov.hmrc.emailverification.services
 
 import javax.inject.Inject
+import play.api.{Logging}
 import play.api.mvc.Request
 import uk.gov.hmrc.emailverification.models.PasscodeDoc
 import uk.gov.hmrc.http.logging.Authorization
@@ -29,7 +30,11 @@ import scala.concurrent.ExecutionContext
 
 class AuditService @Inject() (
     auditConnector: AuditConnector
-)(implicit ec: ExecutionContext) extends BackendHeaderCarrierProvider {
+)(implicit ec: ExecutionContext) extends BackendHeaderCarrierProvider with Logging {
+
+  def requestContextForLog(implicit request: Request[_]) = {
+    s"(bearerToken:${hc.authorization.getOrElse(Authorization("-")).value}, trueClientIp:${hc.trueClientIp.getOrElse("-")})"
+  }
 
   def sendPasscodeViaEmailEvent(emailAddress: String, passcode: String, serviceName: String, responseCode: Int)(implicit request: Request[_]) = {
     val details = Map(
@@ -151,6 +156,7 @@ class AuditService @Inject() (
       "callingService" -> "-",
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
+    logger.info(s"[GG-5074] Email address confirmed $requestContextForLog}")
     sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - verifies the passcode matches with the stored passcode and HMRC email address")
   }
 
@@ -167,6 +173,7 @@ class AuditService @Inject() (
       "callingService" -> "-",
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
+    logger.info(s"[GG-5074] Email address not found or verification attempt time expired $requestContextForLog}")
     sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - verifies the passcode matches with the stored passcode and HMRC email address")
   }
 
@@ -183,6 +190,7 @@ class AuditService @Inject() (
       "callingService" -> "-",
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
+    logger.info(s"[GG-5074] Email verification passcode match not found or time expired $requestContextForLog}")
     sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - verifies the passcode matches with the stored passcode and HMRC email address")
   }
 
@@ -199,6 +207,7 @@ class AuditService @Inject() (
       "callingService" -> "-",
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
+    logger.info(s"[GG-5074] SessionId missing $requestContextForLog}")
     sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - verifies the passcode matches with the stored passcode and HMRC email address")
   }
 
@@ -215,6 +224,7 @@ class AuditService @Inject() (
       "callingService" -> "-",
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
+    logger.info(s"[GG-5074] Max permitted passcode verification attempts per session has been exceeded $requestContextForLog}")
     sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - verifies the passcode matches with the stored passcode and HMRC email address")
   }
 
