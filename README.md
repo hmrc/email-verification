@@ -173,14 +173,14 @@ languages.
 | 502       | Upstream error                    | UPSTREAM_ERROR                   |
 
 ## POST /verify-passcode
-Verifies a passcode matches that stored against the session id (that was sent to the email address)
+Verifies a passcode matches that stored against the email address and session id (that was sent to the email address)
 
 
 **Request body**
 
 ```json
 {
-    "passcode": "ABCDEF",
+    "passcode": "GHJKYF",
     "email": "email@example.com"
 }
 ```

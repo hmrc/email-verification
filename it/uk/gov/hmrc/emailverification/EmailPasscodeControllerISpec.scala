@@ -70,7 +70,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       Thread.sleep(200)
 
       verifyEmailSentWithPasscode(emailToVerify)
-      verifySendEmailWithPinFired(ACCEPTED)
+      verifySendEmailWithPasscodeFired(ACCEPTED)
     }
 
     "send a passcode email with the welsh template when the lang is cy" in new Setup {
@@ -89,7 +89,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       Thread.sleep(200)
 
       verifyEmailSentWithPasscode(emailToVerify, templateId = "email_verification_passcode_welsh")
-      verifySendEmailWithPinFired(ACCEPTED)
+      verifySendEmailWithPasscodeFired(ACCEPTED)
     }
 
     "block user on 6th passcode request to the same email address" in new Setup {
@@ -166,7 +166,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       validationResponse1.status shouldBe 404
       validationResponse2.status shouldBe 201
 
-      verifySendEmailWithPinFired(ACCEPTED)
+      verifySendEmailWithPasscodeFired(ACCEPTED)
     }
 
     "verifying an unknown passcode should return a 400 error" in new Setup {
@@ -177,7 +177,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       response.status shouldBe 404
       (Json.parse(response.body) \ "code").as[String] shouldBe "PASSCODE_NOT_FOUND"
 
-      verifyCheckEmailVerifiedFired(emailVerified = false)
+      verifyEmailAddressNotFoundOrExpiredEventFired(1)
     }
 
     "return 404 Not Found and a PASSCODE_MISMATCH status if the passcode is incorrect" in new Setup {
@@ -193,6 +193,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .post(Json.obj("passcode" -> "DefinitelyWrong", "email" -> emailToVerify)))
       response.status shouldBe NOT_FOUND
       response.json shouldBe Json.obj("code" -> "PASSCODE_MISMATCH", "message" -> "Passcode mismatch")
+
+      verifyPasscodeMatchNotFoundOrExpiredEventFired(1)
     }
 
     "verifying a passcode with no sessionId should return a 401 unauthorized error" in new Setup {
@@ -202,7 +204,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       response.status shouldBe 401
       (Json.parse(response.body) \ "code").as[String] shouldBe "NO_SESSION_ID"
 
-      verifyCheckEmailVerifiedFired(emailVerified = false)
+      verifyVerificationRequestMissingSessionIdEventFired(1)
     }
 
     "fail with Forbidden on exceeding max permitted passcode verification attempts (default is 5)" in new Setup {
@@ -242,7 +244,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       (Json.parse(response6.body) \ "code").as[String] shouldBe "MAX_PASSCODE_ATTEMPTS_EXCEEDED"
 
       And("email is not verified event fired 5 times only as 6th was blocked")
-      verifyCheckEmailVerifiedFired(emailVerified = false, 5)
+      verifyPasscodeMatchNotFoundOrExpiredEventFired(5)
+      verifyMaxPasscodeAttemptsExceededEventFired(1)
     }
 
     "uppercase passcode verification is valid" in new Setup {
@@ -261,7 +264,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeVerificationRequest(emailToVerify, uppercasePasscode))).status shouldBe 201
 
-      verifyCheckEmailVerifiedFired(emailVerified = true)
+      verifyEmailAddressConfirmedEventFired(1)
     }
 
     "lowercase passcode verification is valid" in new Setup {
@@ -280,7 +283,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeVerificationRequest(emailToVerify, lowercasePasscode))).status shouldBe 201
 
-      verifyCheckEmailVerifiedFired(emailVerified = true)
+      verifyEmailAddressConfirmedEventFired(1)
     }
 
     "second passcode verification request with same session and passcode should return 204 instead of 201 response" in new Setup {
@@ -303,7 +306,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeVerificationRequest(emailToVerify, passcode))).status shouldBe 204
 
-      verifyCheckEmailVerifiedFired(emailVerified = true, 2)
+      verifyEmailAddressConfirmedEventFired(2)
     }
 
     "passcode verification for two different emails on same session should be successful" in new Setup {
@@ -334,7 +337,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeVerificationRequest(email2, passcode2))).status shouldBe 201
 
-      verifyCheckEmailVerifiedFired(emailVerified = true, 2)
+      verifyEmailAddressConfirmedEventFired(2)
     }
 
     "return 502 error if email sending fails" in new Setup {
@@ -346,7 +349,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       response.status shouldBe 502
       response.body should include(body)
 
-      verifySendEmailWithPinFired(500)
+      verifySendEmailWithPasscodeFired(500)
+      verifyPasscodeEmailDeliveryErrorEventFired(1)
     }
 
     "return BAD_EMAIL_REQUEST error if email sending fails with 400" in new Setup {
@@ -360,7 +364,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
       (Json.parse(response.body) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
 
-      verifySendEmailWithPinFired(400)
+      verifySendEmailWithPasscodeFired(400)
+      verifyPasscodeEmailDeliveryErrorEventFired(1)
     }
 
     "return 500 error if email sending fails with 4xx" in new Setup {
@@ -372,7 +377,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       response.status shouldBe 502
       response.body should include(body)
 
-      verifySendEmailWithPinFired(404)
+      verifySendEmailWithPasscodeFired(404)
+      verifyPasscodeEmailDeliveryErrorEventFired(1)
     }
 
     "return 401 error if no sessionID is provided" in new Setup {
@@ -383,6 +389,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       response.status shouldBe 401
       Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("NO_SESSION_ID"))
       Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No session id provided"))
+      verifyEmailRequestMissingSessionIdEventFired(1)
     }
 
     "return 409 if email is already verified" in new Setup {
@@ -393,11 +400,11 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .post(passcodeRequest(emailToVerify)))
       response.status shouldBe 409
 
-      Json.parse(
-        """{
-          |"code":"EMAIL_VERIFIED_ALREADY",
-          |"message":"Email has already been verified"
-          |}""".stripMargin).toString()
+      val json = Json.parse(response.body)
+      (json \ "code").as[String] shouldBe "EMAIL_VERIFIED_ALREADY"
+      (json \ "message").as[String] shouldBe "Email has already been verified"
+
+      verifyEmailAddressAlreadyVerifiedEventFired(1)
     }
   }
 
@@ -427,10 +434,10 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
     def generateUUID = UUID.randomUUID().toString
 
-    def verifySendEmailWithPinFired(responseCode: Int): Unit = {
+    def verifySendEmailWithPasscodeFired(responseCode: Int): Unit = {
       Thread.sleep(100)
       verify(postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"SendEmailWithPin""""))
+        .withRequestBody(containing(""""auditType":"SendEmailWithPasscode""""))
         .withRequestBody(containing(s""""responseCode":"$responseCode""""))
       )
     }
@@ -440,6 +447,86 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       verify(times, postRequestedFor(urlEqualTo("/write/audit"))
         .withRequestBody(containing(""""auditType":"CheckEmailVerified""""))
         .withRequestBody(containing(s""""emailVerified":"$emailVerified""""))
+      )
+    }
+
+    def verifyEmailAddressAlreadyVerifiedEventFired(times: Int = 1): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+        .withRequestBody(containing(s""""outcome":"Email address already confirmed""""))
+      )
+    }
+
+    def verifyMaxEmailsExceededEventFired(times: Int = 1): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+        .withRequestBody(containing(s""""outcome":"Max permitted passcode emails per session has been exceeded""""))
+      )
+    }
+
+    def verifyMaxDifferentEmailsExceededEventFired(times: Int = 1): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+        .withRequestBody(containing(s""""outcome":"Max permitted passcode emails per session has been exceeded""""))
+      )
+    }
+
+    def verifyPasscodeEmailDeliveryErrorEventFired(times: Int = 1): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+        .withRequestBody(containing(s""""outcome":"sendEmail request failed""""))
+      )
+    }
+
+    def verifyEmailAddressConfirmedEventFired(times: Int = 1): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+        .withRequestBody(containing(s""""outcome":"Email address confirmed""""))
+      )
+    }
+
+    def verifyEmailAddressNotFoundOrExpiredEventFired(times: Int = 1): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+        .withRequestBody(containing(s""""outcome":"Email address not found or verification attempt time expired""""))
+      )
+    }
+
+    def verifyPasscodeMatchNotFoundOrExpiredEventFired(times: Int = 1): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+        .withRequestBody(containing(s""""outcome":"Email verification passcode match not found or time expired""""))
+      )
+    }
+
+    def verifyVerificationRequestMissingSessionIdEventFired(times: Int = 1): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+        .withRequestBody(containing(s""""outcome":"SessionId missing""""))
+      )
+    }
+
+    def verifyEmailRequestMissingSessionIdEventFired(times: Int = 1): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+        .withRequestBody(containing(s""""outcome":"SessionId missing""""))
+      )
+    }
+
+    def verifyMaxPasscodeAttemptsExceededEventFired(times: Int = 1): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+        .withRequestBody(containing(s""""outcome":"Max permitted passcode verification attempts per session has been exceeded""""))
       )
     }
 
