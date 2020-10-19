@@ -71,6 +71,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
       verifyEmailSentWithPasscode(emailToVerify)
       verifySendEmailWithPasscodeFired(ACCEPTED)
+      verifyEmailPasscodeRequestSuccessfulEvent(1)
     }
 
     "send a passcode email with the welsh template when the lang is cy" in new Setup {
@@ -90,6 +91,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
       verifyEmailSentWithPasscode(emailToVerify, templateId = "email_verification_passcode_welsh")
       verifySendEmailWithPasscodeFired(ACCEPTED)
+      verifyEmailPasscodeRequestSuccessfulEvent(1)
     }
 
     "block user on 6th passcode request to the same email address" in new Setup {
@@ -167,6 +169,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       validationResponse2.status shouldBe 201
 
       verifySendEmailWithPasscodeFired(ACCEPTED)
+      verifyEmailPasscodeRequestSuccessfulEvent(2)
     }
 
     "verifying an unknown passcode should return a 400 error" in new Setup {
@@ -187,6 +190,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeRequest(emailToVerify)))
       requestedPasscode.status shouldBe CREATED
+      verifyEmailPasscodeRequestSuccessfulEvent(1)
 
       val response = await(wsClient.url(appClient("/verify-passcode"))
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
@@ -216,6 +220,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeRequest(emailToVerify)))
       response1.status shouldBe 201
+      verifyEmailPasscodeRequestSuccessfulEvent(1)
 
       And("submits an unknown passcode for verification 5 times")
 
@@ -257,6 +262,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeRequest(emailToVerify)))
       response1.status shouldBe 201
+      verifyEmailPasscodeRequestSuccessfulEvent(1)
       val uppercasePasscode = lastPasscodeEmailed.toUpperCase
 
       Then("submitting verification request with passcode in lowercase should be successful")
@@ -276,6 +282,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeRequest(emailToVerify)))
       response1.status shouldBe 201
+      verifyEmailPasscodeRequestSuccessfulEvent(1)
       val lowercasePasscode = lastPasscodeEmailed.toLowerCase
 
       Then("submitting verification request with passcode in lowercase should be successful")
@@ -295,6 +302,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
         .post(passcodeRequest(emailToVerify)))
       response1.status shouldBe 201
+      verifyEmailPasscodeRequestSuccessfulEvent(1)
       val passcode = lastPasscodeEmailed
 
       Then("the request to verify with passcode should be successful")
@@ -327,6 +335,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
         .post(passcodeRequest(email2)))
       response2.status shouldBe 201
       val passcode2 = lastPasscodeEmailed
+
+      verifyEmailPasscodeRequestSuccessfulEvent(2)
 
       Then("both passcodes can be verified")
       await(wsClient.url(appClient("/verify-passcode"))
@@ -447,6 +457,14 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       verify(times, postRequestedFor(urlEqualTo("/write/audit"))
         .withRequestBody(containing(""""auditType":"CheckEmailVerified""""))
         .withRequestBody(containing(s""""emailVerified":"$emailVerified""""))
+      )
+    }
+
+    def verifyEmailPasscodeRequestSuccessfulEvent(times: Int = 1): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+        .withRequestBody(containing(s""""outcome":"Successfully sent a passcode to the email address requiring verification""""))
       )
     }
 
