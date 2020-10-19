@@ -127,6 +127,23 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
     }
   }
 
+  "sendEmailPasscodeRequestSuccessfulEvent" should {
+    "fire audit event with appropriate fields" in new Setup {
+      auditService.sendEmailPasscodeRequestSuccessfulEvent(emailAddress, passcode, serviceName, differentEmailAttempts, passcodeDoc, CREATED)(request)
+      confirmPasscodeVerificationRequestEvent(Map(
+        "emailAddress" -> emailAddress,
+        "passcode" -> passcode,
+        "passcodeAttempts" -> passcodeAttempts.toString,
+        "sameEmailAttempts" -> emailAttempts.toString,
+        "differentEmailAttempts" -> differentEmailAttempts.toString,
+        "success" -> "true",
+        "responseCode" -> CREATED.toString,
+        "outcome" -> "Successfully sent a passcode to the email address requiring verification",
+        "callingService" -> serviceName
+      ))
+    }
+  }
+
   "sendEmailRequestMissingSessionIdEvent" should {
     "fire audit event with appropriate fields" in new Setup {
       auditService.sendEmailRequestMissingSessionIdEvent(emailAddress, UNAUTHORIZED)(request)

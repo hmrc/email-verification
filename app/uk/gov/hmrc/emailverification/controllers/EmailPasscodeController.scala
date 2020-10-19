@@ -131,6 +131,7 @@ class EmailPasscodeController @Inject() (
             }
           }
         } yield {
+          auditService.sendEmailPasscodeRequestSuccessfulEvent(request.email, passcode, request.serviceName, sessionEmailCount, passcodeDoc, CREATED)
           Created
         }).recover {
           case MissingSessionId => {
