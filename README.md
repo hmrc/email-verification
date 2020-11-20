@@ -135,7 +135,12 @@ X-Session-ID: SomeSessionId
 
 ```json
 {
-  "passcode": "ATERRT"
+  "passcodes": [
+    {
+      "email": "test@example.com",
+      "passcode": "ATERRT"
+    }   
+  ]
 }
 ```
 
