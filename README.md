@@ -22,6 +22,7 @@ Preconditions:
 | /verified-email-check            | POST              | Check if email address is verified                                                       |
 | /request-passcode                | POST              | *1 Generates a passcode and sends an email with the passcode to the specified email address |
 | /verify-passcode                 | POST              | *2 Verifies a passcode matches that stored against the email address                     |
+| /verify-email                 | POST              | Initiates the email-verification journey and returns frontend start URL                    |
     
 *represents sequence
 
@@ -30,6 +31,45 @@ Preconditions:
 | Path                             | Supported Methods | Description                                               |
 |----------------------------------|-------------------|-----------------------------------------------------------|
 | /test-only/passcode              | GET              | Retrieves the generated passcode that is stored in mongo   | 
+
+## POST /verify-email
+
+Initiates the email-verification journey. Sends passcode to email address if provided, then returns url to start frontend journey. 
+If an email address is not provided then the user will be required to provide one on the frontend. 
+
+**Request body**
+
+```json
+{
+   "credId":"98fe3788-2d39-409c-b400-8f86ed1634ea",
+   "continueUrl":"/plastic-packaging-tax/start",
+   "origin":"ppt",
+   "deskproServiceName":"plastic-packaging-tax",  // Optional, if absent then 'origin' will be used
+   "accessibilityStatementUrl":"/accessibility",
+   "email":{
+      "address":"johnsmith@hotmail.com",
+      "enterUrl":"/start"
+   }, // Optional, if absent then SI UI will prompt the User for the email address
+   "lang":"en" //en or cy
+}
+```
+
+
+### Success Response
+
+| Status    |  Description                      |
+|-----------|-----------------------------------|
+| 201       | Journey successfully created |
+
+### Failure Responses
+
+| Status    |  Description                                   |  Note                    |
+|-----------|------------------------------------------------|--------------------------|
+| 400       | Invalid request                                |                          |
+| 401       | Locked out or journey doesnt match session                |                          |
+| 500       | Unexpected error                               |                          |
+| 502       | Email failed to send                         |                          |
+
 
 ## POST /verification-requests
 

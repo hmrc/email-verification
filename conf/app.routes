@@ -5,3 +5,4 @@ POST        /verified-email-addresses               uk.gov.hmrc.emailverificatio
 POST        /verified-email-check                   uk.gov.hmrc.emailverification.controllers.EmailVerificationController.verifiedEmail
 POST        /request-passcode                       uk.gov.hmrc.emailverification.controllers.EmailPasscodeController.requestPasscode
 POST        /verify-passcode                        uk.gov.hmrc.emailverification.controllers.EmailPasscodeController.verifyPasscode
+POST        /verify-email                           uk.gov.hmrc.emailverification.controllers.JourneyController.verifyEmail
