@@ -30,9 +30,9 @@ class EmailConnector @Inject() (
     httpClient:     HttpClient,
     servicesConfig: ServicesConfig
 ) {
-  lazy val servicePath: String = appConfig.emailServicePath
+  private lazy val servicePath: String = appConfig.emailServicePath
 
-  lazy val baseServiceUrl: String = servicesConfig.baseUrl("email")
+  private lazy val baseServiceUrl: String = servicesConfig.baseUrl("email")
 
   def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     httpClient.POST[SendEmailRequest, Either[UpstreamErrorResponse, HttpResponse]](s"$baseServiceUrl$servicePath/hmrc/email", SendEmailRequest(Seq(to), templateId, params))
