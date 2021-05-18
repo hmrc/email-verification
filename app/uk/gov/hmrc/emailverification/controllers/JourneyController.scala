@@ -18,8 +18,8 @@ package uk.gov.hmrc.emailverification.controllers
 
 import javax.inject.Inject
 import play.api.libs.json.Json
-import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.emailverification.models.{VerifyEmailRequest, VerifyEmailResponse}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.emailverification.models.{VerificationStatusResponse, VerifyEmailRequest, VerifyEmailResponse}
 import uk.gov.hmrc.emailverification.services.JourneyService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -32,11 +32,17 @@ class JourneyController @Inject() (
   extends BackendController(controllerComponents) {
 
   def verifyEmail(): Action[VerifyEmailRequest] = Action.async(parse.json[VerifyEmailRequest]) { implicit request =>
-
-    journeyService.initialise(request.body).map{ redirectUrl =>
+    journeyService.initialise(request.body).map { redirectUrl =>
       Created(Json.toJson(VerifyEmailResponse(redirectUrl)))
     }
+  }
 
+  def completedEmails(credId: String): Action[AnyContent] = Action.async(parse.anyContent) { _ =>
+    journeyService.findCompletedEmails(credId).map {
+      case Nil    => NotFound(Json.obj("error" -> s"no verified or locked emails found for cred ID: $credId"))
+      case emails => Ok(Json.toJson(VerificationStatusResponse(emails)))
+
+    }
   }
 
 }

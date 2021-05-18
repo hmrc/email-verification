@@ -23,6 +23,7 @@ Preconditions:
 | /request-passcode                | POST              | *1 Generates a passcode and sends an email with the passcode to the specified email address |
 | /verify-passcode                 | POST              | *2 Verifies a passcode matches that stored against the email address                     |
 | /verify-email                 | POST              | Initiates the email-verification journey and returns frontend start URL                    |
+| /verification-status/:credId                 | GET              | Retrieves all the locked or verified emails against a cred ID                   |
     
 *represents sequence
 
@@ -37,7 +38,7 @@ Preconditions:
 Initiates the email-verification journey. Sends passcode to email address if provided, then returns url to start frontend journey. 
 If an email address is not provided then the user will be required to provide one on the frontend. 
 
-**Request body**
+**Example Request**
 
 ```json
 {
@@ -54,6 +55,13 @@ If an email address is not provided then the user will be required to provide on
 }
 ```
 
+**Example Response**
+
+```json
+{
+   "redirectUri" : "/email-verification/journey/98fe3788-2d39-409c-b400-8f86ed1634ea?continueUrl=/ppt&origin=ppt"
+}
+```
 
 ### Success Response
 
@@ -63,12 +71,55 @@ If an email address is not provided then the user will be required to provide on
 
 ### Failure Responses
 
-| Status    |  Description                                   |  Note                    |
-|-----------|------------------------------------------------|--------------------------|
-| 400       | Invalid request                                |                          |
-| 401       | Locked out or journey doesnt match session                |                          |
-| 500       | Unexpected error                               |                          |
-| 502       | Email failed to send                         |                          |
+| Status    |  Description                                   |
+|-----------|------------------------------------------------|
+| 400       | Invalid request                                |
+| 401       | Locked out or journey doesnt match session      
+| 500       | Unexpected error                               |
+| 502       | Email failed to send                         |  
+
+## GET /verification-status/:credId
+Retrieves all the locked or verified emails against a cred ID.
+
+**Example Request**
+
+```
+GET /email-verification/verification-status/98fe3788-2d39-409c-b400-8f86ed1634ea
+```
+
+
+**Example Response**
+
+```json
+{
+   "emails":[
+      {
+         "emailAddress":"paulsmith@hotmail.com",
+         "verified":true,
+         "locked":false
+      },
+      {
+         "emailAddress": "richarddennehy@live.com",
+         "verified":false,
+         "locked":true
+      }
+   ]
+}
+```
+
+### Success Response
+
+| Status    |  Description                      |
+|-----------|-----------------------------------|
+| 200       | Retrieved one or more records |
+
+### Failure Responses
+
+| Status    |  Description                                   |
+|-----------|------------------------------------------------|
+| 400       | Invalid request                                |
+| 404       | No records found                |               
+| 500       | Unexpected error                               |
 
 
 ## POST /verification-requests
