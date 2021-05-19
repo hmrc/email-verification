@@ -19,16 +19,17 @@ package uk.gov.hmrc.emailverification.services
 import java.util.UUID
 
 import javax.inject.Inject
-import uk.gov.hmrc.emailverification.models.{Journey, VerifyEmailRequest}
-import uk.gov.hmrc.emailverification.repositories.JourneyRepository
+import uk.gov.hmrc.emailverification.models.{CompletedEmail, Journey, VerificationStatus, VerifyEmailRequest}
+import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, VerificationStatusRepository}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class JourneyService @Inject() (
-    emailService:      EmailService,
-    passcodeGenerator: PasscodeGenerator,
-    journeyRepository: JourneyRepository
+    emailService:                 EmailService,
+    passcodeGenerator:            PasscodeGenerator,
+    journeyRepository:            JourneyRepository,
+    verificationStatusRepository: VerificationStatusRepository
 ) {
 
   //return the url on email-verification-frontend for the next step/
@@ -50,6 +51,7 @@ class JourneyService @Inject() (
 
     for {
       _ <- journeyRepository.initialise(journey)
+      _ <- verificationStatusRepository.initialise(journey.credId, journey.email.map(_.address))
       _ <- verifyEmailRequest.email.fold(Future.unit){ email =>
         emailService.sendPasscodeEmail(
           email.address,
@@ -58,10 +60,21 @@ class JourneyService @Inject() (
           verifyEmailRequest.lang
         )
       }
-    } yield s"/email-verification-frontend/journey/$journeyId?" +
+    } yield s"/email-verification/journey/$journeyId?" +
       s"continueUrl=${verifyEmailRequest.continueUrl}" +
       s"&origin=${verifyEmailRequest.origin}"
 
+  }
+
+  //returns email addresses that are verified or locked
+  def findCompletedEmails(credId: String)(implicit ec: ExecutionContext): Future[List[CompletedEmail]] = {
+    verificationStatusRepository.retrieve(credId)
+      .map(
+        _.collect {
+          case VerificationStatus(Some(email), verified, locked) if verified | locked =>
+            CompletedEmail(email, verified, locked)
+        }
+      )
   }
 
 }
