@@ -18,12 +18,12 @@ Preconditions:
 
 | Path                             | Supported Methods | Description                                                                              |
 |----------------------------------|-------------------|------------------------------------------------------------------------------------------|
-| /verification-requests           | POST              | Create a new verification request                                                        |
-| /verified-email-check            | POST              | Check if email address is verified                                                       |
-| /request-passcode                | POST              | *1 Generates a passcode and sends an email with the passcode to the specified email address |
-| /verify-passcode                 | POST              | *2 Verifies a passcode matches that stored against the email address                     |
-| /verify-email                 | POST              | Initiates the email-verification journey and returns frontend start URL                    |
-| /verification-status/:credId                 | GET              | Retrieves all the locked or verified emails against a cred ID                   |
+| [/verification-requests](#post-verification-requests)           | POST              | Create a new verification request                                                        |
+| [/verified-email-check](#post-verified-email-check)            | POST              | Check if email address is verified                                                       |
+| [/request-passcode](#post-request-passcode)                | POST              | *1 Generates a passcode and sends an email with the passcode to the specified email address |
+| [/verify-passcode](#post-verify-passcode)                 | POST              | *2 Verifies a passcode matches that stored against the email address                     |
+| [/verify-email](#post-verify-email)                 | POST              | Initiates the email-verification journey and returns frontend start URL                    |
+| [/verification-status/:credId](#get-verification-statuscredid)                 | GET              | Retrieves all the locked or verified emails against a cred ID                   |
     
 *represents sequence
 
@@ -31,7 +31,7 @@ Preconditions:
 
 | Path                             | Supported Methods | Description                                               |
 |----------------------------------|-------------------|-----------------------------------------------------------|
-| /test-only/passcode              | GET              | Retrieves the generated passcode that is stored in mongo   | 
+| [/test-only/passcode](#get-test-onlypasscode)              | GET              | Retrieves the generated passcode that is stored in mongo   | 
 
 ## POST /verify-email
 
