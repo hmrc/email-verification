@@ -22,6 +22,12 @@ case class Journey(
     continueUrl:               String,
     origin:                    String,
     accessibilityStatementUrl: String,
-    email:                     Option[Email],
-    passcode:                  String
+    serviceName:               String,
+    language:                  Language,
+    emailAddress:              Option[String],
+    emailEnterUrl:             Option[String],
+    passcode:                  String,
+    emailAddressAttempts:      Int,
+    passcodesSentToEmail:      Int,
+    passcodeAttempts:          Int
 )

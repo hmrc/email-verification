@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import java.util.UUID
+import config.AppConfig
 
+import java.util.UUID
 import javax.inject.Inject
 import uk.gov.hmrc.emailverification.models.{CompletedEmail, Journey, VerificationStatus, VerifyEmailRequest}
 import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, VerificationStatusRepository}
@@ -29,13 +30,14 @@ class JourneyService @Inject() (
     emailService:                 EmailService,
     passcodeGenerator:            PasscodeGenerator,
     journeyRepository:            JourneyRepository,
-    verificationStatusRepository: VerificationStatusRepository
-) {
+    verificationStatusRepository: VerificationStatusRepository,
+    config:                       AppConfig
+)(implicit ec: ExecutionContext) {
 
   //return the url on email-verification-frontend for the next step/
   //Only sends email if we have an email address to send to, otherwise will send when user comes back from frontend with
   //an email address
-  def initialise(verifyEmailRequest: VerifyEmailRequest)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[String] = {
+  def initialise(verifyEmailRequest: VerifyEmailRequest)(implicit hc: HeaderCarrier): Future[String] = {
     val passcode = passcodeGenerator.generate()
     val journeyId = UUID.randomUUID().toString
 
@@ -45,36 +47,122 @@ class JourneyService @Inject() (
       continueUrl               = verifyEmailRequest.continueUrl,
       origin                    = verifyEmailRequest.origin,
       accessibilityStatementUrl = verifyEmailRequest.accessibilityStatementUrl,
-      email                     = verifyEmailRequest.email,
+      serviceName               = verifyEmailRequest.deskproServiceName.getOrElse(verifyEmailRequest.origin),
+      language                  = verifyEmailRequest.lang,
+      emailAddress              = verifyEmailRequest.email.map(_.address),
+      emailEnterUrl             = verifyEmailRequest.email.map(_.enterUrl),
       passcode                  = passcode,
+      emailAddressAttempts      = verifyEmailRequest.email.map(_.address).size,
+      passcodesSentToEmail      = verifyEmailRequest.email.map(_.address).size,
+      passcodeAttempts          = 0
     )
 
     for {
       _ <- journeyRepository.initialise(journey)
-      _ <- verificationStatusRepository.initialise(journey.credId, journey.email.map(_.address))
-      _ <- verifyEmailRequest.email.fold(Future.unit){ email =>
-        emailService.sendPasscodeEmail(
-          email.address,
-          passcode,
-          verifyEmailRequest.deskproServiceName.getOrElse(verifyEmailRequest.origin),
-          verifyEmailRequest.lang
-        )
-      }
-    } yield s"/email-verification/journey/$journeyId?" +
-      s"continueUrl=${verifyEmailRequest.continueUrl}" +
-      s"&origin=${verifyEmailRequest.origin}"
+      _ <- journey.emailAddress.fold(Future.unit)(saveEmailAndSendPasscode(_, journey))
+    } yield if (verifyEmailRequest.email.isEmpty) {
+      s"/email-verification/journey/$journeyId/email?" +
+        s"continueUrl=${verifyEmailRequest.continueUrl}" +
+        s"&origin=${verifyEmailRequest.origin}"
+    } else {
+      s"/email-verification/journey/$journeyId/passcode?" +
+        s"continueUrl=${verifyEmailRequest.continueUrl}" +
+        s"&origin=${verifyEmailRequest.origin}"
+    }
+  }
 
+  private def saveEmailAndSendPasscode(email: String, journey: Journey)(implicit hc: HeaderCarrier): Future[Unit] = {
+    verificationStatusRepository.initialise(journey.credId, email).flatMap { _ =>
+      emailService.sendPasscodeEmail(email, journey.passcode, journey.serviceName, journey.language)
+    }
+  }
+
+  def getJourney(journeyId: String): Future[Option[Journey]] = {
+    journeyRepository.get(journeyId)
+  }
+
+  def submitEmail(journeyId: String, email: String)(implicit hc: HeaderCarrier): Future[EmailUpdateResult] = {
+    journeyRepository.submitEmail(journeyId, email).flatMap {
+      case Some(journey) if journey.emailAddressAttempts >= config.maxDifferentEmails =>
+        Future.successful(EmailUpdateResult.TooManyAttempts(journey.continueUrl))
+      case Some(journey) =>
+        saveEmailAndSendPasscode(email, journey).map(_ => EmailUpdateResult.Accepted)
+      case None =>
+        Future.successful(EmailUpdateResult.JourneyNotFound)
+    }
+  }
+
+  def resendPasscode(journeyId: String)(implicit hc: HeaderCarrier): Future[ResendPasscodeResult] = {
+    journeyRepository.recordPasscodeResent(journeyId).flatMap {
+      case Some(journey) if journey.passcodeAttempts >= config.maxPasscodeAttempts =>
+        Future.successful(ResendPasscodeResult.TooManyAttemptsInSession(journey.continueUrl))
+      case Some(journey) if journey.passcodesSentToEmail >= config.maxAttemptsPerEmail =>
+        Future.successful(ResendPasscodeResult.TooManyAttemptsForEmail(journey.emailEnterUrl))
+      case Some(journey) =>
+        journey.emailAddress match {
+          case Some(email) =>
+            emailService.sendPasscodeEmail(
+              email,
+              journey.passcode,
+              journey.serviceName,
+              journey.language
+            ).map(_ => ResendPasscodeResult.PasscodeResent)
+          case None =>
+            Future.successful(ResendPasscodeResult.NoEmailProvided)
+        }
+      case None =>
+        Future.successful(ResendPasscodeResult.JourneyNotFound)
+    }
+  }
+
+  def validatePasscode(journeyId: String, credId: String, passcode: String): Future[PasscodeValidationResult] = {
+    journeyRepository.recordPasscodeAttempt(journeyId).flatMap {
+      case Some(journey) if journey.passcodeAttempts >= config.maxPasscodeAttempts =>
+        Future.successful(PasscodeValidationResult.TooManyAttempts(journey.continueUrl))
+      case Some(journey) if journey.passcode == passcode =>
+        val email = journey.emailAddress.getOrElse(throw new IllegalStateException(s"cannot complete journey $journeyId as there is no email address"))
+        verificationStatusRepository.verify(credId, email).map { _ =>
+          PasscodeValidationResult.Complete(journey.continueUrl)
+        }
+      case Some(journey) =>
+        Future.successful(PasscodeValidationResult.IncorrectPasscode(journey.emailEnterUrl))
+      case None =>
+        Future.successful(PasscodeValidationResult.JourneyNotFound)
+    }
   }
 
   //returns email addresses that are verified or locked
-  def findCompletedEmails(credId: String)(implicit ec: ExecutionContext): Future[List[CompletedEmail]] = {
+  def findCompletedEmails(credId: String): Future[List[CompletedEmail]] = {
     verificationStatusRepository.retrieve(credId)
       .map(
         _.collect {
-          case VerificationStatus(Some(email), verified, locked) if verified | locked =>
+          case VerificationStatus(email, verified, locked) if verified | locked =>
             CompletedEmail(email, verified, locked)
         }
       )
   }
+}
 
+sealed trait EmailUpdateResult
+object EmailUpdateResult {
+  case object Accepted extends EmailUpdateResult
+  case object JourneyNotFound extends EmailUpdateResult
+  case class TooManyAttempts(continueUrl: String) extends EmailUpdateResult
+}
+
+sealed trait ResendPasscodeResult
+object ResendPasscodeResult {
+  case object PasscodeResent extends ResendPasscodeResult
+  case object JourneyNotFound extends ResendPasscodeResult
+  case object NoEmailProvided extends ResendPasscodeResult
+  case class TooManyAttemptsForEmail(enterEmailUrl: Option[String]) extends ResendPasscodeResult
+  case class TooManyAttemptsInSession(continueUrl: String) extends ResendPasscodeResult
+}
+
+sealed trait PasscodeValidationResult
+object PasscodeValidationResult {
+  case class Complete(continueUrl: String) extends PasscodeValidationResult
+  case class IncorrectPasscode(enterEmailUrl: Option[String]) extends PasscodeValidationResult
+  case object JourneyNotFound extends PasscodeValidationResult
+  case class TooManyAttempts(continueUrl: String) extends PasscodeValidationResult
 }

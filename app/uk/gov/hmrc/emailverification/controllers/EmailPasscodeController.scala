@@ -119,7 +119,7 @@ class EmailPasscodeController @Inject() (
           _ <- if (sessionEmailCount < appConfig.maxDifferentEmails) Future.unit else Future.failed(MaxDifferentEmailsExceeded(sessionEmailCount))
           passcode = newPasscode()
           passcodeDoc <- passcodeRepo.upsertIncrementingEmailAttempts(sessionId, passcode, request.email, appConfig.passcodeExpiryMinutes)
-          _ <- if (passcodeDoc.emailAttempts <= appConfig.maxEmailAttempts) Future.unit else Future.failed(MaxEmailsToAddressExceeded(sessionEmailCount, passcodeDoc))
+          _ <- if (passcodeDoc.emailAttempts <= appConfig.maxAttemptsPerEmail) Future.unit else Future.failed(MaxEmailsToAddressExceeded(sessionEmailCount, passcodeDoc))
           _ <- sendEmail(request, passcode).recoverWith { //transforming the exception here to add in sessionEmailCount, passcodeDoc wanted for audit events
             case ex @ UpstreamErrorResponse(_, 400, _, _) => {
               logger.error("email-verification had a problem, sendEmail returned bad request", ex)
@@ -151,7 +151,7 @@ class EmailPasscodeController @Inject() (
           }
           case MaxEmailsToAddressExceeded(differentEmailsCount, passcodeDoc) => {
             auditService.sendMaxEmailsExceededEvent(request.email, request.serviceName, differentEmailsCount, passcodeDoc, FORBIDDEN)
-            val msg = s"Max permitted number of emails sent to the same address of ${appConfig.maxEmailAttempts} reached"
+            val msg = s"Max permitted number of emails sent to the same address of ${appConfig.maxAttemptsPerEmail} reached"
             Forbidden(Json.toJson(ErrorResponse("MAX_EMAILS_EXCEEDED", msg)))
           }
           case SendEmailReturnedBadRequest(sessionEmailCount, passcodeDoc, ex) => {

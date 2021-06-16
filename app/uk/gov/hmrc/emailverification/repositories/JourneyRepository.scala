@@ -16,37 +16,43 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
+import com.github.ghik.silencer.silent
 import com.google.inject.ImplementedBy
-import config.AppConfig
-import javax.inject.Inject
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax.{unlift, _}
-import play.api.libs.json.{Format, Json, OFormat, __}
+import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import uk.gov.hmrc.emailverification.models.{Email, Journey}
+import reactivemongo.bson.BSONDocument
+import reactivemongo.play.json.ImplicitBSONHandlers._
+import reactivemongo.play.json.JSONSerializationPack.Document
+import uk.gov.hmrc.emailverification.models.{Journey, Language}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
+import javax.inject.Inject
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[JourneyMongoRepository])
 trait JourneyRepository {
   def initialise(journey: Journey): Future[Unit]
+  def submitEmail(journeyId: String, email: String): Future[Option[Journey]]
+  def recordPasscodeAttempt(journeyId: String): Future[Option[Journey]]
+  def recordPasscodeResent(journeyId: String): Future[Option[Journey]]
+
+  def get(journeyId: String): Future[Option[Journey]]
 }
 
-private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent, config: AppConfig)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[JourneyMongoRepository.Entity, BSONObjectID](
+private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
+  extends ReactiveRepository[JourneyMongoRepository.Entity, String](
     collectionName = "journey",
     mongo          = mongoComponent.mongoConnector.db,
-    domainFormat   = JourneyMongoRepository.format,
-    idFormat       = ReactiveMongoFormats.objectIdFormats) with JourneyRepository {
+    domainFormat   = JourneyMongoRepository.mongoFormat,
+    idFormat       = implicitly) with JourneyRepository {
 
   override def indexes: Seq[Index] = Seq(
-    Index(key    = Seq("journeyId" -> IndexType.Ascending), name = Some("journeyIdUnique"), unique = true),
-    Index(key     = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 4.hours.toSeconds))
+    Index(key     = Seq("createdAt" -> IndexType.Ascending), name = Some("ttl"), options = BSONDocument("expireAfterSeconds" -> 4.hours.toSeconds))
   )
 
   def initialise(journey: Journey): Future[Unit] = {
@@ -57,14 +63,51 @@ private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoCom
         continueUrl               = journey.continueUrl,
         origin                    = journey.origin,
         accessibilityStatementUrl = journey.accessibilityStatementUrl,
-        email                     = journey.email,
+        serviceName               = journey.serviceName,
+        language                  = journey.language,
+        emailAddress              = journey.emailAddress,
+        emailEnterUrl             = journey.emailEnterUrl,
         passcode                  = journey.passcode,
         createdAt                 = DateTime.now(),
-        passcodeAttempts          = 0,
-        emailAttempts             = 0
+        emailAddressAttempts      = journey.emailAddressAttempts,
+        passcodesSentToEmail      = journey.passcodesSentToEmail,
+        passcodeAttempts          = 0
       )
     ).map(_ => ())
   }
+
+  @silent("deprecated") // the "other" findAndUpdate is bad and should feel bad
+  override def submitEmail(journeyId: String, email: String): Future[Option[Journey]] = collection.findAndUpdate(
+    Json.obj("_id" -> journeyId),
+    Json.obj(
+      "$set" -> Json.obj("emailAddress" -> email, "passcodesSentToEmail" -> 1),
+      "$inc" -> Json.obj("emailAddressAttempts" -> 1)
+    )
+  ).map(entity => readAsJourney(entity.value))
+
+  @silent("deprecated")
+  override def recordPasscodeAttempt(journeyId: String): Future[Option[Journey]] = collection.findAndUpdate(
+    Json.obj("_id" -> journeyId),
+    Json.obj(
+      "$inc" -> Json.obj("passcodeAttempts" -> 1)
+    )
+  ).map(entity => readAsJourney(entity.value))
+
+  @silent("deprecated")
+  override def recordPasscodeResent(journeyId: String): Future[Option[Journey]] = collection.findAndUpdate(
+    Json.obj("_id" -> journeyId),
+    Json.obj(
+      "$inc" -> Json.obj("passcodesSentToEmail" -> 1)
+    )
+  ).map(entity => readAsJourney(entity.value))
+
+  private def readAsJourney(value: Option[Document]): Option[Journey] = {
+    value.map(JourneyMongoRepository.mongoFormat.reads(_).recoverTotal {
+      case JsError(errors) => throw new IllegalStateException(s"journey repository entity is not a valid Entity: $errors")
+    }).map(_.toJourney)
+  }
+
+  override def get(journeyId: String): Future[Option[Journey]] = findById(journeyId).map(_.map(_.toJourney))
 }
 
 private object JourneyMongoRepository {
@@ -75,15 +118,32 @@ private object JourneyMongoRepository {
       continueUrl:               String,
       origin:                    String,
       accessibilityStatementUrl: String,
-      email:                     Option[Email],
+      serviceName:               String,
+      language:                  Language,
+      emailAddress:              Option[String],
+      emailEnterUrl:             Option[String],
       passcode:                  String,
       createdAt:                 DateTime,
-      passcodeAttempts:          Int,
-      emailAttempts:             Int
-  )
-
-  private implicit val dateTimeFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
-  val format = Json.format[Entity]
+      emailAddressAttempts:      Int,
+      passcodesSentToEmail:      Int,
+      passcodeAttempts:          Int
+  ) {
+    def toJourney: Journey = Journey(
+      journeyId,
+      credId,
+      continueUrl,
+      origin,
+      accessibilityStatementUrl,
+      serviceName,
+      language,
+      emailAddress,
+      emailEnterUrl,
+      passcode,
+      emailAddressAttempts,
+      passcodesSentToEmail,
+      passcodeAttempts
+    )
+  }
 
   val mongoFormat: OFormat[Entity] = (
     (__ \ "_id").format[String] and
@@ -91,10 +151,14 @@ private object JourneyMongoRepository {
     (__ \ "continueUrl").format[String] and
     (__ \ "origin").format[String] and
     (__ \ "accessibilityStatementUrl").format[String] and
-    (__ \ "email").formatNullable[Email] and
+    (__ \ "serviceName").format[String] and
+    (__ \ "language").format[Language] and
+    (__ \ "emailAddress").formatNullable[String] and
+    (__ \ "emailEnterUrl").formatNullable[String] and
     (__ \ "passcode").format[String] and
     (__ \ "createdAt").format[DateTime](ReactiveMongoFormats.dateTimeFormats) and
-    (__ \ "passcodeAttempts").format[Int] and
-    (__ \ "emailAttempts").format[Int]
+    (__ \ "emailAddressAttempts").format[Int] and
+    (__ \ "passcodesSentToEmail").format[Int] and
+    (__ \ "passcodeAttempts").format[Int]
   ) (Entity.apply, unlift(Entity.unapply))
 }

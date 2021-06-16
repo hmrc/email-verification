@@ -1,9 +1,16 @@
 # microservice specific routes
 
-POST        /verification-requests                  uk.gov.hmrc.emailverification.controllers.EmailVerificationController.requestVerification
-POST        /verified-email-addresses               uk.gov.hmrc.emailverification.controllers.EmailVerificationController.validateToken
-POST        /verified-email-check                   uk.gov.hmrc.emailverification.controllers.EmailVerificationController.verifiedEmail
-POST        /request-passcode                       uk.gov.hmrc.emailverification.controllers.EmailPasscodeController.requestPasscode
-POST        /verify-passcode                        uk.gov.hmrc.emailverification.controllers.EmailPasscodeController.verifyPasscode
-POST        /verify-email                           uk.gov.hmrc.emailverification.controllers.JourneyController.verifyEmail
-GET         /verification-status/:credId            uk.gov.hmrc.emailverification.controllers.JourneyController.completedEmails(credId)
+POST        /verification-requests                     uk.gov.hmrc.emailverification.controllers.EmailVerificationController.requestVerification
+POST        /verified-email-addresses                  uk.gov.hmrc.emailverification.controllers.EmailVerificationController.validateToken
+POST        /verified-email-check                      uk.gov.hmrc.emailverification.controllers.EmailVerificationController.verifiedEmail
+
+POST        /request-passcode                          uk.gov.hmrc.emailverification.controllers.EmailPasscodeController.requestPasscode
+POST        /verify-passcode                           uk.gov.hmrc.emailverification.controllers.EmailPasscodeController.verifyPasscode
+
+POST        /verify-email                              uk.gov.hmrc.emailverification.controllers.JourneyController.verifyEmail
+GET         /journey/:journeyId                        uk.gov.hmrc.emailverification.controllers.JourneyController.getJourney(journeyId)
+POST        /journey/:journeyId/email                  uk.gov.hmrc.emailverification.controllers.JourneyController.submitEmail(journeyId)
+POST        /journey/:journeyId/resend-passcode        uk.gov.hmrc.emailverification.controllers.JourneyController.resendPasscode(journeyId)
+POST        /journey/:journeyId/passcode               uk.gov.hmrc.emailverification.controllers.JourneyController.submitPasscode(journeyId)
+
+GET         /verification-status/:credId               uk.gov.hmrc.emailverification.controllers.JourneyController.completedEmails(credId)
