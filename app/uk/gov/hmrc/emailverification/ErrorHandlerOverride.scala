@@ -25,7 +25,7 @@ import play.api.{Configuration, Logging}
 import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.emailverification.models.ErrorResponse
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.HeaderCarrierConverter
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.http.JsonErrorHandler
 import uk.gov.hmrc.play.bootstrap.config.HttpAuditEvent
@@ -40,7 +40,7 @@ class ErrorHandlerOverride @Inject() (
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
 
-    implicit val headerCarrier: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSessionAndRequest(request.headers, request = Some(request))
+    implicit val headerCarrier: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
     statusCode match {
       case play.mvc.Http.Status.NOT_FOUND =>
@@ -53,7 +53,7 @@ class ErrorHandlerOverride @Inject() (
   }
 
   override def onServerError(request: RequestHeader, ex: Throwable): Future[Result] = {
-    implicit val headerCarrier: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSessionAndRequest(request.headers, request = Some(request))
+    implicit val headerCarrier: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
     logger.error(s"! Internal server error, for (${request.method}) [${request.uri}] -> ", ex)
 

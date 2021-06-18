@@ -26,7 +26,7 @@ import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{PasscodeMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.emailverification.services.AuditService
 import uk.gov.hmrc.http.UpstreamErrorResponse
-import uk.gov.hmrc.http.logging.SessionId
+import uk.gov.hmrc.http.SessionId
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.{ExecutionContext, Future}
