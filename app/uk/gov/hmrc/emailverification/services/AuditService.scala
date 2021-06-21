@@ -17,10 +17,10 @@
 package uk.gov.hmrc.emailverification.services
 
 import javax.inject.Inject
-import play.api.{Logging}
+import play.api.Logging
 import play.api.mvc.Request
 import uk.gov.hmrc.emailverification.models.PasscodeDoc
-import uk.gov.hmrc.http.logging.Authorization
+import uk.gov.hmrc.http.Authorization
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.DataEvent
