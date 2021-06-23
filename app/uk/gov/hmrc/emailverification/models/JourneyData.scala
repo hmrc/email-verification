@@ -16,28 +16,19 @@
 
 package uk.gov.hmrc.emailverification.models
 
-case class Journey(
-    journeyId:                 String,
-    credId:                    String,
-    continueUrl:               String,
-    origin:                    String,
+import play.api.libs.json.{Json, Writes}
+
+/**
+ * Frontend view of the Journey, to avoid leaking implementation details
+ */
+case class JourneyData(
     accessibilityStatementUrl: String,
-    serviceName:               String,
-    language:                  Language,
-    emailAddress:              Option[String],
+    deskproServiceName:        String,
     enterEmailUrl:             Option[String],
     backUrl:                   Option[String],
-    pageTitle:                 Option[String],
-    passcode:                  String,
-    emailAddressAttempts:      Int,
-    passcodesSentToEmail:      Int,
-    passcodeAttempts:          Int
-) {
-  def frontendData: JourneyData = JourneyData(
-    accessibilityStatementUrl,
-    serviceName,
-    enterEmailUrl,
-    backUrl,
-    pageTitle
-  )
+    serviceTitle:              Option[String]
+)
+
+object JourneyData {
+  implicit val writes: Writes[JourneyData] = Json.writes[JourneyData]
 }

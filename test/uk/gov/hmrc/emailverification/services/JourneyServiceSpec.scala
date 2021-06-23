@@ -108,7 +108,9 @@ class JourneyServiceSpec extends UnitSpec {
           serviceName               = "My Cool Service",
           language                  = English,
           emailAddress              = Some(email),
-          emailEnterUrl             = None,
+          enterEmailUrl             = None,
+          backUrl                   = None,
+          pageTitle                 = None,
           passcode                  = "code",
           emailAddressAttempts      = 2,
           passcodesSentToEmail      = 0,
@@ -148,7 +150,9 @@ class JourneyServiceSpec extends UnitSpec {
           serviceName               = serviceName,
           language                  = English,
           emailAddress              = Some(email),
-          emailEnterUrl             = None,
+          enterEmailUrl             = None,
+          backUrl                   = None,
+          pageTitle                 = None,
           passcode                  = passcode,
           emailAddressAttempts      = 1,
           passcodesSentToEmail      = 0,
@@ -190,7 +194,9 @@ class JourneyServiceSpec extends UnitSpec {
           serviceName               = serviceName,
           language                  = English,
           emailAddress              = None,
-          emailEnterUrl             = None,
+          enterEmailUrl             = None,
+          backUrl                   = None,
+          pageTitle                 = None,
           passcode                  = passcode,
           emailAddressAttempts      = 1,
           passcodesSentToEmail      = 0,
@@ -219,7 +225,9 @@ class JourneyServiceSpec extends UnitSpec {
           serviceName               = serviceName,
           language                  = English,
           emailAddress              = Some(email),
-          emailEnterUrl             = Some("/enterEmail"),
+          enterEmailUrl             = Some("/enterEmail"),
+          backUrl                   = None,
+          pageTitle                 = None,
           passcode                  = passcode,
           emailAddressAttempts      = 1,
           passcodesSentToEmail      = 2,
@@ -229,7 +237,7 @@ class JourneyServiceSpec extends UnitSpec {
         when(mockAppConfig.maxPasscodeAttempts).thenReturn(100)
 
         val result = await(journeyService.resendPasscode(journeyId)(HeaderCarrier()))
-        result shouldBe ResendPasscodeResult.TooManyAttemptsForEmail(Some("/enterEmail"))
+        result shouldBe ResendPasscodeResult.TooManyAttemptsForEmail(JourneyData("/accessibility", serviceName, Some("/enterEmail"), None, None))
       }
     }
 
@@ -248,7 +256,9 @@ class JourneyServiceSpec extends UnitSpec {
           serviceName               = serviceName,
           language                  = English,
           emailAddress              = Some(email),
-          emailEnterUrl             = Some("/enterEmail"),
+          enterEmailUrl             = Some("/enterEmail"),
+          backUrl                   = None,
+          pageTitle                 = None,
           passcode                  = passcode,
           emailAddressAttempts      = 1,
           passcodesSentToEmail      = 1,
@@ -276,7 +286,9 @@ class JourneyServiceSpec extends UnitSpec {
           serviceName               = serviceName,
           language                  = English,
           emailAddress              = Some(email),
-          emailEnterUrl             = Some("/enterEmail"),
+          enterEmailUrl             = Some("/enterEmail"),
+          backUrl                   = None,
+          pageTitle                 = None,
           passcode                  = passcode,
           emailAddressAttempts      = 1,
           passcodesSentToEmail      = 1,
@@ -317,7 +329,9 @@ class JourneyServiceSpec extends UnitSpec {
           serviceName               = "some service",
           language                  = English,
           emailAddress              = Some("aa@bb.cc"),
-          emailEnterUrl             = None,
+          enterEmailUrl             = None,
+          backUrl                   = None,
+          pageTitle                 = None,
           passcode                  = passcode,
           emailAddressAttempts      = 1,
           passcodesSentToEmail      = 0,
@@ -344,7 +358,9 @@ class JourneyServiceSpec extends UnitSpec {
           serviceName               = "some service",
           language                  = English,
           emailAddress              = Some("aa@bb.cc"),
-          emailEnterUrl             = enterEmailUrl,
+          enterEmailUrl             = enterEmailUrl,
+          backUrl                   = None,
+          pageTitle                 = None,
           passcode                  = passcode,
           emailAddressAttempts      = 1,
           passcodesSentToEmail      = 0,
@@ -353,7 +369,7 @@ class JourneyServiceSpec extends UnitSpec {
         when(mockAppConfig.maxPasscodeAttempts).thenReturn(100)
 
         val result = await(journeyService.validatePasscode(journeyId, credId, passcode.reverse))
-        result shouldBe PasscodeValidationResult.IncorrectPasscode(enterEmailUrl)
+        result shouldBe PasscodeValidationResult.IncorrectPasscode(JourneyData("/accessibility", "some service", enterEmailUrl, None, None))
       }
     }
 
@@ -371,7 +387,9 @@ class JourneyServiceSpec extends UnitSpec {
           serviceName               = "some service",
           language                  = English,
           emailAddress              = Some("aa@bb.cc"),
-          emailEnterUrl             = enterEmailUrl,
+          enterEmailUrl             = enterEmailUrl,
+          backUrl                   = None,
+          pageTitle                 = None,
           passcode                  = passcode,
           emailAddressAttempts      = 1,
           passcodesSentToEmail      = 0,
@@ -455,7 +473,9 @@ class JourneyServiceSpec extends UnitSpec {
       deskproServiceName        = None,
       accessibilityStatementUrl = "/",
       email                     = Some(Email(emailAddress, "/ppt/email")),
-      lang                      = English
+      lang                      = Some(English),
+      backUrl                   = None,
+      pageTitle                 = None,
     )
   }
 

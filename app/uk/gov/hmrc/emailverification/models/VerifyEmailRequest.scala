@@ -25,7 +25,9 @@ case class VerifyEmailRequest(
     deskproServiceName:        Option[String],
     accessibilityStatementUrl: String,
     email:                     Option[Email],
-    lang:                      Language
+    lang:                      Option[Language],
+    backUrl:                   Option[String],
+    pageTitle:                 Option[String]
 )
 
 case class Email(address: String, enterUrl: String)

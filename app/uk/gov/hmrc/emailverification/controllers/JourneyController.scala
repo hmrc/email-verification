@@ -40,11 +40,7 @@ class JourneyController @Inject() (
   def getJourney(journeyId: String): Action[AnyContent] = Action.async {
     journeyService.getJourney(journeyId).map {
       case Some(journey) =>
-        // don't give the frontend data it doesn't need
-        Ok(Json.obj(
-          "accessibilityStatementUrl" -> journey.accessibilityStatementUrl,
-          "emailEnterUrl" -> journey.emailEnterUrl
-        ))
+        Ok(Json.toJson(journey))
       case None =>
         NotFound
     }
@@ -89,10 +85,10 @@ class JourneyController @Inject() (
         Forbidden(Json.obj(
           "status" -> "noEmailProvided"
         ))
-      case ResendPasscodeResult.TooManyAttemptsForEmail(enterEmailUrl) =>
+      case ResendPasscodeResult.TooManyAttemptsForEmail(journey) =>
         Forbidden(Json.obj(
           "status" -> "tooManyAttemptsForEmail",
-          "enterEmailUrl" -> enterEmailUrl
+          "journey" -> journey
         ))
       case ResendPasscodeResult.TooManyAttemptsInSession(continueUrl) =>
         Forbidden(Json.obj(
@@ -113,10 +109,10 @@ class JourneyController @Inject() (
                   "status" -> "complete",
                   "continueUrl" -> redirectUri
                 ))
-              case PasscodeValidationResult.IncorrectPasscode(enterEmailUrl) =>
+              case PasscodeValidationResult.IncorrectPasscode(journey) =>
                 BadRequest(Json.obj(
                   "status" -> "incorrectPasscode",
-                  "enterEmailUrl" -> enterEmailUrl
+                  "journey" -> journey
                 ))
               case PasscodeValidationResult.TooManyAttempts(continueUrl) =>
                 Forbidden(Json.obj(

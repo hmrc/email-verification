@@ -42,16 +42,18 @@ If an email address is not provided then the user will be required to provide on
 
 ```json
 {
-   "credId":"98fe3788-2d39-409c-b400-8f86ed1634ea",
-   "continueUrl":"/plastic-packaging-tax/start",
-   "origin":"ppt",
-   "deskproServiceName":"plastic-packaging-tax",  // Optional, if absent then 'origin' will be used
-   "accessibilityStatementUrl":"/accessibility",
-   "email":{
+  "credId":"98fe3788-2d39-409c-b400-8f86ed1634ea",
+  "continueUrl":"/plastic-packaging-tax/start",
+  "origin":"ppt",
+  "deskproServiceName":"plastic-packaging-tax",  // Optional, if absent then 'origin' will be used
+  "accessibilityStatementUrl":"/accessibility",
+  "pageTitle": "Plastic Packaging Tax", // Optional; will be displayed in the GOV.UK heading of the page
+  "backUrl": "/back", // Optional; if provided, all pages will contain a "back" link to this URL
+  "email": {
       "address":"johnsmith@hotmail.com",
-      "enterUrl":"/start"
-   }, // Optional, if absent then SI UI will prompt the User for the email address
-   "lang":"en" //en or cy
+      "enterUrl":"/start" // user may get sent here if they cannot verify the provided email, e.g. they misspelled it
+  }, // Optional, if absent then SI UI will prompt the User for the email address
+  "lang":"en" // optional; en or cy; defaults to "en"
 }
 ```
 
