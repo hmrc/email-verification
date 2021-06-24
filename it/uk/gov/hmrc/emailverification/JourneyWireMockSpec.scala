@@ -55,7 +55,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
   }
 
   "GET /journey/:journeyId" should {
-    "return the accessibility statement URL and enter email URL" in new Setup {
+    "return 200 OK and the frontend journey data when the journey ID is valid" in new Setup {
       val journey = Journey(
         UUID.randomUUID().toString,
         "credId",
@@ -66,6 +66,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         English,
         None,
         Some("/enterEmail"),
+        Some("/back"),
+        Some("title"),
         "passcode",
         0,
         0,
@@ -78,8 +80,16 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       result.status shouldBe OK
       result.json shouldBe Json.obj(
         "accessibilityStatementUrl" -> "/accessibility",
-        "emailEnterUrl" -> "/enterEmail"
+        "enterEmailUrl" -> "/enterEmail",
+        "deskproServiceName" -> "serviceName",
+        "backUrl" -> "/back",
+        "serviceTitle" -> "title"
       )
+    }
+
+    "return 404 Not Found when the journey ID is invalid" in new Setup {
+      val result = await(resourceRequest("/email-verification/journey/nope").get())
+      result.status shouldBe NOT_FOUND
     }
   }
 
@@ -94,6 +104,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           "/accessibility",
           "serviceName",
           English,
+          None,
+          None,
           None,
           None,
           "passcode",
@@ -134,6 +146,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           English,
           None,
           None,
+          None,
+          None,
           "passcode",
           emailAddressAttempts = Int.MaxValue,
           0,
@@ -167,6 +181,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           English,
           Some("aa@bb.cc"),
           Some("/enterEmailUrl"),
+          None,
+          None,
           "passcode",
           0,
           0,
@@ -192,7 +208,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     }
 
     "the journey ID is valid but too many attempts have been made for the current email address" should {
-      "return 403 Forbidden and the enter email URL" in new Setup {
+      "return 403 Forbidden and the frontend journey data" in new Setup {
         val journey = Journey(
           UUID.randomUUID().toString,
           "credId",
@@ -203,6 +219,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           English,
           Some("aa@bb.cc"),
           Some("/enterEmailUrl"),
+          Some("/back"),
+          Some("title"),
           "passcode",
           0,
           passcodesSentToEmail = Int.MaxValue,
@@ -214,7 +232,16 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         val result = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}/resend-passcode")
           .post(Json.obj()))
         result.status shouldBe FORBIDDEN
-        result.json shouldBe Json.obj("status" -> "tooManyAttemptsForEmail", "enterEmailUrl" -> "/enterEmailUrl")
+        result.json shouldBe Json.obj(
+          "status" -> "tooManyAttemptsForEmail",
+          "journey" -> Json.obj(
+            "accessibilityStatementUrl" -> "/accessibility",
+            "enterEmailUrl" -> "/enterEmailUrl",
+            "deskproServiceName" -> "serviceName",
+            "backUrl" -> "/back",
+            "serviceTitle" -> "title"
+          )
+        )
       }
     }
 
@@ -230,6 +257,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           English,
           Some("aa@bb.cc"),
           Some("/enterEmailUrl"),
+          None,
+          None,
           "passcode",
           0,
           passcodesSentToEmail = 0,
@@ -259,6 +288,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           English,
           Some("aa@bb.cc"),
           Some("/enterEmailUrl"),
+          None,
+          None,
           "passcode",
           0,
           0,
@@ -300,6 +331,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           English,
           Some("aa@bb.cc"),
           Some("/enterEmailUrl"),
+          Some("/back"),
+          Some("title"),
           "passcode",
           0,
           0,
@@ -312,7 +345,16 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         val result = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
           .post(Json.obj("passcode" -> "not the right passcode")))
         result.status shouldBe BAD_REQUEST
-        result.json shouldBe Json.obj("status" -> "incorrectPasscode", "enterEmailUrl" -> "/enterEmailUrl")
+        result.json shouldBe Json.obj(
+          "status" -> "incorrectPasscode",
+          "journey" -> Json.obj(
+            "accessibilityStatementUrl" -> "/accessibility",
+            "enterEmailUrl" -> "/enterEmailUrl",
+            "deskproServiceName" -> "serviceName",
+            "backUrl" -> "/back",
+            "serviceTitle" -> "title"
+          )
+        )
       }
     }
 
@@ -340,6 +382,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           English,
           Some("aa@bb.cc"),
           Some("/enterEmailUrl"),
+          None,
+          None,
           "passcode",
           0,
           0,
@@ -449,7 +493,9 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           "serviceName" -> journey.serviceName,
           "language" -> journey.language,
           "emailAddress" -> journey.emailAddress,
-          "emailEnterUrl" -> journey.emailEnterUrl,
+          "enterEmailUrl" -> journey.enterEmailUrl,
+          "backUrl" -> journey.backUrl,
+          "pageTitle" -> journey.pageTitle,
           "passcode" -> journey.passcode,
           "createdAt" -> Json.obj("$date" -> DateTime.now.getMillis),
           "emailAddressAttempts" -> journey.emailAddressAttempts,

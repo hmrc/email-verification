@@ -20,7 +20,7 @@ import config.AppConfig
 
 import java.util.UUID
 import javax.inject.Inject
-import uk.gov.hmrc.emailverification.models.{CompletedEmail, Journey, VerificationStatus, VerifyEmailRequest}
+import uk.gov.hmrc.emailverification.models.{CompletedEmail, English, Journey, JourneyData, VerificationStatus, VerifyEmailRequest}
 import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, VerificationStatusRepository}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -48,9 +48,11 @@ class JourneyService @Inject() (
       origin                    = verifyEmailRequest.origin,
       accessibilityStatementUrl = verifyEmailRequest.accessibilityStatementUrl,
       serviceName               = verifyEmailRequest.deskproServiceName.getOrElse(verifyEmailRequest.origin),
-      language                  = verifyEmailRequest.lang,
+      language                  = verifyEmailRequest.lang.getOrElse(English),
       emailAddress              = verifyEmailRequest.email.map(_.address),
-      emailEnterUrl             = verifyEmailRequest.email.map(_.enterUrl),
+      enterEmailUrl             = verifyEmailRequest.email.map(_.enterUrl),
+      backUrl                   = verifyEmailRequest.backUrl,
+      pageTitle                 = verifyEmailRequest.pageTitle,
       passcode                  = passcode,
       emailAddressAttempts      = verifyEmailRequest.email.map(_.address).size,
       passcodesSentToEmail      = verifyEmailRequest.email.map(_.address).size,
@@ -77,8 +79,8 @@ class JourneyService @Inject() (
     }
   }
 
-  def getJourney(journeyId: String): Future[Option[Journey]] = {
-    journeyRepository.get(journeyId)
+  def getJourney(journeyId: String): Future[Option[JourneyData]] = {
+    journeyRepository.get(journeyId).map(_.map(_.frontendData))
   }
 
   def submitEmail(journeyId: String, email: String)(implicit hc: HeaderCarrier): Future[EmailUpdateResult] = {
@@ -97,7 +99,7 @@ class JourneyService @Inject() (
       case Some(journey) if journey.passcodeAttempts >= config.maxPasscodeAttempts =>
         Future.successful(ResendPasscodeResult.TooManyAttemptsInSession(journey.continueUrl))
       case Some(journey) if journey.passcodesSentToEmail >= config.maxAttemptsPerEmail =>
-        Future.successful(ResendPasscodeResult.TooManyAttemptsForEmail(journey.emailEnterUrl))
+        Future.successful(ResendPasscodeResult.TooManyAttemptsForEmail(journey.frontendData))
       case Some(journey) =>
         journey.emailAddress match {
           case Some(email) =>
@@ -125,7 +127,7 @@ class JourneyService @Inject() (
           PasscodeValidationResult.Complete(journey.continueUrl)
         }
       case Some(journey) =>
-        Future.successful(PasscodeValidationResult.IncorrectPasscode(journey.emailEnterUrl))
+        Future.successful(PasscodeValidationResult.IncorrectPasscode(journey.frontendData))
       case None =>
         Future.successful(PasscodeValidationResult.JourneyNotFound)
     }
@@ -155,14 +157,14 @@ object ResendPasscodeResult {
   case object PasscodeResent extends ResendPasscodeResult
   case object JourneyNotFound extends ResendPasscodeResult
   case object NoEmailProvided extends ResendPasscodeResult
-  case class TooManyAttemptsForEmail(enterEmailUrl: Option[String]) extends ResendPasscodeResult
   case class TooManyAttemptsInSession(continueUrl: String) extends ResendPasscodeResult
+  case class TooManyAttemptsForEmail(journey: JourneyData) extends ResendPasscodeResult
 }
 
 sealed trait PasscodeValidationResult
 object PasscodeValidationResult {
   case class Complete(continueUrl: String) extends PasscodeValidationResult
-  case class IncorrectPasscode(enterEmailUrl: Option[String]) extends PasscodeValidationResult
+  case class IncorrectPasscode(journey: JourneyData) extends PasscodeValidationResult
   case object JourneyNotFound extends PasscodeValidationResult
   case class TooManyAttempts(continueUrl: String) extends PasscodeValidationResult
 }

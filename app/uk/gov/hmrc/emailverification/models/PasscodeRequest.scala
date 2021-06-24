@@ -23,10 +23,12 @@ case object English extends Language
 case object Welsh extends Language
 
 object Language {
-  implicit val reads: Reads[Language] = {
-    case JsString("en") => JsSuccess(English)
-    case JsString("cy") => JsSuccess(Welsh)
-    case _              => JsError("Lang must be en or cy")
+  implicit val reads: Reads[Language] = (json: JsValue) => {
+    json.validate[String].map(_.toLowerCase).flatMap {
+      case "en"  => JsSuccess(English)
+      case "cy"  => JsSuccess(Welsh)
+      case other => JsError(s"invalid language $other")
+    }
   }
 
   implicit val writes: Writes[Language] = {

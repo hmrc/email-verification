@@ -66,7 +66,9 @@ private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoCom
         serviceName               = journey.serviceName,
         language                  = journey.language,
         emailAddress              = journey.emailAddress,
-        emailEnterUrl             = journey.emailEnterUrl,
+        enterEmailUrl             = journey.enterEmailUrl,
+        backUrl                   = journey.backUrl,
+        pageTitle                 = journey.pageTitle,
         passcode                  = journey.passcode,
         createdAt                 = DateTime.now(),
         emailAddressAttempts      = journey.emailAddressAttempts,
@@ -121,7 +123,9 @@ private object JourneyMongoRepository {
       serviceName:               String,
       language:                  Language,
       emailAddress:              Option[String],
-      emailEnterUrl:             Option[String],
+      enterEmailUrl:             Option[String],
+      backUrl:                   Option[String],
+      pageTitle:                 Option[String],
       passcode:                  String,
       createdAt:                 DateTime,
       emailAddressAttempts:      Int,
@@ -137,7 +141,9 @@ private object JourneyMongoRepository {
       serviceName,
       language,
       emailAddress,
-      emailEnterUrl,
+      enterEmailUrl,
+      backUrl,
+      pageTitle,
       passcode,
       emailAddressAttempts,
       passcodesSentToEmail,
@@ -154,7 +160,9 @@ private object JourneyMongoRepository {
     (__ \ "serviceName").format[String] and
     (__ \ "language").format[Language] and
     (__ \ "emailAddress").formatNullable[String] and
-    (__ \ "emailEnterUrl").formatNullable[String] and
+    (__ \ "enterEmailUrl").formatNullable[String] and
+    (__ \ "backUrl").formatNullable[String] and
+    (__ \ "pageTitle").formatNullable[String] and
     (__ \ "passcode").format[String] and
     (__ \ "createdAt").format[DateTime](ReactiveMongoFormats.dateTimeFormats) and
     (__ \ "emailAddressAttempts").format[Int] and
