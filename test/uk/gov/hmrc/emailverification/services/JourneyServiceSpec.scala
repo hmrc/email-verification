@@ -339,8 +339,12 @@ class JourneyServiceSpec extends UnitSpec {
         ))))
         when(mockAppConfig.maxPasscodeAttempts).thenReturn(1)
 
+        when(mockVerificationStatusRepository.lock(any, any)).thenReturn(Future.unit)
+
         val result = await(journeyService.validatePasscode(journeyId, credId, passcode))
         result shouldBe PasscodeValidationResult.TooManyAttempts(continueUrl)
+
+        verify(mockVerificationStatusRepository).lock(credId, "aa@bb.cc")
       }
     }
 

@@ -119,8 +119,11 @@ class JourneyService @Inject() (
 
   def validatePasscode(journeyId: String, credId: String, passcode: String): Future[PasscodeValidationResult] = {
     journeyRepository.recordPasscodeAttempt(journeyId).flatMap {
-      case Some(journey) if journey.passcodeAttempts >= config.maxPasscodeAttempts =>
-        Future.successful(PasscodeValidationResult.TooManyAttempts(journey.continueUrl))
+      case Some(journey) if journey.passcodeAttempts > config.maxPasscodeAttempts =>
+        val email = journey.emailAddress.getOrElse(throw new IllegalStateException(s"cannot lock email address for credId $credId as no email address found"))
+        verificationStatusRepository.lock(credId, email).map { _ =>
+          PasscodeValidationResult.TooManyAttempts(journey.continueUrl)
+        }
       case Some(journey) if journey.passcode == passcode =>
         val email = journey.emailAddress.getOrElse(throw new IllegalStateException(s"cannot complete journey $journeyId as there is no email address"))
         verificationStatusRepository.verify(credId, email).map { _ =>
