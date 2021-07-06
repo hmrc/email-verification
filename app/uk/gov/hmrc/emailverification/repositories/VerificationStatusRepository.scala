@@ -41,6 +41,7 @@ trait VerificationStatusRepository {
 
   def verify(credId: String, emailAddress: String): Future[Unit]
   def lock(credId: String, emailAddress: String): Future[Unit]
+  def isLocked(credId: String, emailAddress:String): Future[Boolean]
 }
 
 private class VerificationStatusMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent, appConfig: AppConfig)(implicit ec: ExecutionContext)
@@ -83,6 +84,10 @@ private class VerificationStatusMongoRepository @Inject() (mongoComponent: React
     Json.obj("credId" -> credId, "emailAddress" -> emailAddress),
     Json.obj("$set" -> Json.obj("locked" -> true))
   ).map(_ => ())
+
+  override def isLocked(credId: String, emailAddress: String): Future[Boolean] = find("credId" -> credId)
+    .map(_.find(entity=>entity.emailAddress==emailAddress && entity.locked))
+    .map(_.isDefined)
 }
 
 private object VerificationStatusMongoRepository {

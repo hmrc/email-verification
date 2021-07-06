@@ -146,6 +146,13 @@ class JourneyService @Inject() (
         }
       )
   }
+
+  def isLocked(credId:String, emailAddress:Option[String]): Future[Boolean] = {
+    emailAddress match {
+      case None => Future.successful(false)
+      case Some(email) => verificationStatusRepository.isLocked(credId, email)
+    }
+  }
 }
 
 sealed trait EmailUpdateResult
