@@ -49,7 +49,7 @@ class JourneyController @Inject() (
   def verifyEmail(): Action[VerifyEmailRequest] = Action.async(parse.json[VerifyEmailRequest]) { implicit request =>
     val verifyEmailRequest = request.body
     journeyService.isLocked(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address)).flatMap { locked =>
-      if(locked) {
+      if (locked) {
         Future.successful(Unauthorized)
       } else {
         journeyService.initialise(verifyEmailRequest).map { redirectUrl =>

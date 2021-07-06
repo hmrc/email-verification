@@ -294,7 +294,7 @@ class JourneyServiceSpec extends UnitSpec {
           passcodesSentToEmail      = 1,
           passcodeAttempts          = 1
         ))))
-        when(mockAppConfig.maxAttemptsPerEmail).thenReturn(100)
+        when(mockAppConfig.maxAttemptsPerEmail).thenReturn(1)
         when(mockAppConfig.maxPasscodeAttempts).thenReturn(100)
         when(mockEmailService.sendPasscodeEmail(eqTo(email), eqTo(passcode), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
 

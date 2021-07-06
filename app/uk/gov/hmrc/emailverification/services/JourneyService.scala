@@ -96,9 +96,9 @@ class JourneyService @Inject() (
 
   def resendPasscode(journeyId: String)(implicit hc: HeaderCarrier): Future[ResendPasscodeResult] = {
     journeyRepository.recordPasscodeResent(journeyId).flatMap {
-      case Some(journey) if journey.passcodeAttempts >= config.maxPasscodeAttempts =>
+      case Some(journey) if journey.passcodeAttempts > config.maxPasscodeAttempts =>
         Future.successful(ResendPasscodeResult.TooManyAttemptsInSession(journey.continueUrl))
-      case Some(journey) if journey.passcodesSentToEmail >= config.maxAttemptsPerEmail =>
+      case Some(journey) if journey.passcodesSentToEmail > config.maxAttemptsPerEmail =>
         Future.successful(ResendPasscodeResult.TooManyAttemptsForEmail(journey.frontendData))
       case Some(journey) =>
         journey.emailAddress match {
@@ -147,9 +147,9 @@ class JourneyService @Inject() (
       )
   }
 
-  def isLocked(credId:String, emailAddress:Option[String]): Future[Boolean] = {
+  def isLocked(credId: String, emailAddress: Option[String]): Future[Boolean] = {
     emailAddress match {
-      case None => Future.successful(false)
+      case None        => Future.successful(false)
       case Some(email) => verificationStatusRepository.isLocked(credId, email)
     }
   }
