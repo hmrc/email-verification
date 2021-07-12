@@ -237,7 +237,7 @@ class JourneyServiceSpec extends UnitSpec {
         when(mockAppConfig.maxPasscodeAttempts).thenReturn(100)
 
         val result = await(journeyService.resendPasscode(journeyId)(HeaderCarrier()))
-        result shouldBe ResendPasscodeResult.TooManyAttemptsForEmail(JourneyData("/accessibility", serviceName, Some("/enterEmail"), None, None))
+        result shouldBe ResendPasscodeResult.TooManyAttemptsForEmail(JourneyData("/accessibility", serviceName, Some("/enterEmail"), None, None, Some(email)))
       }
     }
 
@@ -369,7 +369,7 @@ class JourneyServiceSpec extends UnitSpec {
         when(mockAppConfig.maxPasscodeAttempts).thenReturn(100)
 
         val result = await(journeyService.validatePasscode(journeyId, credId, passcode.reverse))
-        result shouldBe PasscodeValidationResult.IncorrectPasscode(JourneyData("/accessibility", "some service", enterEmailUrl, None, None))
+        result shouldBe PasscodeValidationResult.IncorrectPasscode(JourneyData("/accessibility", "some service", enterEmailUrl, None, None, Some("aa@bb.cc")))
       }
     }
 
