@@ -38,6 +38,7 @@ case class Journey(
     serviceName,
     enterEmailUrl,
     backUrl,
-    pageTitle
+    pageTitle,
+    emailAddress
   )
 }

@@ -252,7 +252,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
             "enterEmailUrl" -> "/enterEmailUrl",
             "deskproServiceName" -> "serviceName",
             "backUrl" -> "/back",
-            "serviceTitle" -> "title"
+            "serviceTitle" -> "title",
+            "emailAddress"->"aa@bb.cc"
           )
         )
       }
@@ -365,7 +366,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
             "enterEmailUrl" -> "/enterEmailUrl",
             "deskproServiceName" -> "serviceName",
             "backUrl" -> "/back",
-            "serviceTitle" -> "title"
+            "serviceTitle" -> "title",
+            "emailAddress" -> "aa@bb.cc"
           )
         )
       }
