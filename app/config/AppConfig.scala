@@ -38,8 +38,8 @@ class AppConfig @Inject() (val config: Configuration) {
 
   private def getString(key: String) = config.get[String](key)
 
-  lazy val maxPasscodeAttempts = config.get[Int]("maxPasscodeAttempts")
-  lazy val maxAttemptsPerEmail = config.get[Int]("maxEmailAttempts")
+  lazy val maxPasscodeAttempts = config.get[Int]("maxPasscodeAttempts") //passcode guess attempts
+  lazy val maxAttemptsPerEmail = config.get[Int]("maxEmailAttempts") //passcodes emailed to same address
   lazy val maxDifferentEmails = config.get[Int]("maxDifferentEmails")
   lazy val dropPasscodeSessionIdIndexAtStartup = config.get[Boolean]("dropPasscodeSessionIdIndexAtStartup")
   lazy val verificationStatusRepositoryTtl = config.get[Duration]("verificationStatusRepositoryTtl")

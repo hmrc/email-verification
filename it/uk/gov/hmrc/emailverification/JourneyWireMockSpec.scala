@@ -34,7 +34,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     "given a valid payload and the email was successfully sent out" should {
       "return a redirect url to the journey endpoint on the frontend" in new Setup {
         expectEmailToSendSuccessfully()
-        val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload))
+        val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload()))
 
         val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
 
@@ -43,11 +43,24 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       }
     }
 
+    "given a valid payload but the email was previosuly locked out" should {
+      "return unauthorised response" in new Setup {
+        val emailsToBeStored = List(
+          VerificationStatus("email1", verified = true, locked = false),
+          VerificationStatus("email2", verified = false, locked = true),
+        )
+
+        expectEmailsToBeStored(emailsToBeStored)
+        val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload("email2")))
+        response.status shouldBe 401
+      }
+    }
+
     "given a valid payload and the email failed to send" should {
       "return a redirect url to the journey endpoint on the frontend" in new Setup {
         expectEmailToFailToSend()
 
-        val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload))
+        val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload()))
 
         response.status shouldBe BAD_GATEWAY
       }
@@ -526,7 +539,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     val deskproServiceName = "plastic-packaging-tax"
     val emailAddress = "barrywood@hotmail.com"
 
-    val verifyEmailPayload = Json.obj(
+    def verifyEmailPayload(emailAddress:String=emailAddress) = Json.obj(
       "credId" -> credId,
       "continueUrl" -> continueUrl,
       "origin" -> origin,
