@@ -2,7 +2,7 @@ import uk.gov.hmrc.DefaultBuildSettings.{defaultSettings, integrationTestSetting
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
 lazy val microservice = Project("email-verification", file("."))
-  .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory): _*)
+  .enablePlugins(Seq(play.sbt.PlayScala, SbtDistributablesPlugin): _*)
   .settings(majorVersion := 1)
   .settings(scalaSettings: _*)
   .settings(publishingSettings: _*)
