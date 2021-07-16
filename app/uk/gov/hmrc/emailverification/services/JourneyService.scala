@@ -85,8 +85,12 @@ class JourneyService @Inject() (
 
   def submitEmail(journeyId: String, email: String)(implicit hc: HeaderCarrier): Future[EmailUpdateResult] = {
     journeyRepository.submitEmail(journeyId, email).flatMap {
-      case Some(journey) if journey.emailAddressAttempts >= config.maxDifferentEmails =>
-        Future.successful(EmailUpdateResult.TooManyAttempts(journey.continueUrl))
+      case Some(journey) if journey.emailAddressAttempts > config.maxDifferentEmails =>
+        val result = EmailUpdateResult.TooManyAttempts(journey.continueUrl)
+        journey.emailAddress match {
+          case Some(email) => verificationStatusRepository.lock(journey.credId, email).map(_ => result)
+          case None        => Future.successful(result)
+        }
       case Some(journey) =>
         saveEmailAndSendPasscode(email, journey).map(_ => EmailUpdateResult.Accepted)
       case None =>
@@ -97,9 +101,17 @@ class JourneyService @Inject() (
   def resendPasscode(journeyId: String)(implicit hc: HeaderCarrier): Future[ResendPasscodeResult] = {
     journeyRepository.recordPasscodeResent(journeyId).flatMap {
       case Some(journey) if journey.passcodeAttempts > config.maxPasscodeAttempts =>
-        Future.successful(ResendPasscodeResult.TooManyAttemptsInSession(journey.continueUrl))
+        val result = ResendPasscodeResult.TooManyAttemptsInSession(journey.continueUrl)
+        journey.emailAddress match {
+          case Some(email) => verificationStatusRepository.lock(journey.credId, email).map(_ => result)
+          case None        => Future.successful(result)
+        }
       case Some(journey) if journey.passcodesSentToEmail > config.maxAttemptsPerEmail =>
-        Future.successful(ResendPasscodeResult.TooManyAttemptsForEmail(journey.frontendData))
+        val result = ResendPasscodeResult.TooManyAttemptsForEmail(journey.frontendData)
+        journey.emailAddress match {
+          case Some(email) => verificationStatusRepository.lock(journey.credId, email).map(_ => result)
+          case None        => Future.successful(result)
+        }
       case Some(journey) =>
         journey.emailAddress match {
           case Some(email) =>

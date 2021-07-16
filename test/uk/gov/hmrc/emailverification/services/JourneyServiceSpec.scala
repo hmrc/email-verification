@@ -118,6 +118,8 @@ class JourneyServiceSpec extends UnitSpec {
         ))))
         when(mockAppConfig.maxDifferentEmails).thenReturn(1)
 
+        when(mockVerificationStatusRepository.lock(eqTo("credId"), eqTo(email))).thenReturn(Future.unit)
+
         val result = await(journeyService.submitEmail(journeyId, email)(HeaderCarrier()))
         result shouldBe EmailUpdateResult.TooManyAttempts(continueUrl)
       }
@@ -235,6 +237,7 @@ class JourneyServiceSpec extends UnitSpec {
         ))))
         when(mockAppConfig.maxAttemptsPerEmail).thenReturn(1)
         when(mockAppConfig.maxPasscodeAttempts).thenReturn(100)
+        when(mockVerificationStatusRepository.lock(eqTo("credId"), eqTo(email))).thenReturn(Future.unit)
 
         val result = await(journeyService.resendPasscode(journeyId)(HeaderCarrier()))
         result shouldBe ResendPasscodeResult.TooManyAttemptsForEmail(JourneyData("/accessibility", serviceName, Some("/enterEmail"), None, None, Some(email)))
@@ -265,6 +268,7 @@ class JourneyServiceSpec extends UnitSpec {
           passcodeAttempts          = 2
         ))))
         when(mockAppConfig.maxPasscodeAttempts).thenReturn(1)
+        when(mockVerificationStatusRepository.lock(eqTo("credId"), eqTo(email))).thenReturn(Future.unit)
 
         val result = await(journeyService.resendPasscode(journeyId)(HeaderCarrier()))
         result shouldBe ResendPasscodeResult.TooManyAttemptsInSession(continueUrl)

@@ -389,7 +389,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       "return 403 Forbidden and the continue URL" in new Setup {
         val journey = Journey(
           UUID.randomUUID().toString,
-          "credId",
+          credId,
           "/continueUrl",
           "origin",
           "/accessibility",
@@ -407,12 +407,29 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
         expectJourneyToExist(journey)
         expectUserToBeAuthorisedWithGG(credId)
+        val emailsToBeStored = List(
+          VerificationStatus("aa@bb.cc", verified = false, locked = false)
+        )
+        expectEmailsToBeStored(emailsToBeStored)
 
         val result = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
           .withHttpHeaders(AUTHORIZATION -> "Bearer some_auth_token_probably")
           .post(Json.obj("passcode" -> "passcode")))
         result.status shouldBe FORBIDDEN
         result.json shouldBe Json.obj("status" -> "tooManyAttempts", "continueUrl" -> "/continueUrl")
+
+        val response = await(resourceRequest(s"/email-verification/verification-status/$credId").get())
+        response.status shouldBe 200
+        response.json shouldBe Json.obj(
+          "emails" -> Json.arr(
+            Json.obj(
+              "emailAddress" -> "aa@bb.cc",
+              "verified" -> false,
+              "locked" -> true
+            )
+          )
+        )
+
       }
     }
   }
