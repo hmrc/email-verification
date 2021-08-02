@@ -22,6 +22,7 @@ import com.typesafe.config.Config
 import org.scalatest.GivenWhenThen
 import play.api.Configuration
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.play.json.collection.JSONCollection
 import support.EmailStub._
 import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
 import uk.gov.hmrc.gg.test.WireMockSpec
@@ -52,16 +53,20 @@ trait BaseISpec extends WireMockSpec with MongoSpecSupport with GivenWhenThen {
     decryptedToken(lastVerificationEmail)._1.get
   }
 
-  private lazy val tokenRepo = new VerificationTokenMongoRepository(mongoComponent)
-  private lazy val verifiedRepo = new VerifiedEmailMongoRepository(mongoComponent)
+  protected lazy val tokenRepo = new VerificationTokenMongoRepository(mongoComponent)
+  protected lazy val verifiedRepo = new VerifiedEmailMongoRepository(mongoComponent)
+  protected lazy val verificationStatusRepo = mongoConnectorForTest.db().collection[JSONCollection]("verificationStatus")
+  protected lazy val journeyRepo = mongoConnectorForTest.db().collection[JSONCollection]("journey")
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     WireMock.reset()
 
     await(tokenRepo.drop)
+    await(tokenRepo.ensureIndexes)
     await(verifiedRepo.drop)
-    await(verifiedRepo.ensureIndexes)
+    await(journeyRepo.drop(false))
+    await(verificationStatusRepo.drop(false))
     AnalyticsStub.stubAnalyticsEvent()
     stubFor(post("/write/audit").willReturn(noContent))
     stubFor(post("/write/audit/merged").willReturn(noContent))

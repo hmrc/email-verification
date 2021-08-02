@@ -31,7 +31,36 @@ Preconditions:
 
 | Path                             | Supported Methods | Description                                               |
 |----------------------------------|-------------------|-----------------------------------------------------------|
-| [/test-only/passcode](#get-test-onlypasscode)              | GET              | Retrieves the generated passcode that is stored in mongo   | 
+| [/test-only/passcodes](#get-test-onlypasscodes)              | GET              | Uses the session Id to return the email address(es) and passcode(s) associated with that 4hr session. Both the old link based POST /verify-email and newer POST /verify-email endpoints are supported, and the output will be additive for that session, so either POST endpoint will be operative with this test only endpoint   | 
+
+**Example Response**
+```json
+{
+  "passcodes": [
+    {
+      "email": "abc@gmail.com",
+      "passcode": "8bd63d50-8efd-4c12-82f3-ab6f6288bd02"
+    },
+    {
+      "email": "abc@hotmail.com",
+      "passcode": "e01c9c9f-5d8d-438d-9a4a-8b56ece8fa1b"
+    }
+  ]
+}
+```
+
+### Success Response
+
+| Status    |  Description                      |
+|-----------|-----------------------------------|
+| 200       | Retrieved one or more records |
+
+### Failure Responses
+
+| Status    |  Description                                   |
+|-----------|------------------------------------------------|
+| 404       | No passcode found for sessionId                |
+| 401       | No session id provided                         |
 
 ## POST /verify-email
 

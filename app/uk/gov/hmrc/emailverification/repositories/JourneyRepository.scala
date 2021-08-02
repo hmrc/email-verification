@@ -42,6 +42,7 @@ trait JourneyRepository {
   def recordPasscodeResent(journeyId: String): Future[Option[Journey]]
 
   def get(journeyId: String): Future[Option[Journey]]
+  def findByCredId(credId: String): Future[List[Journey]]
 }
 
 private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
@@ -110,6 +111,8 @@ private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoCom
   }
 
   override def get(journeyId: String): Future[Option[Journey]] = findById(journeyId).map(_.map(_.toJourney))
+
+  def findByCredId(credId: String): Future[List[Journey]] = find("credId" -> credId).map(_.map(_.toJourney))
 }
 
 private object JourneyMongoRepository {
