@@ -42,6 +42,7 @@ trait JourneyRepository {
   def recordPasscodeResent(journeyId: String): Future[Option[Journey]]
 
   def get(journeyId: String): Future[Option[Journey]]
+  def findByCredId(credId: String): Future[List[Journey]]
 }
 
 private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
@@ -52,6 +53,7 @@ private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoCom
     idFormat       = implicitly) with JourneyRepository {
 
   override def indexes: Seq[Index] = Seq(
+    Index(key    = Seq("journeyId" -> IndexType.Ascending), name = Some("journeyId"), unique = true),
     Index(key     = Seq("createdAt" -> IndexType.Ascending), name = Some("ttl"), options = BSONDocument("expireAfterSeconds" -> 4.hours.toSeconds))
   )
 
@@ -110,6 +112,8 @@ private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoCom
   }
 
   override def get(journeyId: String): Future[Option[Journey]] = findById(journeyId).map(_.map(_.toJourney))
+
+  def findByCredId(credId: String): Future[List[Journey]] = find("credId" -> credId).map(_.map(_.toJourney))
 }
 
 private object JourneyMongoRepository {

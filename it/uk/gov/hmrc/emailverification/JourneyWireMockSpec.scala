@@ -22,7 +22,6 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import org.joda.time.DateTime
 import play.api.libs.json.Json
 import play.api.test.Injecting
-import reactivemongo.play.json.collection.JSONCollection
 import uk.gov.hmrc.emailverification.models.{English, Journey, VerificationStatus}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 
@@ -481,8 +480,6 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
 
   trait Setup extends TestData {
-    val verificationStatusRepo = mongoConnectorForTest.db().collection[JSONCollection]("verificationStatus")
-    val journeyRepo = mongoConnectorForTest.db().collection[JSONCollection]("journey")
 
     def expectEmailToSendSuccessfully() = {
       stubFor(post(urlEqualTo("/hmrc/email")).willReturn(ok()))
@@ -513,7 +510,6 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         })(ExecutionContext.global, JsObjectDocumentWriter)
       )
     }
-
     def expectJourneyToExist(journey: Journey): Unit = {
       await(
         journeyRepo.insert(false).one(Json.obj(
