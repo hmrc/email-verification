@@ -25,11 +25,12 @@ import org.scalatest.Assertion
 import play.api.libs.json.{JsDefined, JsString, Json}
 import support.BaseISpec
 import support.EmailStub._
-import uk.gov.hmrc.emailverification.models.PasscodeDoc
+import uk.gov.hmrc.emailverification.models.{English, Journey, PasscodeDoc}
 import uk.gov.hmrc.emailverification.repositories.PasscodeMongoRepository
 import uk.gov.hmrc.http.HeaderNames
-
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
+import reactivemongo.play.json.ImplicitBSONHandlers._
 
 class EmailPasscodeControllerISpec extends BaseISpec {
 
@@ -39,10 +40,30 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     "return a 200 with passcode if passcode exists in repository against sessionId" in new Setup {
       val passcode = generateUUID
       await(expectPasscodeToBePopulated(passcode))
+      expectUserToBeAuthorisedWithGG(credId)
 
       val response = await(resourceRequest("/test-only/passcodes").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
       response.status shouldBe 200
       (Json.parse(response.body) \ "passcodes" \ 0 \ "passcode") shouldBe JsDefined(JsString(passcode))
+    }
+
+    "return passcodes from passcode and journey repositories" in new Setup {
+      val passcode1 = generateUUID
+      val passcode2 = generateUUID
+      await(expectPasscodeToBePopulated(passcode1))
+      expectUserToBeAuthorisedWithGG(credId)
+
+      val journey = Journey(
+        UUID.randomUUID().toString,
+        credId, "/continueUrl", "origin", "/accessibility", "serviceName", English, emailAddress = Some(generateUUID),
+        Some("/enterEmail"), Some("/back"), Some("title"), passcode = passcode2, 0, 0, 0)
+
+      expectJourneyToExist(journey)
+
+      val response = await(resourceRequest("/test-only/passcodes").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
+      response.status shouldBe 200
+      (Json.parse(response.body) \ "passcodes" \ 0 \ "passcode") shouldBe JsDefined(JsString(passcode1))
+      (Json.parse(response.body) \ "passcodes" \ 1 \ "passcode") shouldBe JsDefined(JsString(passcode2))
     }
 
     "return a 401 if a sessionId wasnt provided with the request" in new Setup {
@@ -53,6 +74,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "return a 404 if the session id is in the request but not in mongo" in new Setup {
+      expectUserToBeAuthorisedWithGG(credId)
       val response = await(resourceRequest("/test-only/passcodes").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
       response.status shouldBe 404
       Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("PASSCODE_NOT_FOUND"))
@@ -437,7 +459,8 @@ class EmailPasscodeControllerISpec extends BaseISpec {
   trait Setup {
     val templateId = "my-lovely-template"
     val emailToVerify = "example@domain.com"
-    val sessionId = UUID.randomUUID.toString
+    val sessionId = generateUUID
+    val credId = generateUUID
     val passcodeMongoRepository = app.injector.instanceOf(classOf[PasscodeMongoRepository])
 
 
@@ -459,6 +482,39 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     def generateUUID = UUID.randomUUID().toString
+
+    def expectUserToBeAuthorisedWithGG(credId: String): Unit = {
+      stubFor(post("/auth/authorise")
+        .willReturn(okJson(Json.obj(
+          "optionalCredentials" -> Json.obj(
+            "providerId" -> credId,
+            "providerType" -> "GG"
+          )
+        ).toString())))
+    }
+
+    def expectJourneyToExist(journey: Journey): Unit = {
+      await(
+        journeyRepo.insert(false).one(Json.obj(
+          "_id" -> journey.journeyId,
+          "credId" -> journey.credId,
+          "continueUrl" -> journey.continueUrl,
+          "origin" -> journey.origin,
+          "accessibilityStatementUrl" -> journey.accessibilityStatementUrl,
+          "serviceName" -> journey.serviceName,
+          "language" -> journey.language,
+          "emailAddress" -> journey.emailAddress,
+          "enterEmailUrl" -> journey.enterEmailUrl,
+          "backUrl" -> journey.backUrl,
+          "pageTitle" -> journey.pageTitle,
+          "passcode" -> journey.passcode,
+          "createdAt" -> Json.obj("$date" -> DateTime.now.getMillis),
+          "emailAddressAttempts" -> journey.emailAddressAttempts,
+          "passcodesSentToEmail" -> journey.passcodesSentToEmail,
+          "passcodeAttempts" -> journey.passcodeAttempts,
+        ))(ExecutionContext.global, JsObjectDocumentWriter)
+      )
+    }
 
     def verifySendEmailWithPasscodeFired(responseCode: Int): Unit = {
       Thread.sleep(100)
