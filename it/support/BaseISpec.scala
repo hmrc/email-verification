@@ -35,7 +35,8 @@ trait BaseISpec extends WireMockSpec with MongoSpecSupport with GivenWhenThen {
   override def extraConfig: Map[String, Any] = Map(
     "play.http.router" -> "testOnlyDoNotUseInAppConf.Routes",
     "queryParameter.encryption.key" -> "gvBoGdgzqG1AarzF1LY0zQ==",
-    "mongodb.uri" -> mongoUri
+    "mongodb.uri" -> mongoUri,
+    "maxPasscodeAttempts" -> maxPasscodeAttempts
   )
 
   lazy val mongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
@@ -53,6 +54,7 @@ trait BaseISpec extends WireMockSpec with MongoSpecSupport with GivenWhenThen {
     decryptedToken(lastVerificationEmail)._1.get
   }
 
+  protected val maxPasscodeAttempts = 5
   protected lazy val tokenRepo = new VerificationTokenMongoRepository(mongoComponent)
   protected lazy val verifiedRepo = new VerifiedEmailMongoRepository(mongoComponent)
   protected lazy val verificationStatusRepo = mongoConnectorForTest.db().collection[JSONCollection]("verificationStatus")

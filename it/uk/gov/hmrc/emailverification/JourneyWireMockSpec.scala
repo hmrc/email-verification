@@ -430,6 +430,41 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         )
 
       }
+
+      "maxPasscodeAttempts should match with config value" in new Setup {
+        val journey = Journey(
+          UUID.randomUUID().toString,
+          credId,
+          "/continueUrl",
+          "origin",
+          "/accessibility",
+          "serviceName",
+          English,
+          Some("aa@bb.cc"),
+          Some("/enterEmailUrl"),
+          None,
+          None,
+          "passcode",
+          0,
+          0,
+          0
+        )
+
+        expectJourneyToExist(journey)
+        expectUserToBeAuthorisedWithGG(credId)
+        val emailsToBeStored = List(
+          VerificationStatus("aa@bb.cc", verified = false, locked = false)
+        )
+        expectEmailsToBeStored(emailsToBeStored)
+
+        (0 to maxPasscodeAttempts).map { _ =>
+          val result = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
+            .withHttpHeaders(AUTHORIZATION -> "Bearer some_auth_token_probably")
+            .post(Json.obj("passcode" -> "passcode")))
+          result.status
+        }.toList shouldBe List.tabulate(maxPasscodeAttempts)(_ => 200) ++ List(403)
+
+      }
     }
   }
 
