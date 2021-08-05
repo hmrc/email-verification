@@ -53,7 +53,6 @@ private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoCom
     idFormat       = implicitly) with JourneyRepository {
 
   override def indexes: Seq[Index] = Seq(
-    Index(key    = Seq("journeyId" -> IndexType.Ascending), name = Some("journeyId"), unique = true),
     Index(key     = Seq("createdAt" -> IndexType.Ascending), name = Some("ttl"), options = BSONDocument("expireAfterSeconds" -> 4.hours.toSeconds))
   )
 
