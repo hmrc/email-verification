@@ -85,24 +85,21 @@ private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoCom
     Json.obj(
       "$set" -> Json.obj("emailAddress" -> email, "passcodesSentToEmail" -> 1),
       "$inc" -> Json.obj("emailAddressAttempts" -> 1)
-    )
-  ).map(entity => readAsJourney(entity.value))
+    )).map(entity => readAsJourney(entity.value))
 
   @silent("deprecated")
   override def recordPasscodeAttempt(journeyId: String): Future[Option[Journey]] = collection.findAndUpdate(
-    Json.obj("_id" -> journeyId),
-    Json.obj(
-      "$inc" -> Json.obj("passcodeAttempts" -> 1)
-    )
-  ).map(entity => readAsJourney(entity.value))
+      Json.obj("_id" -> journeyId),
+      Json.obj(
+        "$inc" -> Json.obj("passcodeAttempts" -> 1)
+      )).map(entity => readAsJourney(entity.value))
 
   @silent("deprecated")
   override def recordPasscodeResent(journeyId: String): Future[Option[Journey]] = collection.findAndUpdate(
     Json.obj("_id" -> journeyId),
     Json.obj(
       "$inc" -> Json.obj("passcodesSentToEmail" -> 1)
-    )
-  ).map(entity => readAsJourney(entity.value))
+    )).map(entity => readAsJourney(entity.value))
 
   private def readAsJourney(value: Option[Document]): Option[Journey] = {
     value.map(JourneyMongoRepository.mongoFormat.reads(_).recoverTotal {

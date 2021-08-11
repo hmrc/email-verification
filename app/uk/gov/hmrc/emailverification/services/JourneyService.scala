@@ -100,7 +100,7 @@ class JourneyService @Inject() (
 
   def resendPasscode(journeyId: String)(implicit hc: HeaderCarrier): Future[ResendPasscodeResult] = {
     journeyRepository.recordPasscodeResent(journeyId).flatMap {
-      case Some(journey) if journey.passcodeAttempts > config.maxPasscodeAttempts =>
+      case Some(journey) if journey.passcodeAttempts >= config.maxPasscodeAttempts =>
         val result = ResendPasscodeResult.TooManyAttemptsInSession(journey.continueUrl)
         journey.emailAddress match {
           case Some(email) => verificationStatusRepository.lock(journey.credId, email).map(_ => result)
@@ -131,7 +131,7 @@ class JourneyService @Inject() (
 
   def validatePasscode(journeyId: String, credId: String, passcode: String): Future[PasscodeValidationResult] = {
     journeyRepository.recordPasscodeAttempt(journeyId).flatMap {
-      case Some(journey) if journey.passcodeAttempts > config.maxPasscodeAttempts =>
+      case Some(journey) if journey.passcodeAttempts >= config.maxPasscodeAttempts =>
         val email = journey.emailAddress.getOrElse(throw new IllegalStateException(s"cannot lock email address for credId $credId as no email address found"))
         verificationStatusRepository.lock(credId, email).map { _ =>
           PasscodeValidationResult.TooManyAttempts(journey.continueUrl)
