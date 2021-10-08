@@ -18,9 +18,10 @@ package config
 
 import org.scalatest.prop.{TableDrivenPropertyChecks, Tables}
 import play.api.Configuration
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 
-class AppConfigSpec extends WordSpec with Matchers {
+class AppConfigSpec extends AnyWordSpec with Matchers {
 
   "simple string configuration values" should {
 
