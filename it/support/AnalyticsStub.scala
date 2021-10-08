@@ -17,7 +17,7 @@
 package support
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.scalatest.MockitoSugar
 
 object AnalyticsStub extends MockitoSugar {
   def stubAnalyticsEvent(): Unit =

@@ -89,10 +89,10 @@ private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoCom
 
   @silent("deprecated")
   override def recordPasscodeAttempt(journeyId: String): Future[Option[Journey]] = collection.findAndUpdate(
-      Json.obj("_id" -> journeyId),
-      Json.obj(
-        "$inc" -> Json.obj("passcodeAttempts" -> 1)
-      )).map(entity => readAsJourney(entity.value))
+    Json.obj("_id" -> journeyId),
+    Json.obj(
+      "$inc" -> Json.obj("passcodeAttempts" -> 1)
+    )).map(entity => readAsJourney(entity.value))
 
   @silent("deprecated")
   override def recordPasscodeResent(journeyId: String): Future[Option[Journey]] = collection.findAndUpdate(

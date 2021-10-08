@@ -20,7 +20,8 @@ import _root_.play.api.libs.json.{JsValue, Json}
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.typesafe.config.Config
-import org.scalatest.{Assertion, Matchers}
+import org.scalatest.Assertion
+import org.scalatest.matchers.should.Matchers
 import play.api.http.Status
 import uk.gov.hmrc.crypto.Crypted.fromBase64
 import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
