@@ -18,16 +18,22 @@ package uk.gov.hmrc.emailverification.models
 
 import play.api.libs.json._
 
-sealed trait Language
-case object English extends Language
-case object Welsh extends Language
+sealed trait Language {
+  val value: String
+}
+case object English extends Language {
+  override val value: String = "en"
+}
+case object Welsh extends Language {
+  override val value: String = "cy"
+}
 
 object Language {
   implicit val reads: Reads[Language] = (json: JsValue) => {
     json.validate[String].map(_.toLowerCase).flatMap {
-      case "en"  => JsSuccess(English)
-      case "cy"  => JsSuccess(Welsh)
-      case other => JsError(s"invalid language $other")
+      case English.value => JsSuccess(English)
+      case Welsh.value   => JsSuccess(Welsh)
+      case other         => JsError(s"invalid language $other")
     }
   }
 

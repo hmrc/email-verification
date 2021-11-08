@@ -29,6 +29,8 @@ import scala.concurrent.ExecutionContext
 
 class JourneyWireMockSpec extends BaseISpec with Injecting {
 
+  override def extraConfig = super.extraConfig ++ Map("auditing.enabled" -> true)
+
   "POST /verify-email" when {
     "given a valid payload and the email was successfully sent out" should {
       "return a redirect url to the journey endpoint on the frontend" in new Setup {
@@ -39,6 +41,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
         response.status shouldBe CREATED
         (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin"
+        verifyEmailRequestEventFired(1,CREATED)
       }
     }
 
@@ -51,7 +54,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
         expectEmailsToBeStored(emailsToBeStored)
         val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload("email2")))
-        response.status shouldBe 401
+        response.status shouldBe UNAUTHORIZED
+        verifyEmailRequestEventFired(1,UNAUTHORIZED)
       }
     }
 
@@ -62,6 +66,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload()))
 
         response.status shouldBe BAD_GATEWAY
+        verifyEmailRequestEventFired(1,BAD_GATEWAY)
       }
     }
   }
@@ -497,6 +502,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
             ),
           )
         )
+
+        verifyEmailVerificationOutcomeEventFired(1,200)
       }
     }
 
@@ -509,12 +516,29 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
         response.json shouldBe Json.obj("error" -> s"no verified or locked emails found for cred ID: $credId")
 
+        verifyEmailVerificationOutcomeEventFired(1,404)
       }
     }
   }
 
 
   trait Setup extends TestData {
+
+    def verifyEmailRequestEventFired(times: Int = 1, expectedStatus:Int): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"VerifyEmailRequest""""))
+        .withRequestBody(containing(s""""status":"${expectedStatus.toString}""""))
+      )
+    }
+
+    def verifyEmailVerificationOutcomeEventFired(times: Int = 1, expectedStatus:Int): Unit = {
+      Thread.sleep(100)
+      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+        .withRequestBody(containing(""""auditType":"EmailVerificationOutcomeRequest""""))
+        .withRequestBody(containing(s""""status":"${expectedStatus.toString}""""))
+      )
+    }
 
     def expectEmailToSendSuccessfully() = {
       stubFor(post(urlEqualTo("/hmrc/email")).willReturn(ok()))

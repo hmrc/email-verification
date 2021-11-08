@@ -25,7 +25,8 @@ import uk.gov.hmrc.auth.core.retrieve.Credentials
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisationException, AuthorisedFunctions}
 import uk.gov.hmrc.emailverification.models.{VerificationStatusResponse, VerifyEmailRequest, VerifyEmailResponse}
-import uk.gov.hmrc.emailverification.services.{EmailUpdateResult, JourneyService, PasscodeValidationResult, ResendPasscodeResult}
+import uk.gov.hmrc.emailverification.services.{AuditService, EmailUpdateResult, JourneyService, PasscodeValidationResult, ResendPasscodeResult}
+import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,7 +34,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class JourneyController @Inject() (
     controllerComponents: ControllerComponents,
     journeyService:       JourneyService,
-    val authConnector:    AuthConnector
+    val authConnector:    AuthConnector,
+    auditService:         AuditService
 )(implicit ec: ExecutionContext)
   extends BackendController(controllerComponents) with AuthorisedFunctions with Logging {
 
@@ -50,10 +52,17 @@ class JourneyController @Inject() (
     val verifyEmailRequest = request.body
     journeyService.isLocked(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address)).flatMap { locked =>
       if (locked) {
+        auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 401)
         Future.successful(Unauthorized)
       } else {
         journeyService.initialise(verifyEmailRequest).map { redirectUrl =>
+          auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 201)
           Created(Json.toJson(VerifyEmailResponse(redirectUrl)))
+        }.recover {
+          case ex: UpstreamErrorResponse => {
+            auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, ex.reportAs)
+            Status(ex.reportAs)(ex.getMessage())
+          }
         }
       }
     }
@@ -140,10 +149,17 @@ class JourneyController @Inject() (
     }
   }
 
-  def completedEmails(credId: String): Action[AnyContent] = Action.async(parse.anyContent) { _ =>
+  def completedEmails(credId: String): Action[AnyContent] = Action.async(parse.anyContent) { implicit request =>
     journeyService.findCompletedEmails(credId).map {
-      case Nil    => NotFound(Json.obj("error" -> s"no verified or locked emails found for cred ID: $credId"))
-      case emails => Ok(Json.toJson(VerificationStatusResponse(emails)))
+      case Nil => {
+        auditService.sendEmailVerificationOutcomeRequestEvent(credId, "-", 404)
+        NotFound(Json.obj("error" -> s"no verified or locked emails found for cred ID: $credId"))
+      }
+      case emails => {
+        val emailsStatusJson = Json.toJson(VerificationStatusResponse(emails))
+        auditService.sendEmailVerificationOutcomeRequestEvent(credId, emailsStatusJson.toString(), 200)
+        Ok(Json.toJson(VerificationStatusResponse(emails)))
+      }
     }
   }
 
