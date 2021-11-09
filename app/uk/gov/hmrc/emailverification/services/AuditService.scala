@@ -18,12 +18,14 @@ package uk.gov.hmrc.emailverification.services
 
 import javax.inject.Inject
 import play.api.Logging
+import play.api.http.HeaderNames
+import play.api.libs.json.{JsArray, JsObject, JsString, JsValue, Json}
 import play.api.mvc.Request
 import uk.gov.hmrc.emailverification.models.{PasscodeDoc, VerifyEmailRequest}
 import uk.gov.hmrc.http.Authorization
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.audit.model.DataEvent
+import uk.gov.hmrc.play.audit.model.{DataEvent, ExtendedDataEvent}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvider
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -264,21 +266,22 @@ class AuditService @Inject() (
       "emailAddress" -> verifyEmailRequest.email.fold("-")(_.address),
       "emailEntryUrl" -> verifyEmailRequest.email.fold("-")(_.enterUrl),
       "lang" -> verifyEmailRequest.lang.fold("-")(_.value),
-      "status" -> responseStatus.toString
+      "statusCode" -> responseStatus.toString
     )
     logger.info(s"[GG-5646] VerifyEmailRequest received. $requestContextForLog")
     sendEvent("VerifyEmailRequest", details, "HMRC Gateway - Email Verification - a VerifyEmailRequest has been made to verify an email address belongs to the requestor.")
   }
 
-  def sendEmailVerificationOutcomeRequestEvent(credId: String, emailsStatusJson: String, responseStatus: Int)(implicit request: Request[_]): Future[Unit] = {
-    val details = Map(
-      "credId" -> credId,
-      "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value,
-      "emails" -> emailsStatusJson,
-      "status" -> responseStatus.toString
+  def sendEmailVerificationOutcomeRequestEvent(credId: String, emailsJsonArray: JsArray, responseStatus: Int)(implicit request: Request[_]): Future[Unit] = {
+    val details = Json.obj(
+      "credId" -> JsString(credId),
+      "bearerToken" -> JsString(hc.authorization.getOrElse(Authorization("-")).value),
+      "userAgentString" -> JsString(request.headers.get(HeaderNames.USER_AGENT).getOrElse("-")),
+      "emails" -> emailsJsonArray,
+      "statusCode" -> JsString(responseStatus.toString)
     )
     logger.info(s"[GG-5646] EmailVerification outcome requested for credId $credId. $requestContextForLog")
-    sendEvent("EmailVerificationOutcomeRequest", details, "HMRC Gateway - Email Verification - a request has been made to check the outcome of an email verification attempt.")
+    sendEventWithJsonDetails("EmailVerificationOutcomeRequest", details, "HMRC Gateway - Email Verification - a request has been made to check the outcome of an email verification attempt.")
   }
 
   private def sendEvent(auditType: String, details: Map[String, String], transactionName: String)(implicit request: Request[_]) = {
@@ -286,6 +289,13 @@ class AuditService @Inject() (
 
     val event = DataEvent(auditType   = auditType, tags = hc.toAuditTags(transactionName, request.path), detail = hcDetails, auditSource = "email-verification")
     auditConnector.sendEvent(event).map(_ => ())
+  }
+
+  private def sendEventWithJsonDetails(auditType: String, details: JsObject, transactionName: String)(implicit request: Request[_]) = {
+    val hcDetails = JsObject(hc.toAuditDetails().map(tuple => tuple._1 -> JsString(tuple._2))) ++ details
+
+    val event = ExtendedDataEvent(auditType   = auditType, tags = hc.toAuditTags(transactionName, request.path), detail = hcDetails.as[JsValue], auditSource = "email-verification")
+    auditConnector.sendExtendedEvent(event).map(_ => ())
   }
 
 }

@@ -41,7 +41,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
         response.status shouldBe CREATED
         (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin"
-        verifyEmailRequestEventFired(1,CREATED)
+        verifyEmailRequestEventFired(1,emailAddress,CREATED)
       }
     }
 
@@ -55,7 +55,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         expectEmailsToBeStored(emailsToBeStored)
         val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload("email2")))
         response.status shouldBe UNAUTHORIZED
-        verifyEmailRequestEventFired(1,UNAUTHORIZED)
+        verifyEmailRequestEventFired(1,"email2",UNAUTHORIZED)
       }
     }
 
@@ -66,7 +66,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload()))
 
         response.status shouldBe BAD_GATEWAY
-        verifyEmailRequestEventFired(1,BAD_GATEWAY)
+        verifyEmailRequestEventFired(1,emailAddress,BAD_GATEWAY)
       }
     }
   }
@@ -503,7 +503,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           )
         )
 
-        verifyEmailVerificationOutcomeEventFired(1,200)
+        verifyEmailVerificationOutcomeEventFired(1, """[{"emailAddress":"email1","verified":true,"locked":false},{"emailAddress":"email3","verified":false,"locked":true}]""",200)
       }
     }
 
@@ -516,7 +516,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
         response.json shouldBe Json.obj("error" -> s"no verified or locked emails found for cred ID: $credId")
 
-        verifyEmailVerificationOutcomeEventFired(1,404)
+        verifyEmailVerificationOutcomeEventFired(1,"[]", 404)
       }
     }
   }
@@ -524,19 +524,35 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
   trait Setup extends TestData {
 
-    def verifyEmailRequestEventFired(times: Int = 1, expectedStatus:Int): Unit = {
+    def verifyEmailRequestEventFired(times: Int = 1, emailAddress:String, expectedStatus:Int): Unit = {
       Thread.sleep(100)
       verify(times, postRequestedFor(urlEqualTo("/write/audit"))
         .withRequestBody(containing(""""auditType":"VerifyEmailRequest""""))
-        .withRequestBody(containing(s""""status":"${expectedStatus.toString}""""))
+        .withRequestBody(containing(s""""credId":"${credId}""""))
+        .withRequestBody(containing(s""""bearerToken":"-"""))
+        .withRequestBody(containing(s""""origin":"${origin}""""))
+        .withRequestBody(containing(s""""continueUrl":"${continueUrl}""""))
+        .withRequestBody(containing(s""""deskproServiceName":"${deskproServiceName}""""))
+        .withRequestBody(containing(s""""accessibilityStatementUrl":"${accessibilityStatementUrl}""""))
+        .withRequestBody(containing(s""""pageTitle":"-""""))
+        .withRequestBody(containing(s""""backUrl":"-""""))
+        .withRequestBody(containing(s""""emailAddress":"${emailAddress}""""))
+        .withRequestBody(containing(s""""emailEntryUrl":"${emailEntryUrl}""""))
+        .withRequestBody(containing(s""""lang":"${lang}""""))
+        .withRequestBody(containing(s""""statusCode":"${expectedStatus.toString}""""))
+
       )
     }
 
-    def verifyEmailVerificationOutcomeEventFired(times: Int = 1, expectedStatus:Int): Unit = {
+    def verifyEmailVerificationOutcomeEventFired(times: Int = 1, emailsJsonArray:String, expectedStatus:Int): Unit = {
       Thread.sleep(100)
       verify(times, postRequestedFor(urlEqualTo("/write/audit"))
         .withRequestBody(containing(""""auditType":"EmailVerificationOutcomeRequest""""))
-        .withRequestBody(containing(s""""status":"${expectedStatus.toString}""""))
+        .withRequestBody(containing(s""""credId":"${credId}""""))
+        .withRequestBody(containing(s""""bearerToken""""))
+        .withRequestBody(containing(s""""userAgentString":"AHC/2.1""""))
+        .withRequestBody(containing(s""""emails":${emailsJsonArray}"""))
+        .withRequestBody(containing(s""""statusCode":"${expectedStatus.toString}""""))
       )
     }
 
@@ -610,18 +626,21 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     val origin = "ppt"
     val deskproServiceName = "plastic-packaging-tax"
     val emailAddress = "barrywood@hotmail.com"
+    val emailEntryUrl = "/start"
+    val accessibilityStatementUrl = "/accessibility"
+    val lang = "en"
 
     def verifyEmailPayload(emailAddress:String=emailAddress) = Json.obj(
       "credId" -> credId,
       "continueUrl" -> continueUrl,
       "origin" -> origin,
       "deskproServiceName" -> deskproServiceName,
-      "accessibilityStatementUrl" -> "/accessibility",
+      "accessibilityStatementUrl" -> accessibilityStatementUrl,
       "email" -> Json.obj(
         "address" -> emailAddress,
-        "enterUrl" -> "/start",
+        "enterUrl" -> emailEntryUrl,
       ),
-      "lang" -> "en"
+      "lang" -> lang
     )
 
 

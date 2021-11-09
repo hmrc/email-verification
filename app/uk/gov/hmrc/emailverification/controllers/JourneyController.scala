@@ -19,7 +19,7 @@ package uk.gov.hmrc.emailverification.controllers
 import play.api.Logging
 
 import javax.inject.Inject
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.auth.core.retrieve.Credentials
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
@@ -152,12 +152,11 @@ class JourneyController @Inject() (
   def completedEmails(credId: String): Action[AnyContent] = Action.async(parse.anyContent) { implicit request =>
     journeyService.findCompletedEmails(credId).map {
       case Nil => {
-        auditService.sendEmailVerificationOutcomeRequestEvent(credId, "-", 404)
+        auditService.sendEmailVerificationOutcomeRequestEvent(credId, JsArray(), 404)
         NotFound(Json.obj("error" -> s"no verified or locked emails found for cred ID: $credId"))
       }
       case emails => {
-        val emailsStatusJson = Json.toJson(VerificationStatusResponse(emails))
-        auditService.sendEmailVerificationOutcomeRequestEvent(credId, emailsStatusJson.toString(), 200)
+        auditService.sendEmailVerificationOutcomeRequestEvent(credId, Json.toJson(emails).as[JsArray], 200)
         Ok(Json.toJson(VerificationStatusResponse(emails)))
       }
     }
