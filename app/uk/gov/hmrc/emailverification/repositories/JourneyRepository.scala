@@ -18,7 +18,9 @@ package uk.gov.hmrc.emailverification.repositories
 
 import com.github.ghik.silencer.silent
 import com.google.inject.ImplementedBy
+import config.AppConfig
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.functional.syntax.{unlift, _}
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
@@ -45,7 +47,7 @@ trait JourneyRepository {
   def findByCredId(credId: String): Future[List[Journey]]
 }
 
-private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
+private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent, config: AppConfig)(implicit ec: ExecutionContext)
   extends ReactiveRepository[JourneyMongoRepository.Entity, String](
     collectionName = "journey",
     mongo          = mongoComponent.mongoConnector.db,
@@ -55,6 +57,25 @@ private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoCom
   override def indexes: Seq[Index] = Seq(
     Index(key     = Seq("createdAt" -> IndexType.Ascending), name = Some("ttl"), options = BSONDocument("expireAfterSeconds" -> 4.hours.toSeconds))
   )
+
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+    val log: Logger = Logger(getClass)
+    if (config.dropJourneyIdUniqueIndexAtStartup) {
+      log.info("###### Removing Index journeyIdUnique.. #####")
+      collection.indexesManager.drop("journeyIdUnique").flatMap { _ =>
+        log.info("###### Index journeyIdUnique removed #####")
+        super.ensureIndexes
+      }.recoverWith {
+        case e: Exception => {
+          log.error(s"###### Index journeyIdUnique removal failed, $e #####")
+          super.ensureIndexes
+        }
+      }
+    } else {
+      log.info("###### Skipping Index journeyIdUnique removal #####")
+      super.ensureIndexes
+    }
+  }
 
   def initialise(journey: Journey): Future[Unit] = {
     insert(

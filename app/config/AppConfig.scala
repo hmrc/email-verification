@@ -43,5 +43,6 @@ class AppConfig @Inject() (val config: Configuration) {
   lazy val maxDifferentEmails = config.get[Int]("maxDifferentEmails")
   lazy val dropPasscodeSessionIdIndexAtStartup = config.get[Boolean]("dropPasscodeSessionIdIndexAtStartup")
   lazy val verificationStatusRepositoryTtl = config.get[Duration]("verificationStatusRepositoryTtl")
+  lazy val dropJourneyIdUniqueIndexAtStartup = config.get[Boolean]("dropJourneyIdUniqueIndexAtStartup")
 }
 
