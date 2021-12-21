@@ -51,7 +51,7 @@
         <appender-ref ref="STDOUT"/>
     </logger>
 
-    <logger name="reactivemongo" level="WARN"/>
+    <logger name="reactivemongo" level="INFO"/>
     <logger name="uk.gov.hmrc.play.bootstrap.audit.DefaultAuditConnector" level="WARN"/>
     <logger name="uk.gov.hmrc.audit.handler.DatastreamHandler" level="WARN"/>
     <logger name="org.eclipse.jetty" level="WARN"/>
