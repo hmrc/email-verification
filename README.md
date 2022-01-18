@@ -1,5 +1,7 @@
 # email-verification
 
+**Note: Link Based Verification is now ***Deprecated*** and only passcode now should be used.**
+
 email-verification is a service to support a verification flow that starts by creating a verification for an email address and sending out an email with verification link or a passcode.
 
 Users can verify the email address by clicking on the link in the email, or typing in the passcode they received.
@@ -65,13 +67,14 @@ Preconditions:
 ## POST /verify-email
 
 Initiates the email-verification journey. Sends passcode to email address if provided, then returns url to start frontend journey. 
-If an email address is not provided then the user will be required to provide one on the frontend. 
+If an email address is not provided then the user will be required to provide one on the frontend.
+The journeyId is returned to the calling service in the redirectUri. The calling service simply performs a redirect and does not need to extract any of the supplied redirectUri parameters, as the outcome callback GET endpoint uses a credId, not journeyId.
 
 **Example Request**
 
 ```json
 {
-  "credId":"98fe3788-2d39-409c-b400-8f86ed1634ea",
+  "credId":"0000000026936462",
   "continueUrl":"/plastic-packaging-tax/start",
   "origin":"ppt",
   "deskproServiceName":"plastic-packaging-tax",  // Optional, if absent then 'origin' will be used
@@ -90,7 +93,7 @@ If an email address is not provided then the user will be required to provide on
 
 ```json
 {
-   "redirectUri" : "/email-verification/journey/98fe3788-2d39-409c-b400-8f86ed1634ea?continueUrl=/ppt&origin=ppt"
+   "redirectUri" : "/email-verification/journey/98fe3788-2d39-409c-b400-8f86ed1634ea?continueUrl=/plastic-packaging-tax/start&origin=ppt"
 }
 ```
 
@@ -110,12 +113,17 @@ If an email address is not provided then the user will be required to provide on
 | 502       | Email failed to send                         |  
 
 ## GET /verification-status/:credId
-Retrieves all the locked or verified emails against a cred ID.
+Retrieves all the locked or verified emails against a cred ID. Only completed journeys will have a result, that can be one of the following states:
+```
+verified=true, locked=false
+verified=false, locked=true
+```
+If `locked=true`, it is the responsibility of the calling service to handle a "locked" journey situation.
 
 **Example Request**
 
 ```
-GET /email-verification/verification-status/98fe3788-2d39-409c-b400-8f86ed1634ea
+GET /email-verification/verification-status/0000000026936462
 ```
 
 
@@ -194,7 +202,9 @@ __Please make sure that you validate your email address before making this reque
 | 502       | Upstream service error                        | UPSTREAM_ERROR           |                          |
 
 
-## POST /verified-email-check
+## POST /verified-email-check - ***DEPRECATED***
+
+**Note: Deprecated for Security Reasons**
 
 Check if email address is verified or not, if verified return 200 with the email.
 
