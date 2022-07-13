@@ -18,34 +18,31 @@ package support
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{noContent, post, stubFor}
-import com.typesafe.config.Config
+import config.AppConfig
 import org.scalatest.GivenWhenThen
 import play.api.Configuration
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.play.json.collection.JSONCollection
 import support.EmailStub._
-import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
+import uk.gov.hmrc.emailverification.repositories._
 import uk.gov.hmrc.gg.test.WireMockSpec
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
-
+import uk.gov.hmrc.mongo.test.MongoSupport
 import scala.concurrent.ExecutionContext.Implicits.global
 
-trait BaseISpec extends WireMockSpec with MongoSpecSupport with GivenWhenThen {
+trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
 
   override def extraConfig: Map[String, Any] = Map(
     "play.http.router" -> "testOnlyDoNotUseInAppConf.Routes",
     "queryParameter.encryption.key" -> "gvBoGdgzqG1AarzF1LY0zQ==",
     "mongodb.uri" -> mongoUri,
-    "maxPasscodeAttempts" -> maxPasscodeAttempts
+    "maxPasscodeAttempts" -> maxPasscodeAttempts,
+    "verificationStatusRepositoryTtl" -> "24 hours",
+    "maxDifferentEmails" -> 5
   )
-
-  lazy val mongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
-    override def mongoConnector: MongoConnector = mongoConnectorForTest
-  }
 
   def appClient(path: String): String = resource(s"/email-verification$path")
 
-  implicit val config: Config = Configuration.from(extraConfig).underlying
+  val config = Configuration.from(extraConfig)
+  val appConfig: AppConfig = new AppConfig(config)
+  implicit val implicitConfig = config.underlying
 
   def tokenFor(email: String): String = {
     expectEmailToBeSent()
@@ -54,21 +51,17 @@ trait BaseISpec extends WireMockSpec with MongoSpecSupport with GivenWhenThen {
     decryptedToken(lastVerificationEmail)._1.get
   }
 
-  protected val maxPasscodeAttempts = 5
-  protected lazy val tokenRepo = new VerificationTokenMongoRepository(mongoComponent)
-  protected lazy val verifiedRepo = new VerifiedEmailMongoRepository(mongoComponent)
-  protected lazy val verificationStatusRepo = mongoConnectorForTest.db().collection[JSONCollection]("verificationStatus")
-  protected lazy val journeyRepo = mongoConnectorForTest.db().collection[JSONCollection]("journey")
+  val maxPasscodeAttempts = 5
+
+  lazy val verificationStatusRepo = new VerificationStatusMongoRepository(mongoComponent, config = appConfig)
+  lazy val journeyRepo =new JourneyMongoRepository(mongoComponent)
+  lazy val passcodeRepo = new PasscodeMongoRepository(mongoComponent = mongoComponent, config = appConfig)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     WireMock.reset()
 
-    await(tokenRepo.drop)
-    await(tokenRepo.ensureIndexes)
-    await(verifiedRepo.drop)
-    await(journeyRepo.drop(false))
-    await(verificationStatusRepo.drop(false))
+    dropDatabase()
     AnalyticsStub.stubAnalyticsEvent()
     stubFor(post("/write/audit").willReturn(noContent))
     stubFor(post("/write/audit/merged").willReturn(noContent))
@@ -76,8 +69,6 @@ trait BaseISpec extends WireMockSpec with MongoSpecSupport with GivenWhenThen {
 
   override def afterAll(): Unit = {
     super.afterAll()
-    await(tokenRepo.drop)
-    await(verifiedRepo.drop)
-    dropTestCollection("passcode")
+    dropDatabase()
   }
 }

@@ -149,7 +149,7 @@ class JourneyService @Inject() (
   }
 
   //returns email addresses that are verified or locked
-  def findCompletedEmails(credId: String): Future[List[CompletedEmail]] = {
+  def findCompletedEmails(credId: String): Future[Seq[CompletedEmail]] = {
     verificationStatusRepository.retrieve(credId)
       .map(
         _.collect {

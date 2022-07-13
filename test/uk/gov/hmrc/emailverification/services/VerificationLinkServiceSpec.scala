@@ -18,7 +18,6 @@ package uk.gov.hmrc.emailverification.services
 
 import com.typesafe.config.Config
 import config.AppConfig
-import org.joda.time.DateTime
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Configuration
 import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
@@ -39,8 +38,6 @@ class VerificationLinkServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
 
   trait Setup {
     val token = "fixedNonce"
-    val fixedTime: DateTime = DateTime.parse("2016-08-18T12:45:11.631+0100")
-
     val cryptoMock: CryptoWithKeysFromConfig = mock[CryptoWithKeysFromConfig]
     val config: Config = mock[Config]
     val mockAppConfig: AppConfig = mock[AppConfig]

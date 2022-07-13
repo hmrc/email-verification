@@ -17,33 +17,30 @@
 package uk.gov.hmrc.emailverification.repositories
 
 import javax.inject.{Inject, Singleton}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-
+import org.mongodb.scala.model._
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class VerifiedEmailMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[VerifiedEmail, BSONObjectID](
+class VerifiedEmailMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
+  extends PlayMongoRepository[VerifiedEmail](
     collectionName = "verifiedEmail",
-    mongo          = mongoComponent.mongoConnector.db,
+    mongoComponent = mongoComponent,
     domainFormat   = VerifiedEmail.format,
-    idFormat       = ReactiveMongoFormats.objectIdFormats) {
+    indexes        = Seq(IndexModel(Indexes.ascending("email"), IndexOptions().name("emailUnique").unique(true))),
+    replaceIndexes = false
+  ) {
 
-  def isVerified(email: String): Future[Boolean] = this.find(email).map(_.isDefined)
+  def isVerified(email: String): Future[Boolean] = find(email).map(_.isDefined)
 
-  def find(email: String): Future[Option[VerifiedEmail]] = super.find("email" -> email).map(_.headOption)
+  def find(email: String): Future[Option[VerifiedEmail]] =
+    collection.find(Filters.equal("email", email))
+      .headOption()
 
-  def insert(email: String): Future[Unit] = {
-    val document = VerifiedEmail(email)
-    collection.insert(ordered = false).one(document).map(_ => ())
-  }
-
-  override def indexes: Seq[Index] = Seq(
-    Index(Seq("email" -> IndexType.Ascending), name = Some("emailUnique"), unique = true)
-  )
+  def insert(email: String): Future[Unit] =
+    collection.insertOne(VerifiedEmail(email))
+      .headOption()
+      .map(_ => ())
 }
