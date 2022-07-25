@@ -19,13 +19,14 @@ package uk.gov.hmrc.emailverification
 import java.util.UUID
 import support.BaseISpec
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.joda.time.DateTime
+import org.mongodb.scala.result.InsertOneResult
 import play.api.libs.json.Json
 import play.api.test.Injecting
 import uk.gov.hmrc.emailverification.models.{English, Journey, VerificationStatus}
-import reactivemongo.play.json.ImplicitBSONHandlers._
-
-import scala.concurrent.ExecutionContext
+import uk.gov.hmrc.emailverification.repositories.{JourneyMongoRepository, VerificationStatusMongoRepository}
+import java.time.Instant
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class JourneyWireMockSpec extends BaseISpec with Injecting {
 
@@ -166,7 +167,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           None,
           None,
           "passcode",
-          emailAddressAttempts = Int.MaxValue,
+          emailAddressAttempts = 100,
           0,
           0
         )
@@ -240,7 +241,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           Some("title"),
           "passcode",
           0,
-          passcodesSentToEmail = Int.MaxValue,
+          passcodesSentToEmail = 100,
           passcodeAttempts = 0
         )
 
@@ -280,7 +281,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           "passcode",
           0,
           passcodesSentToEmail = 0,
-          passcodeAttempts = Int.MaxValue
+          passcodeAttempts = 100
         )
 
         expectJourneyToExist(journey)
@@ -318,8 +319,10 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         expectEmailsToBeStored(List(VerificationStatus("aa@bb.cc", verified = false, locked = false)))
         expectUserToBeAuthorisedWithGG(credId)
 
-        val result = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
-          .post(Json.obj("passcode" -> "passcode")))
+        val result = await(
+          resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
+            .withHttpHeaders("Authorization" -> "Bearer123")
+            .post(Json.obj("passcode" -> "passcode")))
         result.status shouldBe OK
         result.json shouldBe Json.obj("status" -> "complete", "continueUrl" -> "/continueUrl")
 
@@ -360,8 +363,10 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         expectJourneyToExist(journey)
         expectUserToBeAuthorisedWithGG(credId)
 
-        val result = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
-          .post(Json.obj("passcode" -> "not the right passcode")))
+        val result = await(
+          resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
+            .withHttpHeaders("Authorization" -> "Bearer123")
+            .post(Json.obj("passcode" -> "not the right passcode")))
         result.status shouldBe BAD_REQUEST
         result.json shouldBe Json.obj(
           "status" -> "incorrectPasscode",
@@ -381,8 +386,10 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       "return 404 Not Found" in new Setup {
         expectUserToBeAuthorisedWithGG(credId)
 
-        val result = await(resourceRequest(s"/email-verification/journey/nope/passcode")
-          .post(Json.obj("passcode" -> "passcode")))
+        val result = await(
+          resourceRequest(s"/email-verification/journey/nope/passcode")
+            .withHttpHeaders("Authorization" -> "Bearer123")
+            .post(Json.obj("passcode" -> "passcode")))
 
         result.status shouldBe NOT_FOUND
         result.json shouldBe Json.obj("status" -> "journeyNotFound")
@@ -406,7 +413,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           "passcode",
           0,
           0,
-          Int.MaxValue
+          100
         )
 
         expectJourneyToExist(journey)
@@ -573,40 +580,40 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     }
 
     def expectEmailsToBeStored(emails: List[VerificationStatus]): Unit = {
-      await(
-        verificationStatusRepo.insert(false).many(emails.map { email =>
-          Json.obj(
-            "credId" -> credId,
-            "emailAddress" -> email.emailAddress,
-            "verified" -> email.verified,
-            "locked" -> email.locked,
-            "createdAt" -> Json.obj("$date" -> DateTime.now.getMillis)
-          )
-        })(ExecutionContext.global, JsObjectDocumentWriter)
-      )
+
+      val inserts: Seq[Future[InsertOneResult]] = emails.map(email => {
+        verificationStatusRepo.collection.insertOne(
+          VerificationStatusMongoRepository.Entity(
+            credId = credId,
+            emailAddress = email.emailAddress,
+            verified = email.verified,
+            locked = email.locked,
+            createdAt = Instant.now
+          )).toFuture()})
+
+      await(Future.sequence(inserts))
     }
-    def expectJourneyToExist(journey: Journey): Unit = {
+    def expectJourneyToExist(journey: Journey): Unit =
       await(
-        journeyRepo.insert(false).one(Json.obj(
-          "_id" -> journey.journeyId,
-          "credId" -> journey.credId,
-          "continueUrl" -> journey.continueUrl,
-          "origin" -> journey.origin,
-          "accessibilityStatementUrl" -> journey.accessibilityStatementUrl,
-          "serviceName" -> journey.serviceName,
-          "language" -> journey.language,
-          "emailAddress" -> journey.emailAddress,
-          "enterEmailUrl" -> journey.enterEmailUrl,
-          "backUrl" -> journey.backUrl,
-          "pageTitle" -> journey.pageTitle,
-          "passcode" -> journey.passcode,
-          "createdAt" -> Json.obj("$date" -> DateTime.now.getMillis),
-          "emailAddressAttempts" -> journey.emailAddressAttempts,
-          "passcodesSentToEmail" -> journey.passcodesSentToEmail,
-          "passcodeAttempts" -> journey.passcodeAttempts,
-        ))(ExecutionContext.global, JsObjectDocumentWriter)
-      )
-    }
+        journeyRepo.collection.insertOne(
+          JourneyMongoRepository.Entity(
+            journeyId                 = journey.journeyId,
+            credId                    = journey.credId,
+            continueUrl               = journey.continueUrl,
+            origin                    = journey.origin,
+            accessibilityStatementUrl = journey.accessibilityStatementUrl,
+            serviceName               = journey.serviceName,
+            language                  = journey.language,
+            emailAddress              = journey.emailAddress,
+            enterEmailUrl             = journey.enterEmailUrl,
+            backUrl                   = journey.backUrl,
+            pageTitle                 = journey.pageTitle,
+            passcode                  = journey.passcode,
+            createdAt                 = Instant.now(),
+            emailAddressAttempts      = journey.emailAddressAttempts,
+            passcodesSentToEmail      = journey.passcodesSentToEmail,
+            passcodeAttempts          = journey.passcodeAttempts
+          )).toFuture())
 
     def expectUserToBeAuthorisedWithGG(credId: String): Unit = {
       stubFor(post("/auth/authorise")

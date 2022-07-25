@@ -19,7 +19,7 @@ package uk.gov.hmrc.emailverification.models
 import play.api.libs.json.{Json, Writes}
 
 case class VerificationStatusResponse(
-    emails: List[CompletedEmail]
+    emails: Seq[CompletedEmail]
 )
 
 object VerificationStatusResponse {

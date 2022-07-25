@@ -18,22 +18,16 @@ package uk.gov.hmrc.emailverification.repositories
 
 import com.github.ghik.silencer.silent
 import com.google.inject.ImplementedBy
-import config.AppConfig
-import org.joda.time.DateTime
-import play.api.Logger
-import play.api.libs.functional.syntax.{unlift, _}
+import org.mongodb.scala.model.IndexModel
+import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.BSONDocument
-import reactivemongo.play.json.ImplicitBSONHandlers._
-import reactivemongo.play.json.JSONSerializationPack.Document
 import uk.gov.hmrc.emailverification.models.{Journey, Language}
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-
+import org.mongodb.scala.model._
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import java.time.Instant
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[JourneyMongoRepository])
@@ -44,41 +38,23 @@ trait JourneyRepository {
   def recordPasscodeResent(journeyId: String): Future[Option[Journey]]
 
   def get(journeyId: String): Future[Option[Journey]]
-  def findByCredId(credId: String): Future[List[Journey]]
+  def findByCredId(credId: String): Future[Seq[Journey]]
 }
 
-private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent, config: AppConfig)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[JourneyMongoRepository.Entity, String](
+class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
+  extends PlayMongoRepository[JourneyMongoRepository.Entity](
     collectionName = "journey",
-    mongo          = mongoComponent.mongoConnector.db,
+    mongoComponent = mongoComponent,
     domainFormat   = JourneyMongoRepository.mongoFormat,
-    idFormat       = implicitly) with JourneyRepository {
-
-  override def indexes: Seq[Index] = Seq(
-    Index(key     = Seq("createdAt" -> IndexType.Ascending), name = Some("ttl"), options = BSONDocument("expireAfterSeconds" -> 4.hours.toSeconds))
+    indexes        = Seq(
+      IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl").expireAfter(4, TimeUnit.HOURS))
+    ),
+    replaceIndexes = false
   )
-
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
-    val log: Logger = Logger(getClass)
-    if (config.dropJourneyIdUniqueIndexAtStartup) {
-      log.info("###### Removing Index journeyIdUnique.. #####")
-      collection.indexesManager.drop("journeyIdUnique").flatMap { _ =>
-        log.info("###### Index journeyIdUnique removed #####")
-        super.ensureIndexes
-      }.recoverWith {
-        case e: Exception => {
-          log.error(s"###### Index journeyIdUnique removal failed, $e #####")
-          super.ensureIndexes
-        }
-      }
-    } else {
-      log.info("###### Skipping Index journeyIdUnique removal #####")
-      super.ensureIndexes
-    }
-  }
+  with JourneyRepository {
 
   def initialise(journey: Journey): Future[Unit] = {
-    insert(
+    collection.insertOne(
       JourneyMongoRepository.Entity(
         journeyId                 = journey.journeyId,
         credId                    = journey.credId,
@@ -92,48 +68,56 @@ private class JourneyMongoRepository @Inject() (mongoComponent: ReactiveMongoCom
         backUrl                   = journey.backUrl,
         pageTitle                 = journey.pageTitle,
         passcode                  = journey.passcode,
-        createdAt                 = DateTime.now(),
+        createdAt                 = Instant.now(),
         emailAddressAttempts      = journey.emailAddressAttempts,
         passcodesSentToEmail      = journey.passcodesSentToEmail,
         passcodeAttempts          = 0
       )
-    ).map(_ => ())
+    ).toFuture().map(_ => ())
   }
 
   @silent("deprecated") // the "other" findAndUpdate is bad and should feel bad
-  override def submitEmail(journeyId: String, email: String): Future[Option[Journey]] = collection.findAndUpdate(
-    Json.obj("_id" -> journeyId),
-    Json.obj(
-      "$set" -> Json.obj("emailAddress" -> email, "passcodesSentToEmail" -> 1),
-      "$inc" -> Json.obj("emailAddressAttempts" -> 1)
-    )).map(entity => readAsJourney(entity.value))
+  override def submitEmail(journeyId: String, email: String): Future[Option[Journey]] =
+    collection.findOneAndUpdate(
+      filter  = Filters.equal("_id", journeyId),
+      update  = Updates.combine(
+        Updates.set("emailAddress", email),
+        Updates.set("passcodesSentToEmail", 1),
+        Updates.inc("emailAddressAttempts", 1)
+      ),
+      options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
+    )
+      .toFutureOption()
+      .map(_.map(_.toJourney))
 
   @silent("deprecated")
-  override def recordPasscodeAttempt(journeyId: String): Future[Option[Journey]] = collection.findAndUpdate(
-    Json.obj("_id" -> journeyId),
-    Json.obj(
-      "$inc" -> Json.obj("passcodeAttempts" -> 1)
-    )).map(entity => readAsJourney(entity.value))
+  override def recordPasscodeAttempt(journeyId: String): Future[Option[Journey]] = collection.findOneAndUpdate(
+    Filters.equal("_id", journeyId),
+    Updates.inc("passcodeAttempts", 1)
+  )
+    .toFutureOption()
+    .map(_.map(_.toJourney))
 
   @silent("deprecated")
-  override def recordPasscodeResent(journeyId: String): Future[Option[Journey]] = collection.findAndUpdate(
-    Json.obj("_id" -> journeyId),
-    Json.obj(
-      "$inc" -> Json.obj("passcodesSentToEmail" -> 1)
-    )).map(entity => readAsJourney(entity.value))
+  override def recordPasscodeResent(journeyId: String): Future[Option[Journey]] = collection.findOneAndUpdate(
+    Filters.equal("_id", journeyId),
+    Updates.inc("passcodesSentToEmail", 1)
+  )
+    .toFutureOption()
+    .map(_.map(_.toJourney))
 
-  private def readAsJourney(value: Option[Document]): Option[Journey] = {
-    value.map(JourneyMongoRepository.mongoFormat.reads(_).recoverTotal {
-      case JsError(errors) => throw new IllegalStateException(s"journey repository entity is not a valid Entity: $errors")
-    }).map(_.toJourney)
-  }
+  override def get(journeyId: String): Future[Option[Journey]] = collection.find(
+    Filters.equal("_id", journeyId))
+    .headOption()
+    .map(_.map(_.toJourney))
 
-  override def get(journeyId: String): Future[Option[Journey]] = findById(journeyId).map(_.map(_.toJourney))
-
-  def findByCredId(credId: String): Future[List[Journey]] = find("credId" -> credId).map(_.map(_.toJourney))
+  def findByCredId(credId: String): Future[Seq[Journey]] = collection.find(
+    Filters.equal("credId", credId))
+    .toFuture()
+    .map(_.map(_.toJourney))
 }
 
-private object JourneyMongoRepository {
+object JourneyMongoRepository {
 
   case class Entity(
       journeyId:                 String,
@@ -148,7 +132,7 @@ private object JourneyMongoRepository {
       backUrl:                   Option[String],
       pageTitle:                 Option[String],
       passcode:                  String,
-      createdAt:                 DateTime,
+      createdAt:                 Instant,
       emailAddressAttempts:      Int,
       passcodesSentToEmail:      Int,
       passcodeAttempts:          Int
@@ -185,7 +169,7 @@ private object JourneyMongoRepository {
     (__ \ "backUrl").formatNullable[String] and
     (__ \ "pageTitle").formatNullable[String] and
     (__ \ "passcode").format[String] and
-    (__ \ "createdAt").format[DateTime](ReactiveMongoFormats.dateTimeFormats) and
+    (__ \ "createdAt").format[Instant](uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.instantFormat) and
     (__ \ "emailAddressAttempts").format[Int] and
     (__ \ "passcodesSentToEmail").format[Int] and
     (__ \ "passcodeAttempts").format[Int]

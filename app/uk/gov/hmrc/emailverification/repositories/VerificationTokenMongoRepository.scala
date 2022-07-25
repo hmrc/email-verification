@@ -17,39 +17,37 @@
 package uk.gov.hmrc.emailverification.repositories
 
 import javax.inject.{Inject, Singleton}
-import org.joda.time.DateTimeZone.UTC
-import org.joda.time.{DateTime, Period}
-import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.emailverification.models.VerificationDoc
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import org.mongodb.scala.model._
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
+import java.time.{Clock, Instant, Period}
+import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class VerificationTokenMongoRepository @Inject() (mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[VerificationDoc, BSONObjectID](
+class VerificationTokenMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
+  extends PlayMongoRepository[VerificationDoc](
     collectionName = "verificationToken",
-    mongo          = mongoComponent.mongoConnector.db,
+    mongoComponent = mongoComponent,
     domainFormat   = VerificationDoc.format,
-    idFormat       = ReactiveMongoFormats.objectIdFormats) {
+    indexes        = Seq(
+      IndexModel(Indexes.ascending("token"), IndexOptions().name("tokenUnique").unique(true)),
+      IndexModel(Indexes.ascending("expireAt"), IndexOptions().name("expireAtIndex").expireAfter(0, TimeUnit.SECONDS))
+    ),
+    replaceIndexes = false
+  ) {
 
-  def upsert(token: String, email: String, validity: Period): Future[Unit] = {
-    val selector = Json.obj("email" -> email)
-    val update = VerificationDoc(email, token, DateTime.now(UTC).plus(validity))
+  def upsert(token: String, email: String, validity: Period, clock: Clock = Clock.systemUTC): Future[Unit] =
+    collection.findOneAndReplace(
+      filter      = Filters.equal("email", email),
+      replacement = VerificationDoc(email, token, Instant.now(clock).plus(validity)),
+      options     = FindOneAndReplaceOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
+    ).toFuture().map(_ => ())
 
-    collection.update(ordered = false).one(selector, update, upsert = true).map(_ => ())
-  }
-
-  def findToken(token: String): Future[Option[VerificationDoc]] = find("token" -> token).map(_.headOption)
-
-  override def indexes: Seq[Index] = Seq(
-    Index(Seq("token" -> IndexType.Ascending), name = Some("tokenUnique"), unique = true),
-    Index(key     = Seq("expireAt" -> IndexType.Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0))
-  )
+  def findToken(token: String): Future[Option[VerificationDoc]] =
+    collection.find(Filters.equal("token", token))
+      .headOption()
 }
 

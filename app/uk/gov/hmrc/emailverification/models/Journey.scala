@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.emailverification.models
 
+import play.api.libs.json.{Format, Json}
+import java.time.Instant
+
 case class Journey(
     journeyId:                 String,
     credId:                    String,
@@ -41,4 +44,9 @@ case class Journey(
     pageTitle,
     emailAddress
   )
+}
+
+object Journey {
+  implicit val dateTimeFormats: Format[Instant] = uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.instantFormat
+  implicit val format = Json.format[Journey]
 }

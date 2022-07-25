@@ -17,20 +17,17 @@
 package uk.gov.hmrc.emailverification
 
 import java.util.UUID
-
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.joda.time.DateTime
 import org.scalatest.Assertion
 import play.api.libs.json.{JsDefined, JsString, Json}
 import support.BaseISpec
 import support.EmailStub._
 import uk.gov.hmrc.emailverification.models.{English, Journey, PasscodeDoc}
-import uk.gov.hmrc.emailverification.repositories.PasscodeMongoRepository
+import uk.gov.hmrc.emailverification.repositories.JourneyMongoRepository
 import uk.gov.hmrc.http.HeaderNames
-import scala.concurrent.ExecutionContext
-import scala.concurrent.ExecutionContext.Implicits.global
-import reactivemongo.play.json.ImplicitBSONHandlers._
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class EmailPasscodeControllerISpec extends BaseISpec {
 
@@ -42,7 +39,9 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       await(expectPasscodeToBePopulated(passcode))
       expectUserToBeAuthorisedWithGG(credId)
 
-      val response = await(resourceRequest("/test-only/passcodes").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
+      val response = await(resourceRequest("/test-only/passcodes")
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
+        .get())
       response.status shouldBe 200
       (Json.parse(response.body) \ "passcodes" \ 0 \ "passcode") shouldBe JsDefined(JsString(passcode))
     }
@@ -60,7 +59,9 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
       expectJourneyToExist(journey)
 
-      val response = await(resourceRequest("/test-only/passcodes").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
+      val response = await(
+        resourceRequest("/test-only/passcodes")
+          .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123").get())
       response.status shouldBe 200
       (Json.parse(response.body) \ "passcodes" \ 0 \ "passcode") shouldBe JsDefined(JsString(passcode1))
       (Json.parse(response.body) \ "passcodes" \ 1 \ "passcode") shouldBe JsDefined(JsString(passcode2))
@@ -75,7 +76,9 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
     "return a 404 if the session id is in the request but not in mongo" in new Setup {
       expectUserToBeAuthorisedWithGG(credId)
-      val response = await(resourceRequest("/test-only/passcodes").withHttpHeaders(HeaderNames.xSessionId -> sessionId).get())
+      val response = await(
+        resourceRequest("/test-only/passcodes")
+          .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123").get())
       response.status shouldBe 404
       Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("PASSCODE_NOT_FOUND"))
       Json.parse(response.body) \ "message" shouldBe JsDefined(JsString("No passcode found for sessionId"))
@@ -461,8 +464,6 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     val emailToVerify = "example@domain.com"
     val sessionId = generateUUID
     val credId = generateUUID
-    val passcodeMongoRepository = app.injector.instanceOf(classOf[PasscodeMongoRepository])
-
 
     def assumeEmailAlreadyVerified(): Assertion = {
       expectEmailToBeSent()
@@ -476,9 +477,10 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     def expectPasscodeToBePopulated(passcode: String) = {
-      val expiresAt = DateTime.now().plusHours(2)
+      val expiresAt = Instant.now.plus(2, ChronoUnit.HOURS)
       val email = generateUUID
-      passcodeMongoRepository.insert(PasscodeDoc(sessionId, email, passcode, expiresAt, 0, 1))
+
+      passcodeRepo.collection.insertOne(PasscodeDoc(sessionId, email, passcode, expiresAt, 0, 1)).toFuture()
     }
 
     def generateUUID = UUID.randomUUID().toString
@@ -495,25 +497,25 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
     def expectJourneyToExist(journey: Journey): Unit = {
       await(
-        journeyRepo.insert(false).one(Json.obj(
-          "_id" -> journey.journeyId,
-          "credId" -> journey.credId,
-          "continueUrl" -> journey.continueUrl,
-          "origin" -> journey.origin,
-          "accessibilityStatementUrl" -> journey.accessibilityStatementUrl,
-          "serviceName" -> journey.serviceName,
-          "language" -> journey.language,
-          "emailAddress" -> journey.emailAddress,
-          "enterEmailUrl" -> journey.enterEmailUrl,
-          "backUrl" -> journey.backUrl,
-          "pageTitle" -> journey.pageTitle,
-          "passcode" -> journey.passcode,
-          "createdAt" -> Json.obj("$date" -> DateTime.now.getMillis),
-          "emailAddressAttempts" -> journey.emailAddressAttempts,
-          "passcodesSentToEmail" -> journey.passcodesSentToEmail,
-          "passcodeAttempts" -> journey.passcodeAttempts,
-        ))(ExecutionContext.global, JsObjectDocumentWriter)
-      )
+        journeyRepo.collection.insertOne(
+          JourneyMongoRepository.Entity(
+            journeyId                 = journey.journeyId,
+            credId                    = journey.credId,
+            continueUrl               = journey.continueUrl,
+            origin                    = journey.origin,
+            accessibilityStatementUrl = journey.accessibilityStatementUrl,
+            serviceName               = journey.serviceName,
+            language                  = journey.language,
+            emailAddress              = journey.emailAddress,
+            enterEmailUrl             = journey.enterEmailUrl,
+            backUrl                   = journey.backUrl,
+            pageTitle                 = journey.pageTitle,
+            passcode                  = journey.passcode,
+            createdAt                 = Instant.now(),
+            emailAddressAttempts      = journey.emailAddressAttempts,
+            passcodesSentToEmail      = journey.passcodesSentToEmail,
+            passcodeAttempts          = journey.passcodeAttempts
+          )).toFuture())
     }
 
     def verifySendEmailWithPasscodeFired(responseCode: Int): Unit = {

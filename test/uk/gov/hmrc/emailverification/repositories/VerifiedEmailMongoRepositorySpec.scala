@@ -16,102 +16,82 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.core.errors.DatabaseException
+import com.mongodb.MongoException
+import org.mongodb.scala.bson.{BsonBoolean, BsonString}
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
-import uk.gov.hmrc.gg.test.UnitSpec
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.http.HeaderCarrier
-import scala.concurrent.ExecutionContext.Implicits.global
 
-class VerifiedEmailMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport with ScalaFutures with IntegrationPatience {
+class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
+
   val email = "user@email.com"
   val anotherEmail = "another.user@email.com"
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
+  val repository = new VerifiedEmailMongoRepository(mongoComponent)
+
   "insert" should {
     "insert a document when it does not exist" in {
-      repo.findAll().futureValue shouldBe empty
-      await(repo.insert(email))
+      repository.find(email).futureValue shouldBe None
+      await(repository.insert(email))
 
-      val docs = repo.findAll().futureValue
-      docs shouldBe Seq(VerifiedEmail(email))
+      val docs = repository.find(email).futureValue
+      docs shouldBe Some(VerifiedEmail(email))
     }
 
     "blow up if the email already exists" in {
-      await(repo.ensureIndexes)
-      await(repo.insert(email))
-
-      val r = intercept[DatabaseException](await(repo.insert(email)))
-      r.code shouldBe Some(11000)
+      await(repository.ensureIndexes)
+      await(repository.insert(email))
+      val result = intercept[MongoException](await(repository.insert(email)))
+      result.getCode shouldBe 11000
     }
 
     "not blow up if another email exists" in {
-      await(repo.ensureIndexes)
-      repo.findAll().futureValue shouldBe empty
-      await(repo.insert(email))
-      await(repo.insert(anotherEmail))
+      repository.find(email).futureValue shouldBe None
+      await(repository.insert(email))
+      await(repository.insert(anotherEmail))
 
-      repo.find(email).futureValue shouldBe Some(VerifiedEmail(email))
-      repo.find(anotherEmail).futureValue shouldBe Some(VerifiedEmail(anotherEmail))
+      repository.find(email).futureValue shouldBe Some(VerifiedEmail(email))
+      repository.find(anotherEmail).futureValue shouldBe Some(VerifiedEmail(anotherEmail))
     }
 
   }
 
   "find" should {
     "return verified email if it exist" in {
-      repo.findAll().futureValue shouldBe empty
-      await(repo.insert(email))
+      repository.find(email).futureValue shouldBe None
+      await(repository.insert(email))
 
-      repo.find(email).futureValue shouldBe Some(VerifiedEmail(email))
+      repository.find(email).futureValue shouldBe Some(VerifiedEmail(email))
     }
 
     "return None if email does not exist" in {
-      repo.find(email).futureValue shouldBe None
+      repository.find(email).futureValue shouldBe None
     }
   }
 
   "isVerified" should {
     "return true if verified email exist" in {
-      repo.findAll().futureValue shouldBe empty
-      await(repo.insert(email))
+      repository.find(email).futureValue shouldBe None
+      await(repository.insert(email))
 
-      repo.isVerified(email).futureValue shouldBe true
+      repository.isVerified(email).futureValue shouldBe true
     }
 
     "return false if email does not exist" in {
-      repo.isVerified(email).futureValue shouldBe false
+      repository.isVerified(email).futureValue shouldBe false
     }
   }
 
   "ensureIndexes" should {
     "verify indexes exist" in {
-      await(repo.ensureIndexes)
-      val indexes = mongo().indexesManager.onCollection("verifiedEmail").list().futureValue
+      await(repository.ensureIndexes)
+      val indexes = repository.collection.listIndexes().toFuture().futureValue
+        .map(_.toBsonDocument)
+        .filter(_.get("name") == BsonString("emailUnique"))
+        .filter(_.get("key").toString.contains("email"))
+        .filter(_.get("unique") == BsonBoolean(true))
 
-      val index = indexes.find(_.name.contains("emailUnique")).get
-
-      //version of index is managed by mongodb. We don't want to assert on it.
-      index shouldBe Index(Seq("email" -> Ascending), name = Some("emailUnique"), unique = true).copy(version = index.version)
+      indexes.size shouldBe 1
     }
-  }
-
-  val repo = new VerifiedEmailMongoRepository(new ReactiveMongoComponent {
-    override def mongoConnector: MongoConnector = mongoConnectorForTest
-  })
-
-  override def beforeEach() {
-    super.beforeEach()
-    await(repo.drop)
-    ()
-  }
-
-  override protected def afterAll() {
-    await(repo.drop)
-    super.afterAll()
   }
 }

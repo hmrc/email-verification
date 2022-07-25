@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.emailverification
 
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsString, Json}
 import support.BaseISpec
 import support.EmailStub._
 
@@ -151,12 +151,7 @@ class PayloadHandlingISpec extends BaseISpec {
       val response = await(wsClient.url(appClient("/verification-requests")).post(invalidPayloadWithMissingEmailField))
 
       response.status shouldBe BAD_REQUEST
-      response.json shouldBe Json.parse(
-        """{
-          |  "code": "VALIDATION_ERROR",
-          |  "message": "Invalid format: \"XXX\""
-          |}""".stripMargin
-      )
+      (response.json \\ "code").head shouldBe JsString("VALIDATION_ERROR")
     }
 
     "return BAD_GATEWAY if upstream service fails with INTERNAL_SERVER_ERROR" in {

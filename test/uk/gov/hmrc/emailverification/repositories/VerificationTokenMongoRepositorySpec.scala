@@ -16,78 +16,65 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import org.joda.time.{DateTime, DateTimeZone, Period}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.bson.BSONDocument
+import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Seconds, Span}
 import uk.gov.hmrc.emailverification.models.VerificationDoc
-import uk.gov.hmrc.gg.test.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
-import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.mongo.MongoUtils
+import java.time.{Clock, Instant, Period}
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.DurationInt
 
-class VerificationTokenMongoRepositorySpec extends UnitSpec with BeforeAndAfterEach with BeforeAndAfterAll with MongoSpecSupport {
+class VerificationTokenMongoRepositorySpec extends RepositoryBaseSpec with Eventually {
 
-  def now: DateTime = DateTime.now(DateTimeZone.UTC)
-
-  val repo: VerificationTokenMongoRepository = new VerificationTokenMongoRepository(new ReactiveMongoComponent {
-    override def mongoConnector: MongoConnector = mongoConnectorForTest
-  })
-
+  val repository = new VerificationTokenMongoRepository(mongoComponent)
   val token = "theToken"
   val email = "user@email.com"
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
+  val tomorrowClock = Clock.offset(clock, java.time.Duration.ofNanos(1.day.toNanos))
+
   "upsert" should {
     "always update the existing document for a given email address" in {
-      await(repo.findAll()) shouldBe empty
 
       val token1 = token + "1"
-
-      await(repo.upsert(token1, email, Period.minutes(10)))
-      await(repo.findAll()) === Seq(VerificationDoc(email, token1, now.plusMinutes(10)))
+      repository.collection.find().toFuture().futureValue shouldBe Nil
+      await (repository.upsert(token1, email, Period.ofDays(1), clock))
+      repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token1, Instant.now(tomorrowClock)))
 
       val token2 = token + "2"
-
-      await(repo.upsert(token2, email, Period.minutes(10)))
-      await(repo.findAll()) === Seq(VerificationDoc(email, token2, now.plusMinutes(10)))
+      await (repository.upsert(token2, email, Period.ofDays(1), clock))
+      repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token2, Instant.now(tomorrowClock)))
     }
   }
 
   "find" should {
     "return the verification document" in {
-      await(repo.upsert(token, email, Period.minutes(10)))
-
-      await(repo.findToken(token)) === Some(VerificationDoc(email, token, now.plusMinutes(10)))
+      await (repository.upsert(token, email, Period.ofDays(1), clock))
+      val doc = repository.findToken(token).futureValue
+      doc shouldBe Some(VerificationDoc(email, token, Instant.now(tomorrowClock)))
     }
 
     "return None whet token does not exist or has expired" in {
-      await(repo.findToken(token)) === None
+      repository.findToken(token).futureValue shouldBe None
     }
   }
 
-  "ensureIndexes" should {
-    "create ttl on updatedAt field" in {
-      await(repo.ensureIndexes)
-      val indexes = await(mongo().indexesManager.onCollection("verificationToken").list())
+  "VerificationTokenMongoRepository" should {
+    "delete record after TTL expires" in {
+      MongoUtils.ensureIndexes(repository.collection,
+                               Seq(
+          IndexModel(Indexes.ascending("expireAt"), IndexOptions().name("expireAtIndex").expireAfter(1, TimeUnit.SECONDS))
+        ), true)
 
-      val index = indexes.find(_.name.contains("expireAtIndex")).get
+      await (repository.upsert(token, email, Period.ofDays(0), clock))
+      repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token, Instant.now(clock)))
 
-      //version of index is managed by mongodb. We don't want to assert on it.
-      index shouldBe Index(Seq("expireAt" -> Ascending), name = Some("expireAtIndex"), options = BSONDocument("expireAfterSeconds" -> 0)).copy(version = index.version)
+      eventually(timeout(Span(120, Seconds)))(
+        repository.collection.find().toFuture().futureValue shouldBe Nil
+      )
     }
   }
 
-  override def beforeEach() {
-    super.beforeEach()
-    await(repo.drop)
-    ()
-  }
-
-  override protected def afterAll() {
-    await(repo.drop)
-    super.afterAll()
-  }
 }

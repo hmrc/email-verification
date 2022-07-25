@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import org.joda.time.DateTime
 import org.mockito.captor.ArgCaptor
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.test.FakeRequest
@@ -27,6 +26,7 @@ import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.model.DataEvent
 import uk.gov.hmrc.play.it.SessionCookieEncryptionSupport
 
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -295,7 +295,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
     val passcodeAttempts = 1
     val emailAttempts = 1
     val differentEmailAttempts = 1L
-    val passcodeExpireAt = DateTime.now
+    val passcodeExpireAt = Instant.now
 
     val clientIp = "192.168.0.1"
     val clientPort = "443"

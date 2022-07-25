@@ -17,7 +17,6 @@
 package uk.gov.hmrc.emailverification.controllers
 
 import config.AppConfig
-import org.joda.time.{DateTime, Period}
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito._
 import play.api.http.Status
@@ -32,7 +31,7 @@ import uk.gov.hmrc.emailverification.services.{AuditService, VerificationLinkSer
 import uk.gov.hmrc.gg.test.UnitSpec
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-
+import java.time.{Instant, Period}
 import scala.concurrent.{ExecutionContext, Future}
 
 class EmailVerificationControllerSpec extends UnitSpec {
@@ -44,13 +43,13 @@ class EmailVerificationControllerSpec extends UnitSpec {
       when(mockVerificationLinkService.verificationLinkFor(any, eqTo(ForwardUrl("http://some/url")))).thenReturn(verificationLink)
       when(mockEmailConnector.sendEmail(any, any, any)(any, any))
         .thenReturn(Future.successful(HttpResponse(202, "")))
-      when(mockTokenRepo.upsert(any, any, any)).thenReturn(Future.unit)
+      when(mockTokenRepo.upsert(any, any, any, any)).thenReturn(Future.unit)
       when(mockAppConfig.whitelistedDomains) thenReturn Set.empty[String]
 
       val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
 
       status(result) shouldBe Status.CREATED
-      verify(mockTokenRepo).upsert(any, eqTo(recipient), eqTo(Period.days(2)))
+      verify(mockTokenRepo).upsert(any, eqTo(recipient), eqTo(Period.ofDays(2)), any)
       verify(mockEmailConnector).sendEmail(eqTo(recipient), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any, any)
       val captor: ArgumentCaptor[GaEvent] = ArgumentCaptor.forClass(classOf[GaEvent])
       verify(mockAnalyticsConnector).sendEvents(captor.capture())(any, any)
@@ -87,7 +86,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
 
   "validateToken" should {
     "return 201 when the token is valid" in new Setup {
-      when(mockTokenRepo.findToken(eqTo(someToken))).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
+      when(mockTokenRepo.findToken(eqTo(someToken))).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, Instant.now))))
       when(mockVerifiedEmailRepo.insert(eqTo(email))).thenReturn(Future.unit)
       when(mockVerifiedEmailRepo.find(eqTo(email))).thenReturn(Future.successful(None))
 
@@ -102,7 +101,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
     }
 
     "return 204 when the token is valid and the email was already validated" in new Setup {
-      when(mockTokenRepo.findToken(eqTo(someToken))).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, DateTime.now()))))
+      when(mockTokenRepo.findToken(eqTo(someToken))).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, Instant.now))))
       when(mockVerifiedEmailRepo.find(eqTo(email))).thenReturn(Future.successful(Some(VerifiedEmail(email))))
 
       val result: Future[Result] = controller.validateToken()(request.withBody(Json.obj("token" -> someToken)))
