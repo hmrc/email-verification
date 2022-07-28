@@ -19,13 +19,13 @@ package uk.gov.hmrc.emailverification.models
 import com.github.ghik.silencer.silent
 import config.AppConfig
 import play.api.libs.json.{Json, Reads}
-import java.time.Period
+import java.time.Duration
 
 case class EmailVerificationRequest(
     email:              String,
     templateId:         String,
     templateParameters: Option[Map[String, String]],
-    linkExpiryDuration: Period,
+    linkExpiryDuration: Duration,
     continueUrl:        ForwardUrl
 )
 

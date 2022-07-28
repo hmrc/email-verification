@@ -22,7 +22,7 @@ import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
-import java.time.{Clock, Instant, Period}
+import java.time.{Clock, Duration, Instant}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -39,7 +39,7 @@ class VerificationTokenMongoRepository @Inject() (mongoComponent: MongoComponent
     replaceIndexes = false
   ) {
 
-  def upsert(token: String, email: String, validity: Period, clock: Clock = Clock.systemUTC): Future[Unit] =
+  def upsert(token: String, email: String, validity: Duration, clock: Clock = Clock.systemUTC): Future[Unit] =
     collection.findOneAndReplace(
       filter      = Filters.equal("email", email),
       replacement = VerificationDoc(email, token, Instant.now(clock).plus(validity)),

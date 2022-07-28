@@ -37,7 +37,7 @@ object EmailStub extends Matchers {
     Json.parse(s"""{
                   |  "email": "$emailToVerify",
                   |  "templateId": "$templateId",
-                  |  "linkExpiryDuration" : "P2D",
+                  |  "linkExpiryDuration" : "P2DT10S",
                   |  "continueUrl" : "$continueUrl"
                   |}""".stripMargin)
 
