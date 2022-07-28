@@ -22,7 +22,7 @@ import org.scalatest.time.{Seconds, Span}
 import uk.gov.hmrc.emailverification.models.VerificationDoc
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.MongoUtils
-import java.time.{Clock, Instant, Period}
+import java.time.{Clock, Duration, Instant}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.DurationInt
 
@@ -40,18 +40,18 @@ class VerificationTokenMongoRepositorySpec extends RepositoryBaseSpec with Event
 
       val token1 = token + "1"
       repository.collection.find().toFuture().futureValue shouldBe Nil
-      await (repository.upsert(token1, email, Period.ofDays(1), clock))
+      await (repository.upsert(token1, email, Duration.ofDays(1), clock))
       repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token1, Instant.now(tomorrowClock)))
 
       val token2 = token + "2"
-      await (repository.upsert(token2, email, Period.ofDays(1), clock))
+      await (repository.upsert(token2, email, Duration.ofDays(1), clock))
       repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token2, Instant.now(tomorrowClock)))
     }
   }
 
   "find" should {
     "return the verification document" in {
-      await (repository.upsert(token, email, Period.ofDays(1), clock))
+      await (repository.upsert(token, email, Duration.ofDays(1), clock))
       val doc = repository.findToken(token).futureValue
       doc shouldBe Some(VerificationDoc(email, token, Instant.now(tomorrowClock)))
     }
@@ -68,7 +68,7 @@ class VerificationTokenMongoRepositorySpec extends RepositoryBaseSpec with Event
           IndexModel(Indexes.ascending("expireAt"), IndexOptions().name("expireAtIndex").expireAfter(1, TimeUnit.SECONDS))
         ), true)
 
-      await (repository.upsert(token, email, Period.ofDays(0), clock))
+      await (repository.upsert(token, email, Duration.ofDays(0), clock))
       repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token, Instant.now(clock)))
 
       eventually(timeout(Span(120, Seconds)))(

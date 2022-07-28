@@ -31,7 +31,7 @@ import uk.gov.hmrc.emailverification.services.{AuditService, VerificationLinkSer
 import uk.gov.hmrc.gg.test.UnitSpec
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import java.time.{Instant, Period}
+import java.time.{Duration, Instant}
 import scala.concurrent.{ExecutionContext, Future}
 
 class EmailVerificationControllerSpec extends UnitSpec {
@@ -49,7 +49,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
 
       status(result) shouldBe Status.CREATED
-      verify(mockTokenRepo).upsert(any, eqTo(recipient), eqTo(Period.ofDays(2)), any)
+      verify(mockTokenRepo).upsert(any, eqTo(recipient), eqTo(Duration.ofDays(2)), any)
       verify(mockEmailConnector).sendEmail(eqTo(recipient), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any, any)
       val captor: ArgumentCaptor[GaEvent] = ArgumentCaptor.forClass(classOf[GaEvent])
       verify(mockAnalyticsConnector).sendEvents(captor.capture())(any, any)
