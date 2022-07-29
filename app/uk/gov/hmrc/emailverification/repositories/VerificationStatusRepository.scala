@@ -47,7 +47,7 @@ class VerificationStatusMongoRepository @Inject() (mongoComponent: MongoComponen
     domainFormat   = VerificationStatusMongoRepository.mongoFormat,
     indexes        = Seq(
       IndexModel(Indexes.ascending("credId"), IndexOptions().name("credId").unique(false)),
-      IndexModel(Indexes.ascending("expireAt"), IndexOptions().name("expireAtIndex").expireAfter(config.verificationStatusRepositoryTtl.toSeconds, TimeUnit.SECONDS))
+      IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl_index").expireAfter(config.verificationStatusRepositoryTtl.toSeconds, TimeUnit.SECONDS))
     ),
     replaceIndexes = false
   ) with VerificationStatusRepository {
