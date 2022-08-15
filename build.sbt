@@ -10,7 +10,7 @@ lazy val microservice = Project("email-verification", file("."))
   .settings(ScoverageSettings())
   .settings(SilencerSettings())
   .settings(ScalariformSettings())
-  .settings(scalaVersion := "2.12.15")
+  .settings(scalaVersion := "2.12.16")
   .settings(scalacOptions ++= Seq("-Xfatal-warnings", "-feature", "-deprecation"))
   .settings(
     libraryDependencies ++= AppDependencies(),
