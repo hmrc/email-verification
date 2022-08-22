@@ -20,18 +20,22 @@ import config.AppConfig
 import javax.inject.Inject
 import play.api.Configuration
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.crypto.{CryptoWithKeysFromConfig, PlainText}
+import uk.gov.hmrc.crypto.{Encrypter, Decrypter, PlainText, SymmetricCryptoFactory}
 import uk.gov.hmrc.emailverification.models.{ForwardUrl, VerificationToken}
 
 class VerificationLinkService @Inject() (implicit appConfig: AppConfig, configuration: Configuration) {
 
   lazy val platformFrontendHost: String = appConfig.platformFrontendHost
-  val crypto: CryptoWithKeysFromConfig = new CryptoWithKeysFromConfig(baseConfigKey = "token.encryption", configuration.underlying)
+  val crypto: Encrypter with Decrypter = SymmetricCryptoFactory.aesCryptoFromConfig(baseConfigKey = "token.encryption", configuration.underlying)
 
   def verificationLinkFor(token: String, continueUrl: ForwardUrl) =
     s"$platformFrontendHost/email-verification/verify?token=${encryptedVerificationToken(token, continueUrl)}"
 
   private def encryptedVerificationToken(token: String, continueUrl: ForwardUrl): String = {
+    println(s"############ ${tokenAsJson.toString()} #############")
+    println(s"############ ${(crypto.encrypt(PlainText(tokenAsJson.toString())))} #############")
+    println(s"############ ${new String(crypto.encrypt(PlainText(tokenAsJson.toString())).toBase64)} #############")
+    println(s"############# ${crypto.encrypt(PlainText(Json.toJson(VerificationToken(token, continueUrl)).toString())).toBase64} ################")
       def encrypt(value: String) = new String(crypto.encrypt(PlainText(value)).toBase64)
       def tokenAsJson: JsValue = Json.toJson(VerificationToken(token, continueUrl))
     encrypt(tokenAsJson.toString())

@@ -24,12 +24,12 @@ import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import play.api.http.Status
 import uk.gov.hmrc.crypto.Crypted.fromBase64
-import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
+import uk.gov.hmrc.crypto.SymmetricCryptoFactory
 
 import scala.collection.JavaConverters._
 
 object EmailStub extends Matchers {
-  private def crypto(implicit config:Config) = new CryptoWithKeysFromConfig("queryParameter.encryption", config)
+  private def crypto(implicit config:Config) = SymmetricCryptoFactory.aesCryptoFromConfig("queryParameter.encryption", config)
 
   def verificationRequest(emailToVerify: String = "test@example.com",
                           templateId: String = "some-template-id",
