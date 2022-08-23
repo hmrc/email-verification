@@ -20,7 +20,7 @@ import com.typesafe.config.Config
 import config.AppConfig
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Configuration
-import uk.gov.hmrc.crypto.CryptoWithKeysFromConfig
+import uk.gov.hmrc.crypto.{Decrypter, Encrypter}
 import uk.gov.hmrc.emailverification.models.ForwardUrl
 import uk.gov.hmrc.gg.test.UnitSpec
 
@@ -32,13 +32,14 @@ class VerificationLinkServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
       val continueUrl = ForwardUrl("http://continue-url.com")
 
       val base64CryptedJsonToken = "d3Uvc3JNSFd0V0FWOEEvKzhPM0M5TTBvOXZrNURNMEgxWkV5d29JSmE4UkpuQkROdEZQcHMxUG1tN3Z3eDhPU3hUOXdCbHAyd1dWR1NIWEp1SHEyZlE9PQ=="
+
       underTest.verificationLinkFor(token, continueUrl) shouldBe s"/email-verification/verify?token=$base64CryptedJsonToken"
     }
   }
 
   trait Setup {
     val token = "fixedNonce"
-    val cryptoMock: CryptoWithKeysFromConfig = mock[CryptoWithKeysFromConfig]
+    val cryptoMock: Encrypter with Decrypter = mock[Encrypter with Decrypter]
     val config: Config = mock[Config]
     val mockAppConfig: AppConfig = mock[AppConfig]
     val configuration: Configuration = mock[Configuration]
@@ -47,5 +48,6 @@ class VerificationLinkServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
     when(config.getStringList("token.encryption.previousKeys")).isLenient()
 
     val underTest = new VerificationLinkService()(mockAppConfig, configuration)
+
   }
 }
