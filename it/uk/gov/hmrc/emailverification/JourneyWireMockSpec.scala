@@ -20,10 +20,11 @@ import java.util.UUID
 import support.BaseISpec
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mongodb.scala.result.InsertOneResult
-import play.api.libs.json.Json
+import play.api.libs.json.{JsArray, Json}
 import play.api.test.Injecting
 import uk.gov.hmrc.emailverification.models.{English, Journey, VerificationStatus}
 import uk.gov.hmrc.emailverification.repositories.{JourneyMongoRepository, VerificationStatusMongoRepository}
+
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -495,22 +496,20 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
         response.status shouldBe 200
 
-        response.json shouldBe Json.obj(
-          "emails" -> Json.arr(
-            Json.obj(
-              "emailAddress" -> "email1",
-              "verified" -> true,
-              "locked" -> false
-            ),
-            Json.obj(
-              "emailAddress" -> "email3",
-              "verified" -> false,
-              "locked" -> true
-            ),
-          )
-        )
+        (response.json \ "emails").as[JsArray].value should contain(Json.obj(
+          "emailAddress" -> "email1",
+          "verified" -> true,
+          "locked" -> false
+        ))
+        (response.json \ "emails").as[JsArray].value should contain(Json.obj(
+          "emailAddress" -> "email3",
+          "verified" -> false,
+          "locked" -> true
+        ))
 
-        verifyEmailVerificationOutcomeEventFired(1, """[{"emailAddress":"email1","verified":true,"locked":false},{"emailAddress":"email3","verified":false,"locked":true}]""",200)
+        verifyEmailVerificationOutcomeEventFired(1, """{"emailAddress":"email1","verified":true,"locked":false}""",200)
+        verifyEmailVerificationOutcomeEventFired(1, """{"emailAddress":"email3","verified":false,"locked":true}""",200)
+
       }
     }
 
@@ -551,14 +550,14 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       )
     }
 
-    def verifyEmailVerificationOutcomeEventFired(times: Int = 1, emailsJsonArray:String, expectedStatus:Int): Unit = {
+    def verifyEmailVerificationOutcomeEventFired(times: Int = 1, emailJson:String, expectedStatus:Int): Unit = {
       Thread.sleep(100)
       verify(times, postRequestedFor(urlEqualTo("/write/audit"))
         .withRequestBody(containing(""""auditType":"EmailVerificationOutcomeRequest""""))
         .withRequestBody(containing(s""""credId":"${credId}""""))
         .withRequestBody(containing(s""""bearerToken""""))
         .withRequestBody(containing(s""""userAgentString":"AHC/2.1""""))
-        .withRequestBody(containing(s""""emails":${emailsJsonArray}"""))
+        .withRequestBody(containing(emailJson))
         .withRequestBody(containing(s""""statusCode":"${expectedStatus.toString}""""))
       )
     }

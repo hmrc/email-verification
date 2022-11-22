@@ -96,6 +96,23 @@ class AuditService @Inject() (
     sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - send new passcode to email address")
   }
 
+  def sendEmailRequestMissingAuthSession(emailAddress: String, responseCode: Int)(implicit request: Request[_]): Future[Unit] = {
+    val details = Map(
+      "emailAddress" -> emailAddress,
+      "passcode" -> "-",
+      "passcodeAttempts" -> "-",
+      "sameEmailAttempts" -> "-",
+      "differentEmailAttempts" -> "-",
+      "success" -> "false",
+      "responseCode" -> responseCode.toString,
+      "outcome" -> "Auth session not found",
+      "callingService" -> "-",
+      "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
+    )
+    logger.info(s"[GG-6759] auth session not found to authorise email passcode request. $requestContextForLog}")
+    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - send new passcode to email address")
+  }
+
   def sendEmailAddressAlreadyVerifiedEvent(emailAddress: String, callingService: String, responseCode: Int)(implicit request: Request[_]): Future[Unit] = {
     val details = Map(
       "emailAddress" -> emailAddress,

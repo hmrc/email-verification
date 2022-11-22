@@ -114,6 +114,8 @@ class EmailPasscodeController @Inject() (
 
   case object MissingSessionId extends Exception("missing session id")
 
+  case object MissingAuthSession extends Exception("missing auth session")
+
   case class MaxDifferentEmailsExceeded(differentEmailsCount: Long) extends Exception("Maximum permitted number of emails sent to different addresses reached")
 
   case class MaxEmailsToAddressExceeded(differentEmailsCount: Long, passcodeDoc: PasscodeDoc) extends Exception("Maximum permitted number of emails sent to same address reached")
@@ -126,6 +128,7 @@ class EmailPasscodeController @Inject() (
     implicit httpRequest =>
       withJsonBody[PasscodeRequest] { request =>
         (for {
+          _ <- authorised(){ Future.successful(()) }.recoverWith{ case _ => Future.failed(MissingAuthSession) }
           emailAlreadyVerified <- verifiedEmailRepo.isVerified(request.email)
           _ <- if (emailAlreadyVerified) Future.failed(EmailAlreadyVerified) else Future.unit
           _ = analyticsConnector.sendEvents(GaEvents.passcodeRequested)
@@ -149,6 +152,11 @@ class EmailPasscodeController @Inject() (
           auditService.sendEmailPasscodeRequestSuccessfulEvent(request.email, passcode, request.serviceName, sessionEmailCount, passcodeDoc, CREATED)
           Created
         }).recover {
+          case MissingAuthSession => {
+            auditService.sendEmailRequestMissingAuthSession(request.email, UNAUTHORIZED)
+            val msg = "No auth session found"
+            Unauthorized(Json.toJson(ErrorResponse("NO_AUTH_SESSION", msg)))
+          }
           case MissingSessionId => {
             auditService.sendEmailRequestMissingSessionIdEvent(request.email, UNAUTHORIZED)
             val msg = "No session id provided"
