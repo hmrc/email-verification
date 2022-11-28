@@ -21,6 +21,7 @@ import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -43,4 +44,12 @@ class VerifiedEmailMongoRepository @Inject() (mongoComponent: MongoComponent)(im
     collection.insertOne(VerifiedEmail(email))
       .headOption()
       .map(_ => ())
+
+  //GG-6795 - remove after emails migrated
+  def getBatch(from: Int, batchSize: Int): Future[Seq[VerifiedEmail]] = {
+    collection.find()
+      .skip(from)
+      .limit(batchSize)
+      .collect[VerifiedEmail]().toFuture()
+  }
 }

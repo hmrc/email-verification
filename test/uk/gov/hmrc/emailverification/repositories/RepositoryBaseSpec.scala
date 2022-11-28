@@ -39,9 +39,8 @@ trait RepositoryBaseSpec
     dropDatabase()
   }
 
-  override def afterAll() {
+  override def beforeAll() {
     dropDatabase()
-    super.afterAll()
   }
 
 }
