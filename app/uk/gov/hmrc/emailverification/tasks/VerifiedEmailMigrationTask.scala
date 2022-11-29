@@ -50,6 +50,8 @@ class VerifiedEmailMigrationTask @Inject() (
     }.map {
       case Some(_) => logger.info(s"[GG-6759] $taskName scheduled to start after ${startDelayDuration.toCoarsest}, mongo lock released.")
       case None    => logger.info(s"[GG-6759] Failed to acquire mongo lock for $taskName")
+    }.recover {
+      case e: Exception => logger.error(s"[GG-6759] Failed to run $taskName", e)
     }
 
   } else {

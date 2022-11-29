@@ -21,8 +21,6 @@ import org.mongodb.scala.bson.{BsonBoolean, BsonString}
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.Future
-
 class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
 
   val email = "user@email.com"
@@ -101,13 +99,15 @@ class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
   "getBatch" should {
     "fetch correct list of records" in {
       val emails = (0 to 24).map(emailWithNumber(_))
-      await(Future.sequence(emails.map(repository.insert(_))))
+      emails.map(email => await(repository.insert(email)))
       val firstBatch = await(repository.getBatch(0, 5))
       firstBatch.size shouldBe 5
       firstBatch should contain(VerifiedEmail(emailWithNumber(1)))
       val lastBatch = await(repository.getBatch(20, 5))
       lastBatch.size shouldBe 5
-      lastBatch should contain(VerifiedEmail(emailWithNumber(24)))
+      (20 to 24).map { index =>
+        lastBatch should contain(VerifiedEmail(emailWithNumber(index)))
+      }
     }
 
   }
