@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,35 @@ class EmailVerificationControllerSpec extends UnitSpec {
       when(mockAppConfig.whitelistedDomains) thenReturn Set.empty[String]
 
       val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
+
+      status(result) shouldBe Status.CREATED
+      verify(mockTokenRepo).upsert(any, eqTo(recipient), eqTo(Duration.ofDays(2)), any)
+      verify(mockEmailConnector).sendEmail(eqTo(recipient), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any, any)
+      val captor: ArgumentCaptor[GaEvent] = ArgumentCaptor.forClass(classOf[GaEvent])
+      verify(mockAnalyticsConnector).sendEvents(captor.capture())(any, any)
+      captor.getValue shouldBe GaEvents.verificationRequested
+
+    }
+
+    "lower case email address" in new Setup {
+      val verificationLink = "verificationLink"
+      when(mockVerifiedEmailRepo.isVerified(eqTo(recipient))).thenReturn(Future.successful(false))
+      when(mockVerificationLinkService.verificationLinkFor(any, eqTo(ForwardUrl("http://some/url")))).thenReturn(verificationLink)
+      when(mockEmailConnector.sendEmail(any, any, any)(any, any))
+        .thenReturn(Future.successful(HttpResponse(202, "")))
+      when(mockTokenRepo.upsert(any, any, any, any)).thenReturn(Future.unit)
+      when(mockAppConfig.whitelistedDomains) thenReturn Set.empty[String]
+
+      val validRequestWithUppercaseEmail: JsValue = Json.parse(
+        s"""{
+           |  "email": "${recipient.toUpperCase}",
+           |  "templateId": "$templateId",
+           |  "templateParameters": $paramsJsonStr,
+           |  "linkExpiryDuration" : "P2D",
+           |  "continueUrl" : "http://some/url"
+           |}""".stripMargin
+      )
+      val result: Result = await(controller.requestVerification()(request.withBody(validRequestWithUppercaseEmail)))
 
       status(result) shouldBe Status.CREATED
       verify(mockTokenRepo).upsert(any, eqTo(recipient), eqTo(Duration.ofDays(2)), any)
@@ -131,6 +160,16 @@ class EmailVerificationControllerSpec extends UnitSpec {
     "return 200 with verified email in the body" in new Setup {
       when(mockVerifiedEmailRepo.find(eqTo(email))).thenReturn(Future.successful(Some(VerifiedEmail(email))))
       val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> email)))
+      status(response) shouldBe 200
+      contentAsJson(response).as[VerifiedEmail] shouldBe VerifiedEmail(email)
+      verify(mockVerifiedEmailRepo).find(eqTo(email))
+      verifyNoMoreInteractions(mockVerifiedEmailRepo)
+      verify(mockAuditService).sendCheckEmailVerifiedEvent(*, *, eqTo(OK))(*)
+    }
+
+    "lower case email address" in new Setup {
+      when(mockVerifiedEmailRepo.find(eqTo(email))).thenReturn(Future.successful(Some(VerifiedEmail(email))))
+      val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> email.toUpperCase)))
       status(response) shouldBe 200
       contentAsJson(response).as[VerifiedEmail] shouldBe VerifiedEmail(email)
       verify(mockVerifiedEmailRepo).find(eqTo(email))

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,17 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         response.status shouldBe CREATED
         (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin"
         verifyEmailRequestEventFired(1,emailAddress,CREATED)
+      }
+
+      "lower case email address" in new Setup {
+        expectEmailToSendSuccessfully()
+        val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(emailAddress.toUpperCase)))
+
+        val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+
+        response.status shouldBe CREATED
+        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin"
+        verifyEmailRequestEventFired(1, emailAddress, CREATED)
       }
     }
 

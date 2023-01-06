@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,19 @@ class EmailVerificationISpec extends BaseISpec {
       When("a client submits a verification request")
 
       val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
+      response.status shouldBe 201
+
+      Then("an email is sent")
+      verifyEmailSentWithContinueUrl(emailToVerify, continueUrl, templateId)
+    }
+
+    "lower case email address" in new Setup {
+      Given("The email service is running")
+      expectEmailToBeSent()
+
+      When("a client submits a verification request")
+
+      val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify.toUpperCase, templateId, continueUrl)))
       response.status shouldBe 201
 
       Then("an email is sent")

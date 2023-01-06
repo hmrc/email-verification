@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -292,6 +292,25 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       And("email is not verified event fired 5 times only as 6th was blocked")
       verifyPasscodeMatchNotFoundOrExpiredEventFired(5)
       verifyMaxPasscodeAttemptsExceededEventFired(1)
+    }
+
+    "lowercase email address" in new Setup {
+      Given("The email service is running")
+      expectEmailToBeSent()
+
+      When("client requests a passcode")
+      val response1 = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify.toUpperCase)))
+      response1.status shouldBe 201
+      verifyEmailPasscodeRequestSuccessfulEvent(1)
+
+      Then("submitting verification request with passcode in lowercase should be successful")
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(emailToVerify, lastPasscodeEmailed))).status shouldBe 201
+
+      verifyEmailAddressConfirmedEventFired(1)
     }
 
     "uppercase passcode verification is valid" in new Setup {
