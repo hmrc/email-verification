@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ trait JourneyRepository {
 
   def get(journeyId: String): Future[Option[Journey]]
   def findByCredId(credId: String): Future[Seq[Journey]]
+  def countMatchingDocs(credId: String, email: String): Future[Long]
 }
 
 class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
@@ -115,6 +116,11 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
     Filters.equal("credId", credId))
     .toFuture()
     .map(_.map(_.toJourney))
+
+  override def countMatchingDocs(credId: String, email: String): Future[Long] = collection.countDocuments(
+    Filters.and(
+      Filters.equal("credId", credId),
+      Filters.equal("emailAddress", email))).toFuture().map(_.longValue())
 }
 
 object JourneyMongoRepository {

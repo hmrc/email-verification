@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ class JourneyServiceSpec extends UnitSpec {
 
         val captor = ArgCaptor[Journey]
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
-
+        when(mockJourneyRepository.countMatchingDocs(credId, emailAddress)).thenReturn(Future.successful(1L))
         when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(origin), eqTo(English))(any, any)).thenReturn(Future.unit)
 
         val res = await(journeyService.initialise(verifyEmailRequest)(HeaderCarrier()))
@@ -53,6 +53,7 @@ class JourneyServiceSpec extends UnitSpec {
 
         val captor = ArgCaptor[Journey]
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
+        when(mockJourneyRepository.countMatchingDocs(credId, "")).thenReturn(Future.successful(1L))
 
         val res = await(journeyService.initialise(verifyEmailRequest.copy(email = None))(HeaderCarrier()))
 
@@ -68,7 +69,7 @@ class JourneyServiceSpec extends UnitSpec {
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
         when(mockJourneyRepository.initialise(any)).thenReturn(Future.unit)
-
+        when(mockJourneyRepository.countMatchingDocs(credId, emailAddress)).thenReturn(Future.successful(1L))
         when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(origin), eqTo(English))(any, any))
           .thenReturn(Future.failed(new Exception("failed")))
 
@@ -83,6 +84,7 @@ class JourneyServiceSpec extends UnitSpec {
 
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockJourneyRepository.initialise(any)).thenReturn(Future.failed(new Exception("failed")))
+        when(mockJourneyRepository.countMatchingDocs(credId, emailAddress)).thenReturn(Future.successful(1L))
 
         lazy val res = await(journeyService.initialise(verifyEmailRequest)(HeaderCarrier()))
 
