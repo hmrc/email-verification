@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package uk.gov.hmrc.emailverification.services
 import config.AppConfig
 
 import java.util.UUID
-import org.mockito.captor.ArgCaptor
+import org.mockito.captor.{ArgCaptor, Captor}
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, VerificationStatusRepository}
 import uk.gov.hmrc.gg.test.UnitSpec
@@ -30,7 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class JourneyServiceSpec extends UnitSpec {
 
   "initialise" when {
-    "given a request with an email address present" should {
+    "given a request with an email address present and no Deskpro service name" should {
       "store the journey and send a passcode to the email address and return email-verification-frontend journey url" in new Setup {
 
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
@@ -43,11 +43,48 @@ class JourneyServiceSpec extends UnitSpec {
 
         val res = await(journeyService.initialise(verifyEmailRequest)(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
+        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin&service=$origin"
       }
     }
 
-    "given a request with no email address present" should {
+    "given a request with an email address present and a Deskpro service name" should {
+      "store the journey and send a passcode to the email address and return email-verification-frontend journey url" in new Setup {
+
+        val serviceName = "My Cool Service"
+
+        when(mockPasscodeGenerator.generate()).thenReturn(passcode)
+        when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
+
+        val captor: Captor[Journey] = ArgCaptor[Journey]
+        when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
+
+        when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
+
+        val res: String = await(journeyService.initialise(verifyEmailRequest.copy(deskproServiceName = Some(serviceName)))(HeaderCarrier()))
+
+        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin&service=$serviceName"
+      }
+    }
+
+    "given a request with no email address present and no Deskpro service name" should {
+      "store the journey without sending an email return email-verification-frontend journey url" in new Setup {
+
+        val serviceName = "My Cool Service"
+
+        when(mockPasscodeGenerator.generate()).thenReturn(passcode)
+
+        val captor: Captor[Journey] = ArgCaptor[Journey]
+        when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
+
+        val res: String = await(journeyService.initialise(verifyEmailRequest.copy(email = None).copy(deskproServiceName = Some(serviceName)))(HeaderCarrier()))
+
+        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/email?continueUrl=$continueUrl&origin=$origin&service=$serviceName"
+
+        verifyZeroInteractions(mockEmailService)
+      }
+    }
+
+    "given a request with no email address present and a Deskpro service name" should {
       "store the journey without sending an email return email-verification-frontend journey url" in new Setup {
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
 
@@ -56,9 +93,10 @@ class JourneyServiceSpec extends UnitSpec {
 
         val res = await(journeyService.initialise(verifyEmailRequest.copy(email = None))(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/email?continueUrl=$continueUrl&origin=$origin"
+        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/email?continueUrl=$continueUrl&origin=$origin&service=$origin"
 
         verifyZeroInteractions(mockEmailService)
+
       }
     }
 
