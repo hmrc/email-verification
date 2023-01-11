@@ -47,34 +47,37 @@ class JourneyService @Inject() (
     val passcode = passcodeGenerator.generate()
     val journeyId = UUID.randomUUID().toString
 
-    val journey = Journey(
-      journeyId                 = journeyId,
-      credId                    = verifyEmailRequest.credId,
-      continueUrl               = verifyEmailRequest.continueUrl,
-      origin                    = verifyEmailRequest.origin,
-      accessibilityStatementUrl = verifyEmailRequest.accessibilityStatementUrl,
-      serviceName               = verifyEmailRequest.deskproServiceName.getOrElse(verifyEmailRequest.origin),
-      language                  = verifyEmailRequest.lang.getOrElse(English),
-      emailAddress              = verifyEmailRequest.email.map(_.address),
-      enterEmailUrl             = verifyEmailRequest.email.map(_.enterUrl),
-      backUrl                   = verifyEmailRequest.backUrl,
-      pageTitle                 = verifyEmailRequest.pageTitle,
-      passcode                  = passcode,
-      emailAddressAttempts      = verifyEmailRequest.email.map(_.address).size,
-      passcodesSentToEmail      = verifyEmailRequest.email.map(_.address).size,
-      passcodeAttempts          = 0
-    )
+    journeyRepository.countMatchingDocs(verifyEmailRequest.credId,
+                                        verifyEmailRequest.email.map(_.address).getOrElse("")).flatMap { existingCountOfDocs =>
+        val journey = Journey(
+          journeyId                 = journeyId,
+          credId                    = verifyEmailRequest.credId,
+          continueUrl               = verifyEmailRequest.continueUrl,
+          origin                    = verifyEmailRequest.origin,
+          accessibilityStatementUrl = verifyEmailRequest.accessibilityStatementUrl,
+          serviceName               = verifyEmailRequest.deskproServiceName.getOrElse(verifyEmailRequest.origin),
+          language                  = verifyEmailRequest.lang.getOrElse(English),
+          emailAddress              = verifyEmailRequest.email.map(_.address),
+          enterEmailUrl             = verifyEmailRequest.email.map(_.enterUrl),
+          backUrl                   = verifyEmailRequest.backUrl,
+          pageTitle                 = verifyEmailRequest.pageTitle,
+          passcode                  = passcode,
+          emailAddressAttempts      = existingCountOfDocs.toInt,
+          passcodesSentToEmail      = existingCountOfDocs.toInt,
+          passcodeAttempts          = 0
+        )
 
-    for {
-      _ <- journeyRepository.initialise(journey)
-      _ <- journey.emailAddress.fold(Future.unit)(saveEmailAndSendPasscode(_, journey))
-    } yield if (verifyEmailRequest.email.isEmpty) {
-      s"/email-verification/journey/$journeyId/email?" +
-        createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
-    } else {
-      s"/email-verification/journey/$journeyId/passcode?" +
-        createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
-    }
+        for {
+          _ <- journeyRepository.initialise(journey)
+          _ <- journey.emailAddress.fold(Future.unit)(saveEmailAndSendPasscode(_, journey))
+        } yield if (verifyEmailRequest.email.isEmpty) {
+          s"/email-verification/journey/$journeyId/email?" +
+            createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
+        } else {
+          s"/email-verification/journey/$journeyId/passcode?" +
+            createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
+        }
+      }
   }
 
   private def saveEmailAndSendPasscode(email: String, journey: Journey)(implicit hc: HeaderCarrier): Future[Unit] = {

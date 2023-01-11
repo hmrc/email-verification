@@ -17,9 +17,13 @@
 package uk.gov.hmrc.emailverification
 
 import org.scalatest.Assertion
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import support.BaseISpec
 import support.EmailStub._
+import uk.gov.hmrc.emailverification.models.Journey
+
+import java.util.UUID
+import scala.concurrent.Future
 
 class EmailVerificationISpec extends BaseISpec {
   val emailToVerify = "example@domain.com"
@@ -131,6 +135,35 @@ class EmailVerificationISpec extends BaseISpec {
             |"message":"Email has already been verified"
             |}""".stripMargin).toString()
     }
+
+    "submit multiple emails should increase the email attempts count" in new Setup {
+      Given("The email service is running")
+      expectEmailToBeSent()
+
+      When("client submits two verify email requests with diff email")
+      val response = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress)))
+      response.status shouldBe 201
+      val response1 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
+      response1.status shouldBe 201
+      val response2 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
+      response2.status shouldBe 201
+      val response3 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
+      response3.status shouldBe 201
+      val response4 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
+      response4.status shouldBe 201
+      val response5 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
+      response5.status shouldBe 201
+      val response6 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
+      response6.status shouldBe 201
+      val eventualJourneys: Future[Seq[Journey]] = journeyRepo.findByCredId(credId)
+      val existingJourneyId = await(eventualJourneys).last.journeyId
+      val response7 = await(wsClient.url(appClient(s"/journey/$existingJourneyId/email")).post(Json.obj("email" -> emailAddress1)))
+      response7.status shouldBe 403
+
+      Then("verify the email retry count is incremented and status is locked")
+      await(verificationStatusRepo.isLocked(credId,"barrywood1@hotmail.com")) shouldBe true
+    }
+
   }
 
   def assumeEmailAlreadyVerified(email: String): Assertion = {
@@ -148,6 +181,34 @@ class EmailVerificationISpec extends BaseISpec {
     val paramsJsonStr: String = Json.toJson(templateParams).toString()
     val expectedVerificationLink = "http://localhost:9890/verification?token=UG85NW1OcWdjR29xS29EM1pIQ1NqMlpzOEduemZCeUhvZVlLNUVtU2c3emp2TXZzRmFRSzlIdjJBTkFWVVFRUkg1M21MRUY4VE1TWDhOZ0hMNmQ0WHRQQy95NDZCditzNHd6ZUhpcEoyblNsT3F0bGJmNEw5RnhjOU0xNlQ3Y2o1dFdYVUE0NGFSUElURFRrSS9HRHhoTFZxdU9YRkw4OTZ4Z0tOTWMvQTJJd1ZqR3NJZ0pTNjRJNVRUc2RpcFZ1MjdOV1dhNUQ3OG9ITkVlSGJnaUJyUT09"
     val paramsWithVerificationLink: Map[String, String] = templateParams + ("verificationLink" -> expectedVerificationLink)
+
+    val passcode = "FGTRWX"
+    val credId = UUID.randomUUID().toString
+    val origin = "ppt"
+    val emailAddress = "barrywood@hotmail.com"
+    val emailAddress1 = "barrywood1@hotmail.com"
+    val emailAddress2 = "barrywood2@hotmail.com"
+    val emailAddress3 = "barrywood3@hotmail.com"
+    val emailAddress4 = "barrywood4@hotmail.com"
+    val emailAddress5 = "barrywood5@hotmail.com"
+    val emailAddress6 = "barrywood6@hotmail.com"
+
+    val ec = scala.concurrent.ExecutionContext.global
+
+    def verifyEmailRequestJson(emailAddr: String) : JsValue = {
+      Json.parse(s"""{
+                    |  "credId": "$credId",
+                    |  "continueUrl": "$continueUrl",
+                    |  "origin" : "$origin",
+                    |  "deskproServiceName" : "",
+                    |  "accessibilityStatementUrl": "/",
+                    |  "continueUrl": "$continueUrl",
+                    |  "email" : { "address" : "$emailAddr", "enterUrl"  : "/ppt/email" },
+                    |  "lang" : "en",
+                    |  "backUrl" : "",
+                    |  "pageTitle" : ""
+                    |}""".stripMargin)
+    }
   }
 
 }
