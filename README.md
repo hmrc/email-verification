@@ -93,7 +93,7 @@ The journeyId is returned to the calling service in the redirectUri. The calling
 
 ```json
 {
-   "redirectUri" : "/email-verification/journey/98fe3788-2d39-409c-b400-8f86ed1634ea?continueUrl=/plastic-packaging-tax/start&origin=ppt"
+   "redirectUri" : "/email-verification/journey/98fe3788-2d39-409c-b400-8f86ed1634ea?continueUrl=/plastic-packaging-tax/start&origin=ppt&service=plastic-packaging-tax"
 }
 ```
 

@@ -41,7 +41,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
 
         response.status shouldBe CREATED
-        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin"
+        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=$deskproServiceName"
         verifyEmailRequestEventFired(1,emailAddress,CREATED)
       }
     }

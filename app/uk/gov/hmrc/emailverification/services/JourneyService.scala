@@ -38,6 +38,12 @@ class JourneyService @Inject() (
   //Only sends email if we have an email address to send to, otherwise will send when user comes back from frontend with
   //an email address
   def initialise(verifyEmailRequest: VerifyEmailRequest)(implicit hc: HeaderCarrier): Future[String] = {
+
+      def createQueryParams(continueUrl: String, origin: String, serviceName: String): String =
+        s"continueUrl=$continueUrl" +
+          s"&origin=$origin" +
+          s"&service=$serviceName"
+
     val passcode = passcodeGenerator.generate()
     val journeyId = UUID.randomUUID().toString
 
@@ -66,12 +72,10 @@ class JourneyService @Inject() (
           _ <- journey.emailAddress.fold(Future.unit)(saveEmailAndSendPasscode(_, journey))
         } yield if (verifyEmailRequest.email.isEmpty) {
           s"/email-verification/journey/$journeyId/email?" +
-            s"continueUrl=${verifyEmailRequest.continueUrl}" +
-            s"&origin=${verifyEmailRequest.origin}"
+            createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
         } else {
           s"/email-verification/journey/$journeyId/passcode?" +
-            s"continueUrl=${verifyEmailRequest.continueUrl}" +
-            s"&origin=${verifyEmailRequest.origin}"
+            createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
         }
       }
   }

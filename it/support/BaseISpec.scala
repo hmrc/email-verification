@@ -20,6 +20,7 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{noContent, post, stubFor}
 import config.AppConfig
 import org.scalatest.GivenWhenThen
+import org.scalatest.time.{Seconds, Span}
 import play.api.Configuration
 import support.EmailStub._
 import uk.gov.hmrc.emailverification.repositories._
@@ -28,6 +29,10 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
+
+  // Increase timeout used by ScalaFutures when awaiting completion of futures
+  implicit override val patienceConfig: PatienceConfig =
+    PatienceConfig(timeout  = Span(4, Seconds), interval = Span(1, Seconds))
 
   override def extraConfig: Map[String, Any] = Map(
     "play.http.router" -> "testOnlyDoNotUseInAppConf.Routes",
@@ -76,4 +81,5 @@ trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
     super.afterAll()
     dropDatabase()
   }
+
 }
