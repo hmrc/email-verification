@@ -38,6 +38,11 @@ trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
     "maxDifferentEmails" -> 5
   )
 
+  override def dropDatabase(): Unit =
+    await(mongoDatabase
+      .drop()
+      .toFuture())
+
   def appClient(path: String): String = resource(s"/email-verification$path")
 
   val config = Configuration.from(extraConfig)
