@@ -294,6 +294,25 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       verifyMaxPasscodeAttemptsExceededEventFired(1)
     }
 
+    "lowercase email address" in new Setup {
+      Given("The email service is running")
+      expectEmailToBeSent()
+
+      When("client requests a passcode")
+      val response1 = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeRequest(emailToVerify.toUpperCase)))
+      response1.status shouldBe 201
+      verifyEmailPasscodeRequestSuccessfulEvent(1)
+
+      Then("submitting verification request with passcode in lowercase should be successful")
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .post(passcodeVerificationRequest(emailToVerify, lastPasscodeEmailed))).status shouldBe 201
+
+      verifyEmailAddressConfirmedEventFired(1)
+    }
+
     "uppercase passcode verification is valid" in new Setup {
       Given("The email service is running")
       expectEmailToBeSent()

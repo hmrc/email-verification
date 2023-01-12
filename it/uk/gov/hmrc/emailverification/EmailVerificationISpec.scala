@@ -42,6 +42,19 @@ class EmailVerificationISpec extends BaseISpec {
       verifyEmailSentWithContinueUrl(emailToVerify, continueUrl, templateId)
     }
 
+    "lower case email address" in new Setup {
+      Given("The email service is running")
+      expectEmailToBeSent()
+
+      When("a client submits a verification request")
+
+      val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify.toUpperCase, templateId, continueUrl)))
+      response.status shouldBe 201
+
+      Then("an email is sent")
+      verifyEmailSentWithContinueUrl(emailToVerify, continueUrl, templateId)
+    }
+
     "only latest email verification request token for a given email should be valid" in new Setup {
       Given("The email service is running")
       expectEmailToBeSent()
