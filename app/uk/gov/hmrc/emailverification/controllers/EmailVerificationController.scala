@@ -59,8 +59,7 @@ class EmailVerificationController @Inject() (
 
   def requestVerification(): Action[JsValue] = Action.async(parse.json) {
     implicit httpRequest =>
-      withJsonBody[EmailVerificationRequest] { req =>
-        val request = req.copy(email = req.email.toLowerCase)
+      withJsonBody[EmailVerificationRequest] { request =>
         verifiedEmailRepo.isVerified(request.email) flatMap {
           case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY", "Email has already been verified"))))
           case false =>
@@ -114,8 +113,7 @@ class EmailVerificationController @Inject() (
   }
 
   def verifiedEmail(): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withJsonBody[VerifiedEmail] { req =>
-      val verifiedEmail = req.copy(email = req.email.toLowerCase)
+    withJsonBody[VerifiedEmail] { verifiedEmail =>
       verifiedEmailRepo.find(verifiedEmail.email).map {
         case Some(email) => {
           auditService.sendCheckEmailVerifiedEvent(

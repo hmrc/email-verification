@@ -49,9 +49,7 @@ class JourneyController @Inject() (
   }
 
   def verifyEmail(): Action[VerifyEmailRequest] = Action.async(parse.json[VerifyEmailRequest]) { implicit request =>
-    val req = request.body
-    val verifyEmailRequest = req.copy(email = req.email.map(e => e.copy(address = e.address.toLowerCase)))
-
+    val verifyEmailRequest = request.body
     journeyService.isLocked(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address)).flatMap { locked =>
       if (locked) {
         auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 401)
@@ -72,8 +70,7 @@ class JourneyController @Inject() (
 
   def submitEmail(journeyId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     (request.body \ "email").asOpt[String] match {
-      case Some(value) =>
-        val email = value.toLowerCase
+      case Some(email) =>
         journeyService.submitEmail(journeyId, email).map {
           case EmailUpdateResult.Accepted =>
             Ok(Json.obj("status" -> "accepted"))
