@@ -238,14 +238,14 @@ Check if email address is verified or not, if verified return 200 with the email
 }
 ```
 
-## GET /test-only/passcode
+## GET /test-only/passcodes
 
 Retrieves the generated passcode for a given session ID provided in the headers
 
 **Example Request**
 
 ```
-GET /test-only/passcode
+GET /test-only/passcodes
 
 X-Session-ID: SomeSessionId
 ```
@@ -267,7 +267,12 @@ X-Session-ID: SomeSessionId
 
 ```json
 {
-  "passcode": "ATERRT"
+  "passcodes": [
+    {
+      "email": "test@example.com",
+      "passcode": "ATERRT"
+    }
+  ]
 }
 ```
 
