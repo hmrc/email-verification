@@ -125,7 +125,8 @@ class EmailPasscodeController @Inject() (
 
   def requestPasscode(): Action[JsValue] = Action.async(parse.json) {
     implicit httpRequest =>
-      withJsonBody[PasscodeRequest] { request =>
+      withJsonBody[PasscodeRequest] { req =>
+        val request = req.copy(email = req.email.toLowerCase)
         (for {
           _ <- authorised(){ Future.successful(()) }.recoverWith{ case _ => Future.failed(MissingAuthSession) }
           emailAlreadyVerified <- verifiedEmailService.isVerified(request.email)
@@ -191,7 +192,8 @@ class EmailPasscodeController @Inject() (
   }
 
   def verifyPasscode(): Action[JsValue] = Action.async(parse.json) { implicit request: Request[JsValue] =>
-    withJsonBody[PasscodeVerificationRequest] { passcodeVerificationRequest =>
+    withJsonBody[PasscodeVerificationRequest] { req =>
+      val passcodeVerificationRequest = req.copy(email = req.email.toLowerCase)
       hc.sessionId match {
         case Some(id) => {
           passcodeRepo.findPasscodeAndIncrementAttempts(id, passcodeVerificationRequest.email).flatMap {

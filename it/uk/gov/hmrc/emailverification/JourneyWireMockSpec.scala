@@ -45,6 +45,17 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=$deskproServiceName"
         verifyEmailRequestEventFired(1,emailAddress,CREATED)
       }
+
+      "lower case email address" in new Setup {
+        expectEmailToSendSuccessfully()
+        val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(emailAddress.toUpperCase)))
+
+        val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+
+        response.status shouldBe CREATED
+        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=$deskproServiceName"
+        verifyEmailRequestEventFired(1, emailAddress, CREATED)
+      }
     }
 
     "given a valid payload but the email was previosuly locked out" should {
