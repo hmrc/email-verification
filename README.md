@@ -93,7 +93,7 @@ The journeyId is returned to the calling service in the redirectUri. The calling
 
 ```json
 {
-   "redirectUri" : "/email-verification/journey/98fe3788-2d39-409c-b400-8f86ed1634ea?continueUrl=/plastic-packaging-tax/start&origin=ppt"
+   "redirectUri" : "/email-verification/journey/98fe3788-2d39-409c-b400-8f86ed1634ea?continueUrl=/plastic-packaging-tax/start&origin=ppt&service=plastic-packaging-tax"
 }
 ```
 
@@ -238,14 +238,14 @@ Check if email address is verified or not, if verified return 200 with the email
 }
 ```
 
-## GET /test-only/passcode
+## GET /test-only/passcodes
 
 Retrieves the generated passcode for a given session ID provided in the headers
 
 **Example Request**
 
 ```
-GET /test-only/passcode
+GET /test-only/passcodes
 
 X-Session-ID: SomeSessionId
 ```
@@ -267,7 +267,12 @@ X-Session-ID: SomeSessionId
 
 ```json
 {
-  "passcode": "ATERRT"
+  "passcodes": [
+    {
+      "email": "test@example.com",
+      "passcode": "ATERRT"
+    }
+  ]
 }
 ```
 

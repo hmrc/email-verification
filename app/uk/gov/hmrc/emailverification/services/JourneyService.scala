@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,39 +38,46 @@ class JourneyService @Inject() (
   //Only sends email if we have an email address to send to, otherwise will send when user comes back from frontend with
   //an email address
   def initialise(verifyEmailRequest: VerifyEmailRequest)(implicit hc: HeaderCarrier): Future[String] = {
+
+      def createQueryParams(continueUrl: String, origin: String, serviceName: String): String =
+        s"continueUrl=$continueUrl" +
+          s"&origin=$origin" +
+          s"&service=$serviceName"
+
     val passcode = passcodeGenerator.generate()
     val journeyId = UUID.randomUUID().toString
 
-    val journey = Journey(
-      journeyId                 = journeyId,
-      credId                    = verifyEmailRequest.credId,
-      continueUrl               = verifyEmailRequest.continueUrl,
-      origin                    = verifyEmailRequest.origin,
-      accessibilityStatementUrl = verifyEmailRequest.accessibilityStatementUrl,
-      serviceName               = verifyEmailRequest.deskproServiceName.getOrElse(verifyEmailRequest.origin),
-      language                  = verifyEmailRequest.lang.getOrElse(English),
-      emailAddress              = verifyEmailRequest.email.map(_.address),
-      enterEmailUrl             = verifyEmailRequest.email.map(_.enterUrl),
-      backUrl                   = verifyEmailRequest.backUrl,
-      pageTitle                 = verifyEmailRequest.pageTitle,
-      passcode                  = passcode,
-      emailAddressAttempts      = verifyEmailRequest.email.map(_.address).size,
-      passcodesSentToEmail      = verifyEmailRequest.email.map(_.address).size,
-      passcodeAttempts          = 0
-    )
+    journeyRepository.countMatchingDocs(verifyEmailRequest.credId,
+                                        verifyEmailRequest.email.map(_.address).getOrElse("")).flatMap { existingCountOfDocs =>
+        val journey = Journey(
+          journeyId                 = journeyId,
+          credId                    = verifyEmailRequest.credId,
+          continueUrl               = verifyEmailRequest.continueUrl,
+          origin                    = verifyEmailRequest.origin,
+          accessibilityStatementUrl = verifyEmailRequest.accessibilityStatementUrl,
+          serviceName               = verifyEmailRequest.deskproServiceName.getOrElse(verifyEmailRequest.origin),
+          language                  = verifyEmailRequest.lang.getOrElse(English),
+          emailAddress              = verifyEmailRequest.email.map(_.address),
+          enterEmailUrl             = verifyEmailRequest.email.map(_.enterUrl),
+          backUrl                   = verifyEmailRequest.backUrl,
+          pageTitle                 = verifyEmailRequest.pageTitle,
+          passcode                  = passcode,
+          emailAddressAttempts      = existingCountOfDocs.toInt,
+          passcodesSentToEmail      = existingCountOfDocs.toInt,
+          passcodeAttempts          = 0
+        )
 
-    for {
-      _ <- journeyRepository.initialise(journey)
-      _ <- journey.emailAddress.fold(Future.unit)(saveEmailAndSendPasscode(_, journey))
-    } yield if (verifyEmailRequest.email.isEmpty) {
-      s"/email-verification/journey/$journeyId/email?" +
-        s"continueUrl=${verifyEmailRequest.continueUrl}" +
-        s"&origin=${verifyEmailRequest.origin}"
-    } else {
-      s"/email-verification/journey/$journeyId/passcode?" +
-        s"continueUrl=${verifyEmailRequest.continueUrl}" +
-        s"&origin=${verifyEmailRequest.origin}"
-    }
+        for {
+          _ <- journeyRepository.initialise(journey)
+          _ <- journey.emailAddress.fold(Future.unit)(saveEmailAndSendPasscode(_, journey))
+        } yield if (verifyEmailRequest.email.isEmpty) {
+          s"/email-verification/journey/$journeyId/email?" +
+            createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
+        } else {
+          s"/email-verification/journey/$journeyId/passcode?" +
+            createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
+        }
+      }
   }
 
   private def saveEmailAndSendPasscode(email: String, journey: Journey)(implicit hc: HeaderCarrier): Future[Unit] = {

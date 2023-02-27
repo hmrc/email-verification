@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package uk.gov.hmrc.emailverification.repositories
 
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{Seconds, Span}
 import uk.gov.hmrc.gg.test.UnitSpec
 import uk.gov.hmrc.mongo.test.MongoSupport
 import java.time.{Clock, Instant, ZoneId}
@@ -31,6 +32,10 @@ trait RepositoryBaseSpec
   with ScalaFutures {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+
+  // Increase timeout used by ScalaFutures when awaiting completion of futures
+  implicit override val patienceConfig: PatienceConfig =
+    PatienceConfig(timeout  = Span(4, Seconds), interval = Span(1, Seconds))
 
   val clock = Clock.fixed(Instant.now, ZoneId.systemDefault)
 

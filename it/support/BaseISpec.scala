@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{noContent, post, stubFor}
 import config.AppConfig
 import org.scalatest.GivenWhenThen
+import org.scalatest.time.{Seconds, Span}
 import play.api.Configuration
 import support.EmailStub._
 import uk.gov.hmrc.emailverification.repositories._
@@ -29,6 +30,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
 
+  // Increase timeout used by ScalaFutures when awaiting completion of futures
+  implicit override val patienceConfig: PatienceConfig =
+    PatienceConfig(timeout  = Span(4, Seconds), interval = Span(1, Seconds))
+
   override def extraConfig: Map[String, Any] = Map(
     "play.http.router" -> "testOnlyDoNotUseInAppConf.Routes",
     "queryParameter.encryption.key" -> "gvBoGdgzqG1AarzF1LY0zQ==",
@@ -37,6 +42,11 @@ trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
     "verificationStatusRepositoryTtl" -> "24 hours",
     "maxDifferentEmails" -> 5
   )
+
+  override def dropDatabase(): Unit =
+    await(mongoDatabase
+      .drop()
+      .toFuture())
 
   def appClient(path: String): String = resource(s"/email-verification$path")
 
@@ -71,4 +81,5 @@ trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
     super.afterAll()
     dropDatabase()
   }
+
 }
