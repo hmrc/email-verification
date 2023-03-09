@@ -31,8 +31,8 @@ class AppConfig @Inject() (val config: Configuration) {
 
   lazy val passcodeExpiryMinutes = config.get[Int]("passcodeExpiryMinutes")
 
-  lazy val whitelistedDomains: Set[String] = config
-    .getOptional[String]("whitelisted-domains")
+  lazy val allowlistedDomains: Set[String] = config
+    .getOptional[String]("allowlisted-domains")
     .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSet)
     .getOrElse(Set.empty[String])
 

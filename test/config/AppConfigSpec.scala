@@ -42,10 +42,10 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
     }
   }
 
-  "whitelistedDomains" should {
+  "allowlistedDomains" should {
 
     "be empty when no configuration is defined" in new Setup {
-      appConfig.whitelistedDomains shouldBe Set.empty[String]
+      appConfig.allowlistedDomains shouldBe Set.empty[String]
     }
 
     val scenarios = Tables.Table[String, String, Set[String]](
@@ -58,8 +58,8 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
     )
 
     TableDrivenPropertyChecks.forAll(scenarios) { (scenario, configuration, expectedValue) =>
-      scenario in new Setup(Map("whitelisted-domains" -> configuration)) {
-        appConfig.whitelistedDomains shouldBe expectedValue
+      scenario in new Setup(Map("allowlisted-domains" -> configuration)) {
+        appConfig.allowlistedDomains shouldBe expectedValue
       }
     }
   }

@@ -20,6 +20,7 @@ import java.util.UUID
 import support.BaseISpec
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mongodb.scala.result.InsertOneResult
+import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsArray, Json}
 import play.api.test.Injecting
 import uk.gov.hmrc.emailverification.models.{English, Journey, VerificationStatus}
@@ -539,38 +540,40 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
   }
 
 
-  trait Setup extends TestData {
+  trait Setup extends TestData with Eventually {
 
     def verifyEmailRequestEventFired(times: Int = 1, emailAddress:String, expectedStatus:Int): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"VerifyEmailRequest""""))
-        .withRequestBody(containing(s""""credId":"${credId}""""))
-        .withRequestBody(containing(s""""bearerToken":"-"""))
-        .withRequestBody(containing(s""""origin":"${origin}""""))
-        .withRequestBody(containing(s""""continueUrl":"${continueUrl}""""))
-        .withRequestBody(containing(s""""deskproServiceName":"${deskproServiceName}""""))
-        .withRequestBody(containing(s""""accessibilityStatementUrl":"${accessibilityStatementUrl}""""))
-        .withRequestBody(containing(s""""pageTitle":"-""""))
-        .withRequestBody(containing(s""""backUrl":"-""""))
-        .withRequestBody(containing(s""""emailAddress":"${emailAddress}""""))
-        .withRequestBody(containing(s""""emailEntryUrl":"${emailEntryUrl}""""))
-        .withRequestBody(containing(s""""lang":"${lang}""""))
-        .withRequestBody(containing(s""""statusCode":"${expectedStatus.toString}""""))
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"VerifyEmailRequest""""))
+          .withRequestBody(containing(s""""credId":"${credId}""""))
+          .withRequestBody(containing(s""""bearerToken":"-"""))
+          .withRequestBody(containing(s""""origin":"${origin}""""))
+          .withRequestBody(containing(s""""continueUrl":"${continueUrl}""""))
+          .withRequestBody(containing(s""""deskproServiceName":"${deskproServiceName}""""))
+          .withRequestBody(containing(s""""accessibilityStatementUrl":"${accessibilityStatementUrl}""""))
+          .withRequestBody(containing(s""""pageTitle":"-""""))
+          .withRequestBody(containing(s""""backUrl":"-""""))
+          .withRequestBody(containing(s""""emailAddress":"${emailAddress}""""))
+          .withRequestBody(containing(s""""emailEntryUrl":"${emailEntryUrl}""""))
+          .withRequestBody(containing(s""""lang":"${lang}""""))
+          .withRequestBody(containing(s""""statusCode":"${expectedStatus.toString}""""))
 
-      )
+        )
+      }
     }
 
     def verifyEmailVerificationOutcomeEventFired(times: Int = 1, emailJson:String, expectedStatus:Int): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"EmailVerificationOutcomeRequest""""))
-        .withRequestBody(containing(s""""credId":"${credId}""""))
-        .withRequestBody(containing(s""""bearerToken""""))
-        .withRequestBody(containing(s""""userAgentString":"AHC/2.1""""))
-        .withRequestBody(containing(emailJson))
-        .withRequestBody(containing(s""""statusCode":"${expectedStatus.toString}""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"EmailVerificationOutcomeRequest""""))
+          .withRequestBody(containing(s""""credId":"${credId}""""))
+          .withRequestBody(containing(s""""bearerToken""""))
+          .withRequestBody(containing(s""""userAgentString":"AHC/2.1""""))
+          .withRequestBody(containing(emailJson))
+          .withRequestBody(containing(s""""statusCode":"${expectedStatus.toString}""""))
+        )
+      }
     }
 
     def expectEmailToSendSuccessfully() = {

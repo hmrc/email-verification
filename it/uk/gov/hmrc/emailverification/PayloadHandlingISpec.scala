@@ -50,7 +50,7 @@ class PayloadHandlingISpec extends BaseISpec {
       response.status shouldBe CREATED
     }
 
-    "return CREATED when continueUrl is protocol-relative and whitelisted" in new Setup {
+    "return CREATED when continueUrl is protocol-relative and allowlisted" in new Setup {
       expectEmailToBeSent()
       val validPayloadWithRelativeContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "//example.com/continue")
 
@@ -59,10 +59,10 @@ class PayloadHandlingISpec extends BaseISpec {
       response.status shouldBe CREATED
     }
 
-    "return BAD_REQUEST with structured error when continueUrl is absolute but not whitelisted" in new Setup {
-      val validPayloadWithUnwhitelistedContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "http://hackers.ru/continue")
+    "return BAD_REQUEST with structured error when continueUrl is absolute but not allowlisted" in new Setup {
+      val validPayloadWithUnallowlistedContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "http://hackers.ru/continue")
 
-      val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithUnwhitelistedContinueUrl))
+      val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithUnallowlistedContinueUrl))
 
       response.status shouldBe BAD_REQUEST
       response.json shouldBe Json.parse(
@@ -70,16 +70,16 @@ class PayloadHandlingISpec extends BaseISpec {
           |  "code": "VALIDATION_ERROR",
           |  "message": "Payload validation failed",
           |  "details":{
-          |    "obj.continueUrl": "URL is not whitelisted"
+          |    "obj.continueUrl": "URL is not allowlisted"
           |  }
           |}""".stripMargin
       )
     }
 
-    "return BAD_REQUEST with structured error when continueUrl is protocol-relative but not whitelisted" in new Setup {
-      val validPayloadWithUnwhitelistedContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "//hackers.ru/continue")
+    "return BAD_REQUEST with structured error when continueUrl is protocol-relative but not allowlisted" in new Setup {
+      val validPayloadWithUnallowlistedContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "//hackers.ru/continue")
 
-      val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithUnwhitelistedContinueUrl))
+      val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithUnallowlistedContinueUrl))
 
       response.status shouldBe BAD_REQUEST
       response.json shouldBe Json.parse(
@@ -87,7 +87,7 @@ class PayloadHandlingISpec extends BaseISpec {
           |  "code": "VALIDATION_ERROR",
           |  "message": "Payload validation failed",
           |  "details":{
-          |    "obj.continueUrl": "URL is not whitelisted"
+          |    "obj.continueUrl": "URL is not allowlisted"
           |  }
           |}""".stripMargin
       )
@@ -201,7 +201,7 @@ class PayloadHandlingISpec extends BaseISpec {
   }
 
   override def extraConfig = super.extraConfig ++ Map(
-    "whitelisted-domains" -> ",  test.example.com  ,,    , example.com ,example.com,example.com:1234"
+    "allowlisted-domains" -> ",  test.example.com  ,,    , example.com ,example.com,example.com:1234"
   )
 
   trait Setup {

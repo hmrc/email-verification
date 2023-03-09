@@ -61,10 +61,10 @@ class VerifiedEmailService @Inject() (
    * older plain text collection is stored mixed case, new hashed collection is stored lower cased.
    */
   def insert(mixedCaseEmail: String): Future[Unit] = appConfig.verifiedEmailUpdateCollection match {
-    case WhichToUse.Both => verifiedHashedEmailRepo.insert(mixedCaseEmail.toLowerCase)
-      .flatMap(_ => verifiedEmailRepo.insert(mixedCaseEmail))
+    case WhichToUse.Both => verifiedEmailRepo.insert(mixedCaseEmail)
+      .flatMap(_ => verifiedHashedEmailRepo.insert(mixedCaseEmail.toLowerCase))
     case WhichToUse.New => verifiedHashedEmailRepo.insert(mixedCaseEmail.toLowerCase)
-    case WhichToUse.Old => throw new RuntimeException("'old' should be logically impossible here, only 'both' or 'new' supported in config")
+    case WhichToUse.Old => throw new RuntimeException("Post migration the hashed repo should always be used, so only 'both' or 'new' supported in config")
   }
 
   def migrateEmailAddresses(): Future[MigrationResultCollector] = {
