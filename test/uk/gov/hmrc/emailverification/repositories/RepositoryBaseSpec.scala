@@ -20,13 +20,14 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import uk.gov.hmrc.gg.test.UnitSpec
-import uk.gov.hmrc.mongo.test.MongoSupport
+import uk.gov.hmrc.mongo.test.IndexedMongoQueriesSupport
+
 import java.time.{Clock, Instant, ZoneId}
 import scala.concurrent.ExecutionContext
 
 trait RepositoryBaseSpec
   extends UnitSpec
-  with MongoSupport
+  with IndexedMongoQueriesSupport
   with BeforeAndAfterEach
   with BeforeAndAfterAll
   with ScalaFutures {

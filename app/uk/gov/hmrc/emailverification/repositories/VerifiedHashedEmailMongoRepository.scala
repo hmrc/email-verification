@@ -18,16 +18,19 @@ package uk.gov.hmrc.emailverification.repositories
 
 import com.mongodb.MongoBulkWriteException
 import config.AppConfig
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.{IndexModel, _}
 import play.api.Logging
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Format, Json, OFormat}
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.crypto.{OnewayCryptoFactory, PlainText, Sha512Crypto}
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
+import java.time.Instant
+import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
-import scala.collection.JavaConverters
+import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -36,8 +39,11 @@ class VerifiedHashedEmailMongoRepository @Inject() (mongoComponent: MongoCompone
     collectionName = "verifiedHashedEmail",
     mongoComponent = mongoComponent,
     domainFormat   = VerifiedHashedEmail.format,
-    indexes        = Seq(IndexModel(Indexes.ascending("hashedEmail"), IndexOptions().name("emailUnique").unique(true))),
-    replaceIndexes = false
+    indexes        = Seq(
+      IndexModel(Indexes.ascending("hashedEmail"), IndexOptions().name("emailUnique").unique(true)),
+      IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl").expireAfter(appConfig.verifiedEmailRepoTTLDays, TimeUnit.DAYS))
+    ),
+    replaceIndexes = appConfig.verifiedEmailRepoReplaceIndex
   ) with Logging {
 
   private val hasher: Sha512Crypto = OnewayCryptoFactory.sha(appConfig.verifiedEmailRepoHashKey)
@@ -56,17 +62,16 @@ class VerifiedHashedEmailMongoRepository @Inject() (mongoComponent: MongoCompone
       .map(_ => ())
 
   // GG-6759 - remove after emails migrated
-  def insertBatch(emails: Seq[VerifiedEmail]): Future[Int] = {
-    val hashedEmails = emails.map{ verifiedEmail =>
-      VerifiedHashedEmail(hashEmail(verifiedEmail.email))
+  def insertBatch(emailsWithCreatedAt: Seq[(VerifiedEmail, Instant)]): Future[Int] = {
+    val hashedEmails = emailsWithCreatedAt.map{
+      case (verifiedEmail, createdAt) => VerifiedHashedEmail(hashEmail(verifiedEmail.email.toLowerCase), createdAt)
     }
-
-    collection.insertMany(hashedEmails, InsertManyOptions().ordered(false))
+    collection.bulkWrite(hashedEmails.map(InsertOneModel(_)), BulkWriteOptions().ordered(false))
       .toFuture()
-      .map(_.getInsertedIds.size())
+      .map(_.getInsertedCount)
       .recover {
-        case e: MongoBulkWriteException if JavaConverters.asScalaBuffer(e.getWriteErrors).forall(_.getCode == 11000) =>
-          val successfulWrites = emails.size - e.getWriteErrors.size()
+        case e: MongoBulkWriteException if e.getWriteErrors.asScala.forall(_.getCode == 11000) =>
+          val successfulWrites = emailsWithCreatedAt.size - e.getWriteErrors.size()
           logger.warn(s"[GG-6759] Ignoring ${e.getWriteErrors.size()} duplicate key errors on insertMany")
           successfulWrites
       }
@@ -74,8 +79,9 @@ class VerifiedHashedEmailMongoRepository @Inject() (mongoComponent: MongoCompone
 
 }
 
-case class VerifiedHashedEmail(hashedEmail: String)
+case class VerifiedHashedEmail(hashedEmail: String, createdAt: Instant = Instant.now())
 
 object VerifiedHashedEmail {
+  implicit val instantFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
   implicit val format: OFormat[VerifiedHashedEmail] = Json.format[VerifiedHashedEmail]
 }

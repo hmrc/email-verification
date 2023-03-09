@@ -59,9 +59,9 @@ class EmailVerificationController @Inject() (
 
   def requestVerification(): Action[JsValue] = Action.async(parse.json) {
     implicit httpRequest =>
-      withJsonBody[EmailVerificationRequest] { req =>
-        val request = req.copy(email = req.email.toLowerCase)
-        verifiedEmailService.isVerified(request.email) flatMap {
+      withJsonBody[EmailVerificationRequest] { request =>
+        val mixedCaseEmail = request.email
+        verifiedEmailService.isVerified(mixedCaseEmail) flatMap {
           case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY", "Email has already been verified"))))
           case false =>
             analyticsConnector.sendEvents(GaEvents.verificationRequested)
@@ -72,8 +72,8 @@ class EmailVerificationController @Inject() (
                   auditType   = "AIV-60",
                   tags        = hc.toAuditTags("requestVerification", httpRequest.path),
                   detail      = Json.obj(
-                    "email-address" -> request.email,
-                    "email-address-hex" -> toByteString(request.email)
+                    "email-address" -> mixedCaseEmail,
+                    "email-address-hex" -> toByteString(mixedCaseEmail)
                   )
                 )
                 auditConnector.sendExtendedEvent(event)
@@ -114,9 +114,8 @@ class EmailVerificationController @Inject() (
   }
 
   def verifiedEmail(): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withJsonBody[VerifiedEmail] { req =>
-      val verifiedEmail = req.copy(email = req.email.toLowerCase)
-      verifiedEmailService.find(verifiedEmail.email).map {
+    withJsonBody[VerifiedEmail] { verifiedEmail =>
+      verifiedEmailService.find(mixedCaseEmail = verifiedEmail.email).map {
         case Some(email) => {
           auditService.sendCheckEmailVerifiedEvent(
             emailAddress  = verifiedEmail.email,

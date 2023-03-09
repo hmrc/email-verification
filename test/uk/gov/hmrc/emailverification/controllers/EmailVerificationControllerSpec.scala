@@ -40,7 +40,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
   "requestVerification" should {
     "send email containing verificationLink param and return success response" in new Setup {
       val verificationLink = "verificationLink"
-      when(mockVerifiedEmailService.isVerified(eqTo(recipient))).thenReturn(Future.successful(false))
+      when(mockVerifiedEmailService.isVerified(eqTo(emailMixedCase))).thenReturn(Future.successful(false))
       when(mockVerificationLinkService.verificationLinkFor(any, eqTo(ForwardUrl("http://some/url")))).thenReturn(verificationLink)
       when(mockEmailConnector.sendEmail(any, any, any)(any, any))
         .thenReturn(Future.successful(HttpResponse(202, "")))
@@ -50,37 +50,8 @@ class EmailVerificationControllerSpec extends UnitSpec {
       val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
 
       status(result) shouldBe Status.CREATED
-      verify(mockTokenRepo).upsert(any, eqTo(recipient), eqTo(Duration.ofDays(2)), any)
-      verify(mockEmailConnector).sendEmail(eqTo(recipient), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any, any)
-      val captor: ArgumentCaptor[GaEvent] = ArgumentCaptor.forClass(classOf[GaEvent])
-      verify(mockAnalyticsConnector).sendEvents(captor.capture())(any, any)
-      captor.getValue shouldBe GaEvents.verificationRequested
-
-    }
-
-    "lower case email address" in new Setup {
-      val verificationLink = "verificationLink"
-      when(mockVerifiedEmailService.isVerified(eqTo(recipient))).thenReturn(Future.successful(false))
-      when(mockVerificationLinkService.verificationLinkFor(any, eqTo(ForwardUrl("http://some/url")))).thenReturn(verificationLink)
-      when(mockEmailConnector.sendEmail(any, any, any)(any, any))
-        .thenReturn(Future.successful(HttpResponse(202, "")))
-      when(mockTokenRepo.upsert(any, any, any, any)).thenReturn(Future.unit)
-      when(mockAppConfig.whitelistedDomains) thenReturn Set.empty[String]
-
-      val validRequestWithUppercaseEmail: JsValue = Json.parse(
-        s"""{
-           |  "email": "${recipient.toUpperCase}",
-           |  "templateId": "$templateId",
-           |  "templateParameters": $paramsJsonStr,
-           |  "linkExpiryDuration" : "P2D",
-           |  "continueUrl" : "http://some/url"
-           |}""".stripMargin
-      )
-      val result: Result = await(controller.requestVerification()(request.withBody(validRequestWithUppercaseEmail)))
-
-      status(result) shouldBe Status.CREATED
-      verify(mockTokenRepo).upsert(any, eqTo(recipient), eqTo(Duration.ofDays(2)), any)
-      verify(mockEmailConnector).sendEmail(eqTo(recipient), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any, any)
+      verify(mockTokenRepo).upsert(any, eqTo(emailMixedCase), eqTo(Duration.ofDays(2)), any)
+      verify(mockEmailConnector).sendEmail(eqTo(emailMixedCase), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any, any)
       val captor: ArgumentCaptor[GaEvent] = ArgumentCaptor.forClass(classOf[GaEvent])
       verify(mockAnalyticsConnector).sendEvents(captor.capture())(any, any)
       captor.getValue shouldBe GaEvents.verificationRequested
@@ -89,7 +60,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
 
     "return 400 if upstream email service returns bad request and should not create mongo entry" in new Setup {
       val verificationLink = "verificationLink"
-      when(mockVerifiedEmailService.isVerified(eqTo(recipient))).thenReturn(Future.successful(false))
+      when(mockVerifiedEmailService.isVerified(eqTo(emailMixedCase))).thenReturn(Future.successful(false))
       when(mockVerificationLinkService.verificationLinkFor(any, eqTo(ForwardUrl("http://some/url")))).thenReturn(verificationLink)
       when(mockEmailConnector.sendEmail(any, any, any)(any, any))
         .thenReturn(Future.failed(UpstreamErrorResponse.apply("Bad Request from email", 400)))
@@ -99,14 +70,14 @@ class EmailVerificationControllerSpec extends UnitSpec {
 
       status(result) shouldBe Status.BAD_REQUEST
       (contentAsJson(result) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
-      verify(mockEmailConnector).sendEmail(eqTo(recipient), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any, any)
+      verify(mockEmailConnector).sendEmail(eqTo(emailMixedCase), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any, any)
       verify(mockAuditConnector).sendExtendedEvent(any)(any, any)
       verify(mockAnalyticsConnector).sendEvents(any)(any, any)
       verifyNoInteractions(mockTokenRepo)
     }
 
     "return 409 when email already registered" in new Setup {
-      when(mockVerifiedEmailService.isVerified(eqTo(recipient))).thenReturn(Future.successful(true))
+      when(mockVerifiedEmailService.isVerified(eqTo(emailMixedCase))).thenReturn(Future.successful(true))
       when(mockAppConfig.whitelistedDomains) thenReturn Set.empty[String]
 
       val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
@@ -116,28 +87,28 @@ class EmailVerificationControllerSpec extends UnitSpec {
 
   "validateToken" should {
     "return 201 when the token is valid" in new Setup {
-      when(mockTokenRepo.findToken(eqTo(someToken))).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, Instant.now))))
-      when(mockVerifiedEmailService.insert(eqTo(email))).thenReturn(Future.unit)
-      when(mockVerifiedEmailService.find(eqTo(email))).thenReturn(Future.successful(None))
+      when(mockTokenRepo.findToken(eqTo(someToken))).thenReturn(Future.successful(Some(VerificationDoc(emailMixedCase, someToken, Instant.now))))
+      when(mockVerifiedEmailService.insert(eqTo(emailMixedCase))).thenReturn(Future.unit)
+      when(mockVerifiedEmailService.find(eqTo(emailMixedCase))).thenReturn(Future.successful(None))
 
       val result: Future[Result] = controller.validateToken()(request.withBody(Json.obj("token" -> someToken)))
 
       status(result) shouldBe Status.CREATED
-      verify(mockVerifiedEmailService).insert(eqTo(email))
-      verify(mockVerifiedEmailService).find(eqTo(email))
+      verify(mockVerifiedEmailService).insert(eqTo(emailMixedCase))
+      verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
       val captor: ArgumentCaptor[GaEvent] = ArgumentCaptor.forClass(classOf[GaEvent])
       verify(mockAnalyticsConnector).sendEvents(captor.capture())(any, any)
       captor.getValue shouldBe GaEvents.verificationSuccess
     }
 
     "return 204 when the token is valid and the email was already validated" in new Setup {
-      when(mockTokenRepo.findToken(eqTo(someToken))).thenReturn(Future.successful(Some(VerificationDoc(email, someToken, Instant.now))))
-      when(mockVerifiedEmailService.find(eqTo(email))).thenReturn(Future.successful(Some(VerifiedEmail(email))))
+      when(mockTokenRepo.findToken(eqTo(someToken))).thenReturn(Future.successful(Some(VerificationDoc(emailMixedCase, someToken, Instant.now))))
+      when(mockVerifiedEmailService.find(eqTo(emailMixedCase))).thenReturn(Future.successful(Some(VerifiedEmail(emailMixedCase))))
 
       val result: Future[Result] = controller.validateToken()(request.withBody(Json.obj("token" -> someToken)))
 
       status(result) shouldBe Status.NO_CONTENT
-      verify(mockVerifiedEmailService).find(eqTo(email))
+      verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
       val captor: ArgumentCaptor[GaEvent] = ArgumentCaptor.forClass(classOf[GaEvent])
       verify(mockAnalyticsConnector).sendEvents(captor.capture())(any, any)
@@ -159,30 +130,30 @@ class EmailVerificationControllerSpec extends UnitSpec {
 
   "verifiedEmail" should {
     "return 200 with verified email in the body" in new Setup {
-      when(mockVerifiedEmailService.find(eqTo(email))).thenReturn(Future.successful(Some(VerifiedEmail(email))))
-      val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> email)))
+      when(mockVerifiedEmailService.find(eqTo(emailMixedCase))).thenReturn(Future.successful(Some(VerifiedEmail(emailMixedCase))))
+      val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> emailMixedCase)))
       status(response) shouldBe 200
-      contentAsJson(response).as[VerifiedEmail] shouldBe VerifiedEmail(email)
-      verify(mockVerifiedEmailService).find(eqTo(email))
+      contentAsJson(response).as[VerifiedEmail] shouldBe VerifiedEmail(emailMixedCase)
+      verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
       verify(mockAuditService).sendCheckEmailVerifiedEvent(*, *, eqTo(OK))(*)
     }
 
     "lower case email address" in new Setup {
-      when(mockVerifiedEmailService.find(eqTo(email))).thenReturn(Future.successful(Some(VerifiedEmail(email))))
-      val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> email.toUpperCase)))
+      when(mockVerifiedEmailService.find(eqTo(emailMixedCase.toUpperCase))).thenReturn(Future.successful(Some(VerifiedEmail(emailMixedCase))))
+      val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> emailMixedCase.toUpperCase)))
       status(response) shouldBe 200
-      contentAsJson(response).as[VerifiedEmail] shouldBe VerifiedEmail(email)
-      verify(mockVerifiedEmailService).find(eqTo(email))
+      contentAsJson(response).as[VerifiedEmail] shouldBe VerifiedEmail(emailMixedCase)
+      verify(mockVerifiedEmailService).find(eqTo(emailMixedCase.toUpperCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
       verify(mockAuditService).sendCheckEmailVerifiedEvent(*, *, eqTo(OK))(*)
     }
 
     "return 404 if email not found" in new Setup {
-      when(mockVerifiedEmailService.find(eqTo(email))).thenReturn(Future.successful(None))
-      val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> email)))
+      when(mockVerifiedEmailService.find(eqTo(emailMixedCase))).thenReturn(Future.successful(None))
+      val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> emailMixedCase)))
       status(response) shouldBe 404
-      verify(mockVerifiedEmailService).find(eqTo(email))
+      verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
       verify(mockAuditService).sendCheckEmailVerifiedEvent(*, *, eqTo(NOT_FOUND))(*)
     }
@@ -211,14 +182,14 @@ class EmailVerificationControllerSpec extends UnitSpec {
       stubControllerComponents()
     )(ExecutionContext.global, mockAppConfig)
     val templateId = "my-template"
-    val recipient = "user@example.com"
+    val emailMixedCase = "uSeR@eXamPle.com"
+    val emailLowerCase = "user@example.com"
     val params = Map("name" -> "Mr Joe Bloggs")
     val paramsJsonStr = Json.toJson(params).toString()
-    val email = "user@email.com"
 
     val validRequest: JsValue = Json.parse(
       s"""{
-         |  "email": "$recipient",
+         |  "email": "$emailMixedCase",
          |  "templateId": "$templateId",
          |  "templateParameters": $paramsJsonStr,
          |  "linkExpiryDuration" : "P2D",

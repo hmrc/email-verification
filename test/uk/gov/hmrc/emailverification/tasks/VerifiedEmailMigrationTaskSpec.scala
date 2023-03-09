@@ -19,6 +19,7 @@ package uk.gov.hmrc.emailverification.tasks
 import akka.actor.{ActorSystem, Cancellable, Scheduler}
 import config.AppConfig
 import play.api.Logger
+import uk.gov.hmrc.emailverification.models.MigrationResultCollector
 import uk.gov.hmrc.emailverification.services.VerifiedEmailService
 import uk.gov.hmrc.gg.test.{LogCapturing, UnitSpec}
 import uk.gov.hmrc.mongo.lock.MongoLockRepository
@@ -37,7 +38,7 @@ class VerifiedEmailMigrationTaskSpec extends UnitSpec with LogCapturing {
         when(mockMongoLockRepo.releaseLock(*, *)).thenReturn(Future.unit)
         when(mockConfig.emailMigrationStartAfterMinutes).thenReturn(0)
         when(mockActorSystem.scheduler).thenReturn(myScheduler)
-        when(mockVerifiedEmailService.migrateEmailAddresses()).thenReturn(Future.successful(1))
+        when(mockVerifiedEmailService.migrateEmailAddresses()).thenReturn(Future.successful(MigrationResultCollector(insertedCount = 1)))
 
         new VerifiedEmailMigrationTask(mockVerifiedEmailService, mockMongoLockRepo, mockActorSystem, mockConfig)
         Thread.sleep(200) //allow logs to catch up

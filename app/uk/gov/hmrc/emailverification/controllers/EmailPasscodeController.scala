@@ -126,10 +126,11 @@ class EmailPasscodeController @Inject() (
   def requestPasscode(): Action[JsValue] = Action.async(parse.json) {
     implicit httpRequest =>
       withJsonBody[PasscodeRequest] { req =>
+        val mixedCaseEmailAddress = req.email
         val request = req.copy(email = req.email.toLowerCase)
         (for {
           _ <- authorised(){ Future.successful(()) }.recoverWith{ case _ => Future.failed(MissingAuthSession) }
-          emailAlreadyVerified <- verifiedEmailService.isVerified(request.email)
+          emailAlreadyVerified <- verifiedEmailService.isVerified(mixedCaseEmailAddress)
           _ <- if (emailAlreadyVerified) Future.failed(EmailAlreadyVerified) else Future.unit
           _ = analyticsConnector.sendEvents(GaEvents.passcodeRequested)
           sessionId <- hc.sessionId.fold[Future[SessionId]](Future.failed(MissingSessionId))(Future.successful)
@@ -193,6 +194,7 @@ class EmailPasscodeController @Inject() (
 
   def verifyPasscode(): Action[JsValue] = Action.async(parse.json) { implicit request: Request[JsValue] =>
     withJsonBody[PasscodeVerificationRequest] { req =>
+      val mixedCaseEmail = req.email
       val passcodeVerificationRequest = req.copy(email = req.email.toLowerCase)
       hc.sessionId match {
         case Some(id) => {
@@ -209,14 +211,14 @@ class EmailPasscodeController @Inject() (
 
             case Some(doc) if doc.passcode == passcodeVerificationRequest.passcode.toUpperCase =>
               analyticsConnector.sendEvents(GaEvents.passcodeSuccess)
-              verifiedEmailService.find(doc.email) flatMap {
+              verifiedEmailService.find(mixedCaseEmail) flatMap {
                 case None =>
                   auditService.sendEmailAddressConfirmedEvent(
                     emailAddress = passcodeVerificationRequest.email,
                     passcode     = passcodeVerificationRequest.passcode,
                     passcodeDoc  = doc,
                     responseCode = CREATED)
-                  verifiedEmailService.insert(doc.email) map (_ => Created)
+                  verifiedEmailService.insert(mixedCaseEmail) map (_ => Created)
                 case _ =>
                   auditService.sendEmailAddressConfirmedEvent(
                     emailAddress = passcodeVerificationRequest.email,

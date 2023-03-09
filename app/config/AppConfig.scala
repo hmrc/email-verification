@@ -43,7 +43,9 @@ class AppConfig @Inject() (val config: Configuration) {
   lazy val maxDifferentEmails = config.get[Int]("maxDifferentEmails")
   lazy val verificationStatusRepositoryTtl = config.get[Duration]("verificationStatusRepositoryTtl")
 
-  lazy val verifiedEmailRepoHashKey = config.get[String]("verifiedEmailRepoHashKey")
+  lazy val verifiedEmailRepoHashKey = config.get[String]("verifiedEmailRepo.hashKey")
+  lazy val verifiedEmailRepoReplaceIndex = config.get[Boolean]("verifiedEmailRepo.replaceIndex")
+  lazy val verifiedEmailRepoTTLDays = config.get[Int]("verifiedEmailRepo.ttlDays")
 
   //GG-6759 remove after email migration..
   lazy val emailMigrationEnabled = config.get[Boolean]("emailMigration.enabled")
@@ -51,5 +53,10 @@ class AppConfig @Inject() (val config: Configuration) {
   lazy val emailMigrationBatchSize = config.get[Int]("emailMigration.batchSize")
   lazy val emailMigrationBatchDelayMillis = config.get[Int]("emailMigration.batchDelayMillis")
   lazy val emailMigrationMaxDurationSeconds = config.get[Int]("emailMigration.maxDurationSeconds")
+
+  lazy val verifiedEmailCheckCollection = WhichToUse.forCollectionToCheck(config.get[String]("verifiedEmailCheckCollection"))
+
+  lazy val verifiedEmailUpdateCollection = WhichToUse.forCollectionToUpdate(config.get[String]("verifiedEmailUpdateCollection"))
+
 }
 
