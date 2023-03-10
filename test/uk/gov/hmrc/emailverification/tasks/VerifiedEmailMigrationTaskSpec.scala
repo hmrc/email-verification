@@ -18,6 +18,7 @@ package uk.gov.hmrc.emailverification.tasks
 
 import akka.actor.{ActorSystem, Cancellable, Scheduler}
 import config.AppConfig
+import org.scalatest.concurrent.Eventually
 import play.api.Logger
 import uk.gov.hmrc.emailverification.models.MigrationResultCollector
 import uk.gov.hmrc.emailverification.services.VerifiedEmailService
@@ -28,7 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 
-class VerifiedEmailMigrationTaskSpec extends UnitSpec with LogCapturing {
+class VerifiedEmailMigrationTaskSpec extends UnitSpec with LogCapturing with Eventually {
 
   "initialising/starting the task" should {
     "obtain mongo lock and call verified email service migrateEmailAddresses()" in new Setup {
@@ -41,10 +42,11 @@ class VerifiedEmailMigrationTaskSpec extends UnitSpec with LogCapturing {
         when(mockVerifiedEmailService.migrateEmailAddresses()).thenReturn(Future.successful(MigrationResultCollector(insertedCount = 1)))
 
         new VerifiedEmailMigrationTask(mockVerifiedEmailService, mockMongoLockRepo, mockActorSystem, mockConfig)
-        Thread.sleep(200) //allow logs to catch up
-        val logMessages = logs.map(_.getMessage)
-        logMessages should contain("[GG-6759] mongo lock acquired for verified-email-migration-task")
-        logMessages should contain("[GG-6759] verified-email-migration-task scheduled to start after 0 minutes, mongo lock released.")
+        eventually {
+          val logMessages = logs.map(_.getMessage)
+          logMessages should contain("[GG-6759] mongo lock acquired for verified-email-migration-task")
+          logMessages should contain("[GG-6759] verified-email-migration-task scheduled to start after 0 minutes, mongo lock released.")
+        }
       }
     }
 
@@ -55,9 +57,10 @@ class VerifiedEmailMigrationTaskSpec extends UnitSpec with LogCapturing {
         when(mockMongoLockRepo.takeLock(*, *, *)).thenReturn(Future.successful(false))
 
         new VerifiedEmailMigrationTask(mockVerifiedEmailService, mockMongoLockRepo, mockActorSystem, mockConfig)
-        Thread.sleep(200) //allow logs to catch up
-        val logMessages = logs.map(_.getMessage)
-        logMessages should contain("[GG-6759] Failed to acquire mongo lock for verified-email-migration-task")
+        eventually {
+          val logMessages = logs.map(_.getMessage)
+          logMessages should contain("[GG-6759] Failed to acquire mongo lock for verified-email-migration-task")
+        }
       }
     }
 
@@ -69,9 +72,10 @@ class VerifiedEmailMigrationTaskSpec extends UnitSpec with LogCapturing {
         when(mockConfig.emailMigrationStartAfterMinutes).thenReturn(0)
 
         new VerifiedEmailMigrationTask(mockVerifiedEmailService, mockMongoLockRepo, mockActorSystem, mockConfig)
-        Thread.sleep(200) //allow logs to catch up
-        val logMessages = logs.map(_.getMessage)
-        logMessages should contain("[GG-6759] Failed to run verified-email-migration-task")
+        eventually {
+          val logMessages = logs.map(_.getMessage)
+          logMessages should contain("[GG-6759] Failed to run verified-email-migration-task")
+        }
       }
     }
 
@@ -79,9 +83,10 @@ class VerifiedEmailMigrationTaskSpec extends UnitSpec with LogCapturing {
       withCaptureOfLoggingFrom(Logger(Class.forName("uk.gov.hmrc.emailverification.tasks.VerifiedEmailMigrationTask"))) { logs =>
         when(mockConfig.emailMigrationEnabled).thenReturn(false)
         new VerifiedEmailMigrationTask(mockVerifiedEmailService, mockMongoLockRepo, mockActorSystem, mockConfig)
-        Thread.sleep(200) //allow logs to catch up
-        val logMessages = logs.map(_.getMessage)
-        logMessages should contain("[GG-6759] verified-email-migration-task disabled")
+        eventually {
+          val logMessages = logs.map(_.getMessage)
+          logMessages should contain("[GG-6759] verified-email-migration-task disabled")
+        }
       }
     }
   }

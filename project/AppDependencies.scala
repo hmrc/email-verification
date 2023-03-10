@@ -10,7 +10,7 @@ object AppDependencies {
   )
 
   val test = Seq(
-    "uk.gov.hmrc"       %% "government-gateway-test"  % "4.9.0"   % "test,it",
+    "uk.gov.hmrc"       %% "government-gateway-test"  % "5.0.0"   % "test,it",
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-28"  % "0.74.0"  % "test,it",
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.13.3" % "test,it"
   )

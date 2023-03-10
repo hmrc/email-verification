@@ -87,8 +87,8 @@ class EmailPasscodeController @Inject() (
       case Welsh   => "email_verification_passcode_welsh"
     }
 
-    val paramsWithPasscode = appConfig.passcodeEmailTemplateParameters +
-      ("passcode" -> passcode, "team_name" -> passcodeRequest.serviceName)
+    val paramsWithPasscode = appConfig.passcodeEmailTemplateParameters ++
+      Map("passcode" -> passcode, "team_name" -> passcodeRequest.serviceName)
     emailConnector.sendEmail(to         = passcodeRequest.email, templateId = templateId, params = paramsWithPasscode).map { emailResponse =>
       auditService.sendPasscodeViaEmailEvent(
         emailAddress = passcodeRequest.email,

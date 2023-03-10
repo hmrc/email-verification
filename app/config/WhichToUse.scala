@@ -25,9 +25,11 @@ object WhichToUse {
     case New.value  => New
     case Old.value  => Old
     case Both.value => Both
+    case _          => throw new RuntimeException(s"Unsupported value '$value', should be 'old', 'new' or 'both'")
   }
   def forCollectionToUpdate(value: String): WhichToUse = value.toLowerCase match {
     case New.value  => New
     case Both.value => Both
+    case _          => throw new RuntimeException(s"Unsupported value '$value', should be 'new' or 'both'")
   }
 }

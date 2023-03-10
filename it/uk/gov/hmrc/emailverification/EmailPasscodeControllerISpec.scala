@@ -20,16 +20,18 @@ import java.util.UUID
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.Assertion
+import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsDefined, JsString, Json}
 import support.BaseISpec
 import support.EmailStub._
 import uk.gov.hmrc.emailverification.models.{English, Journey, PasscodeDoc}
 import uk.gov.hmrc.emailverification.repositories.JourneyMongoRepository
 import uk.gov.hmrc.http.HeaderNames
+
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class EmailPasscodeControllerISpec extends BaseISpec {
+class EmailPasscodeControllerISpec extends BaseISpec with Eventually{
 
   override def extraConfig = super.extraConfig ++ Map("auditing.enabled" -> true)
 
@@ -111,11 +113,11 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
       Then("a passcode email is sent")
 
-      Thread.sleep(200)
-
-      verifyEmailSentWithPasscode(emailToVerify)
-      verifySendEmailWithPasscodeFired(ACCEPTED)
-      verifyEmailPasscodeRequestSuccessfulEvent(1)
+      eventually {
+        verifyEmailSentWithPasscode(emailToVerify)
+        verifySendEmailWithPasscodeFired(ACCEPTED)
+        verifyEmailPasscodeRequestSuccessfulEvent(1)
+      }
     }
 
     "send a passcode email with the welsh template when the lang is cy" in new Setup {
@@ -134,11 +136,11 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
       Then("a passcode email is sent")
 
-      Thread.sleep(200)
-
-      verifyEmailSentWithPasscode(emailToVerify, templateId = "email_verification_passcode_welsh")
-      verifySendEmailWithPasscodeFired(ACCEPTED)
-      verifyEmailPasscodeRequestSuccessfulEvent(1)
+      eventually {
+        verifyEmailSentWithPasscode(emailToVerify, templateId = "email_verification_passcode_welsh")
+        verifySendEmailWithPasscodeFired(ACCEPTED)
+        verifyEmailPasscodeRequestSuccessfulEvent(1)
+      }
     }
 
     "block user on 6th passcode request to the same email address" in new Setup {
@@ -161,9 +163,10 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       Then("the user should get 403 forbidden response")
       response.status shouldBe 403
 
-      Thread.sleep(200)
       And("no email will have been sent")
-      verifyNoEmailSent
+      eventually {
+        verifyNoEmailSent
+      }
     }
 
     "block user on 11th different email passcode request" in new Setup {
@@ -185,9 +188,10 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       Then("the user should get 403 forbidden response")
       response.status shouldBe 403
 
-      Thread.sleep(200)
       And("no email will have been sent")
-      verifyNoEmailSent
+      eventually {
+        verifyNoEmailSent
+      }
     }
 
     "only latest passcode sent to a given email should be valid" in new Setup {
@@ -590,107 +594,120 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
 
     def verifySendEmailWithPasscodeFired(responseCode: Int): Unit = {
-      Thread.sleep(100)
-      verify(postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"SendEmailWithPasscode""""))
-        .withRequestBody(containing(s""""responseCode":"$responseCode""""))
-      )
+      eventually {
+        verify(postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"SendEmailWithPasscode""""))
+          .withRequestBody(containing(s""""responseCode":"$responseCode""""))
+        )
+      }
     }
 
     def verifyCheckEmailVerifiedFired(emailVerified: Boolean, times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"CheckEmailVerified""""))
-        .withRequestBody(containing(s""""emailVerified":"$emailVerified""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"CheckEmailVerified""""))
+          .withRequestBody(containing(s""""emailVerified":"$emailVerified""""))
+        )
+      }
     }
 
     def verifyEmailPasscodeRequestSuccessfulEvent(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"Successfully sent a passcode to the email address requiring verification""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"Successfully sent a passcode to the email address requiring verification""""))
+        )
+      }
     }
 
     def verifyEmailAddressAlreadyVerifiedEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"Email address already confirmed""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"Email address already confirmed""""))
+        )
+      }
     }
 
     def verifyMaxEmailsExceededEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"Max permitted passcode emails per session has been exceeded""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"Max permitted passcode emails per session has been exceeded""""))
+        )
+      }
     }
 
     def verifyMaxDifferentEmailsExceededEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"Max permitted passcode emails per session has been exceeded""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"Max permitted passcode emails per session has been exceeded""""))
+        )
+      }
     }
 
     def verifyPasscodeEmailDeliveryErrorEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"sendEmail request failed""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"sendEmail request failed""""))
+        )
+      }
     }
 
     def verifyEmailAddressConfirmedEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
-        .withRequestBody(containing(s""""outcome":"Email address confirmed""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+          .withRequestBody(containing(s""""outcome":"Email address confirmed""""))
+        )
+      }
     }
 
     def verifyEmailAddressNotFoundOrExpiredEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
-        .withRequestBody(containing(s""""outcome":"Email address not found or verification attempt time expired""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+          .withRequestBody(containing(s""""outcome":"Email address not found or verification attempt time expired""""))
+        )
+      }
     }
 
     def verifyPasscodeMatchNotFoundOrExpiredEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
-        .withRequestBody(containing(s""""outcome":"Email verification passcode match not found or time expired""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+          .withRequestBody(containing(s""""outcome":"Email verification passcode match not found or time expired""""))
+        )
+      }
     }
 
     def verifyVerificationRequestMissingSessionIdEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
-        .withRequestBody(containing(s""""outcome":"SessionId missing""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+          .withRequestBody(containing(s""""outcome":"SessionId missing""""))
+        )
+      }
     }
 
     def verifyEmailRequestMissingSessionIdEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"SessionId missing""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"SessionId missing""""))
+        )
+      }
     }
 
     def verifyMaxPasscodeAttemptsExceededEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
-        .withRequestBody(containing(s""""outcome":"Max permitted passcode verification attempts per session has been exceeded""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+          .withRequestBody(containing(s""""outcome":"Max permitted passcode verification attempts per session has been exceeded""""))
+        )
+      }
     }
 
   }

@@ -46,9 +46,9 @@ class ErrorHandlerOverride @Inject() (
       case play.mvc.Http.Status.NOT_FOUND =>
         auditConnector.sendEvent(httpAuditEvent.dataEvent("ResourceNotFound", "Resource Endpoint Not Found", request))
         Future.successful(
-          NotFound(Json.toJson(ErrorResponse("NOT_FOUND", "URI not found", Some(Map("requestedUrl" → request.path)))))
+          NotFound(Json.toJson(ErrorResponse("NOT_FOUND", "URI not found", Some(Map("requestedUrl" -> request.path)))))
         )
-      case _ ⇒ super.onClientError(request, statusCode, message)
+      case _ => super.onClientError(request, statusCode, message)
     }
   }
 
@@ -71,9 +71,8 @@ class ErrorHandlerOverride @Inject() (
 
   private def resolveError(ex: Throwable): Result = {
     val (statusCode, code, message) = ex match {
-      case Upstream4xxResponse(message, _, _, _) => (BAD_GATEWAY, "UPSTREAM_ERROR", message)
-      case Upstream5xxResponse(message, _, _, _) => (BAD_GATEWAY, "UPSTREAM_ERROR", message)
-      case e: Throwable                          => (INTERNAL_SERVER_ERROR, "UNEXPECTED_ERROR", e.getMessage)
+      case UpstreamErrorResponse(message, _, _, _) => (BAD_GATEWAY, "UPSTREAM_ERROR", message)
+      case e: Throwable                            => (INTERNAL_SERVER_ERROR, "UNEXPECTED_ERROR", e.getMessage)
     }
 
     new Status(statusCode)(Json.toJson(ErrorResponse(code, message)))

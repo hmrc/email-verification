@@ -40,12 +40,12 @@ trait RepositoryBaseSpec
 
   val clock = Clock.fixed(Instant.now, ZoneId.systemDefault)
 
-  override def beforeEach() {
+  override def beforeEach(): Unit = {
     super.beforeEach()
     dropDatabase()
   }
 
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     dropDatabase()
   }
 

@@ -26,7 +26,7 @@ import play.api.http.Status
 import uk.gov.hmrc.crypto.Crypted.fromBase64
 import uk.gov.hmrc.crypto.SymmetricCryptoFactory
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object EmailStub extends Matchers {
   private def crypto(implicit config:Config) = SymmetricCryptoFactory.aesCryptoFromConfig("queryParameter.encryption", config)
@@ -91,7 +91,7 @@ object EmailStub extends Matchers {
     Json.parse(emailSendRequest)
   }
 
-  def verifyNoEmailSent = {
+  def verifyNoEmailSent: Assertion = {
     WireMock.findAll(postRequestedFor(urlEqualTo("/hmrc/email"))) shouldBe empty
   }
 

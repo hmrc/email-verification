@@ -26,7 +26,7 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import java.time.Instant
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[VerificationStatusMongoRepository])
@@ -40,6 +40,7 @@ trait VerificationStatusRepository {
   def isLocked(credId: String, emailAddress: String): Future[Boolean]
 }
 
+@Singleton
 class VerificationStatusMongoRepository @Inject() (mongoComponent: MongoComponent, config: AppConfig)(implicit ec: ExecutionContext)
   extends PlayMongoRepository[VerificationStatusMongoRepository.Entity](
     collectionName = "verificationStatus",
