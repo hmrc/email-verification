@@ -17,8 +17,8 @@
 package uk.gov.hmrc.emailverification.controllers
 
 import java.util.UUID
-
 import config.AppConfig
+
 import javax.inject.Inject
 import play.api.Logging
 import play.api.libs.json.Json.toJson
@@ -26,8 +26,8 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.models._
-import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository, VerifiedEmailMongoRepository}
-import uk.gov.hmrc.emailverification.services.{AuditService, VerificationLinkService}
+import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository
+import uk.gov.hmrc.emailverification.services.{AuditService, VerificationLinkService, VerifiedEmailService}
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -39,7 +39,7 @@ class EmailVerificationController @Inject() (
     emailConnector:          EmailConnector,
     verificationLinkService: VerificationLinkService,
     tokenRepo:               VerificationTokenMongoRepository,
-    verifiedEmailRepo:       VerifiedEmailMongoRepository,
+    verifiedEmailService:    VerifiedEmailService,
     analyticsConnector:      PlatformAnalyticsConnector,
     auditConnector:          AuditConnector,
     auditService:            AuditService,
@@ -60,7 +60,8 @@ class EmailVerificationController @Inject() (
   def requestVerification(): Action[JsValue] = Action.async(parse.json) {
     implicit httpRequest =>
       withJsonBody[EmailVerificationRequest] { request =>
-        verifiedEmailRepo.isVerified(request.email) flatMap {
+        val mixedCaseEmail = request.email
+        verifiedEmailService.isVerified(mixedCaseEmail) flatMap {
           case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY", "Email has already been verified"))))
           case false =>
             analyticsConnector.sendEvents(GaEvents.verificationRequested)
@@ -71,8 +72,8 @@ class EmailVerificationController @Inject() (
                   auditType   = "AIV-60",
                   tags        = hc.toAuditTags("requestVerification", httpRequest.path),
                   detail      = Json.obj(
-                    "email-address" -> request.email,
-                    "email-address-hex" -> toByteString(request.email)
+                    "email-address" -> mixedCaseEmail,
+                    "email-address-hex" -> toByteString(mixedCaseEmail)
                   )
                 )
                 auditConnector.sendExtendedEvent(event)
@@ -92,9 +93,9 @@ class EmailVerificationController @Inject() (
 
   def validateToken(): Action[JsValue] = Action.async(parse.json) {
       def createEmailIfNotExist(email: String): Future[Result] =
-        verifiedEmailRepo.find(email) flatMap {
+        verifiedEmailService.find(email) flatMap {
           case Some(verifiedEmail) => Future.successful(NoContent)
-          case None                => verifiedEmailRepo.insert(email) map (_ => Created)
+          case None                => verifiedEmailService.insert(email) map (_ => Created)
         }
 
     val tokenNotFoundOrExpiredResponse = Future.successful(BadRequest(Json.toJson(ErrorResponse("TOKEN_NOT_FOUND_OR_EXPIRED", "Token not found or expired"))))
@@ -114,7 +115,7 @@ class EmailVerificationController @Inject() (
 
   def verifiedEmail(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[VerifiedEmail] { verifiedEmail =>
-      verifiedEmailRepo.find(verifiedEmail.email).map {
+      verifiedEmailService.find(mixedCaseEmail = verifiedEmail.email).map {
         case Some(email) => {
           auditService.sendCheckEmailVerifiedEvent(
             emailAddress  = verifiedEmail.email,

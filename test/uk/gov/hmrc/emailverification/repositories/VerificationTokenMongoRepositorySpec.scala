@@ -28,7 +28,7 @@ import scala.concurrent.duration.DurationInt
 
 class VerificationTokenMongoRepositorySpec extends RepositoryBaseSpec with Eventually {
 
-  val repository = new VerificationTokenMongoRepository(mongoComponent)
+  lazy val repository = new VerificationTokenMongoRepository(mongoComponent)
   val token = "theToken"
   val email = "user@email.com"
   implicit val hc: HeaderCarrier = HeaderCarrier()

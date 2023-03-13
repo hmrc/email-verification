@@ -25,6 +25,13 @@ import uk.gov.hmrc.http.HeaderCarrier
 class TokenValidationISpec extends BaseISpec {
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
+  override def extraConfig:Map[String,Any] = {
+    super.extraConfig ++ Map[String,Any](
+      "verifiedEmailCheckCollection"->"new",
+      "verifiedEmailUpdateCollection"->"new"
+    )
+  }
+
   "validating the token" should {
     "return 201 if the token is valid and 204 if email is already verified" in {
       Given("a verification request exists")
@@ -75,6 +82,20 @@ class TokenValidationISpec extends BaseISpec {
 
       When("an email is checked if it is verified")
       val response = await(wsClient.url(appClient("/verified-email-check")).post(Json.obj("email" -> "user@email.com")))
+
+      Then("email resource is returned")
+      response.status shouldBe 200
+      VerifiedEmail.format.reads(response.json).get shouldBe VerifiedEmail(email)
+    }
+
+    "lower case email addresses in hashed verified email reopsitory" in {
+      Given("a verified email already exist")
+      val email = "user@email.com"
+      val token = tokenFor(email)
+      await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token)))
+
+      When("an email is checked if it is verified")
+      val response = await(wsClient.url(appClient("/verified-email-check")).post(Json.obj("email" -> "user@email.com".toUpperCase)))
 
       Then("email resource is returned")
       response.status shouldBe 200

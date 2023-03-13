@@ -29,18 +29,34 @@ class AppConfig @Inject() (val config: Configuration) {
     .getOptional[Map[String, String]]("passcodeEmailTemplateParameters")
     .getOrElse(Map.empty)
 
-  lazy val passcodeExpiryMinutes = config.get[Int]("passcodeExpiryMinutes")
+  lazy val passcodeExpiryMinutes: Int = config.get[Int]("passcodeExpiryMinutes")
 
-  lazy val whitelistedDomains: Set[String] = config
-    .getOptional[String]("whitelisted-domains")
+  lazy val allowlistedDomains: Set[String] = config
+    .getOptional[String]("allowlisted-domains")
     .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSet)
     .getOrElse(Set.empty[String])
 
   private def getString(key: String) = config.get[String](key)
 
-  lazy val maxPasscodeAttempts = config.get[Int]("maxPasscodeAttempts") //passcode guess attempts
-  lazy val maxAttemptsPerEmail = config.get[Int]("maxEmailAttempts") //passcodes emailed to same address
-  lazy val maxDifferentEmails = config.get[Int]("maxDifferentEmails")
-  lazy val verificationStatusRepositoryTtl = config.get[Duration]("verificationStatusRepositoryTtl")
+  lazy val maxPasscodeAttempts: Int = config.get[Int]("maxPasscodeAttempts") //passcode guess attempts
+  lazy val maxAttemptsPerEmail: Int = config.get[Int]("maxEmailAttempts") //passcodes emailed to same address
+  lazy val maxDifferentEmails: Int = config.get[Int]("maxDifferentEmails")
+  lazy val verificationStatusRepositoryTtl: Duration = config.get[Duration]("verificationStatusRepositoryTtl")
+
+  lazy val verifiedEmailRepoHashKey: String = config.get[String]("verifiedEmailRepo.hashKey")
+  lazy val verifiedEmailRepoReplaceIndex: Boolean = config.get[Boolean]("verifiedEmailRepo.replaceIndex")
+  lazy val verifiedEmailRepoTTLDays: Int = config.get[Int]("verifiedEmailRepo.ttlDays")
+
+  //GG-6759 remove after email migration..
+  lazy val emailMigrationEnabled: Boolean = config.get[Boolean]("emailMigration.enabled")
+  lazy val emailMigrationStartAfterMinutes: Int = config.get[Int]("emailMigration.startAfterMinutes")
+  lazy val emailMigrationBatchSize: Int = config.get[Int]("emailMigration.batchSize")
+  lazy val emailMigrationBatchDelayMillis: Int = config.get[Int]("emailMigration.batchDelayMillis")
+  lazy val emailMigrationMaxDurationSeconds: Int = config.get[Int]("emailMigration.maxDurationSeconds")
+
+  lazy val verifiedEmailCheckCollection: WhichToUse = WhichToUse.forCollectionToCheck(config.get[String]("verifiedEmailCheckCollection"))
+
+  lazy val verifiedEmailUpdateCollection: WhichToUse = WhichToUse.forCollectionToUpdate(config.get[String]("verifiedEmailUpdateCollection"))
+
 }
 

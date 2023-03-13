@@ -20,16 +20,18 @@ import java.util.UUID
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.Assertion
+import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsDefined, JsString, Json}
 import support.BaseISpec
 import support.EmailStub._
 import uk.gov.hmrc.emailverification.models.{English, Journey, PasscodeDoc}
 import uk.gov.hmrc.emailverification.repositories.JourneyMongoRepository
 import uk.gov.hmrc.http.HeaderNames
+
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class EmailPasscodeControllerISpec extends BaseISpec {
+class EmailPasscodeControllerISpec extends BaseISpec with Eventually{
 
   override def extraConfig = super.extraConfig ++ Map("auditing.enabled" -> true)
 
@@ -96,114 +98,130 @@ class EmailPasscodeControllerISpec extends BaseISpec {
 
 
     "send a passcode email to the specified address successfully" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       Given("The email service is running")
       expectEmailToBeSent()
 
       When("a client submits a passcode email request")
 
       val response = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response.status shouldBe 201
 
       Then("a passcode email is sent")
 
-      Thread.sleep(200)
-
-      verifyEmailSentWithPasscode(emailToVerify)
-      verifySendEmailWithPasscodeFired(ACCEPTED)
-      verifyEmailPasscodeRequestSuccessfulEvent(1)
+      eventually {
+        verifyEmailSentWithPasscode(emailToVerify)
+        verifySendEmailWithPasscodeFired(ACCEPTED)
+        verifyEmailPasscodeRequestSuccessfulEvent(1)
+      }
     }
 
     "send a passcode email with the welsh template when the lang is cy" in new Setup {
       Given("The email service is running")
       expectEmailToBeSent()
 
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       When("a client submits a passcode email request")
 
       val response = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify, lang = "cy")))
       response.status shouldBe 201
 
       Then("a passcode email is sent")
 
-      Thread.sleep(200)
-
-      verifyEmailSentWithPasscode(emailToVerify, templateId = "email_verification_passcode_welsh")
-      verifySendEmailWithPasscodeFired(ACCEPTED)
-      verifyEmailPasscodeRequestSuccessfulEvent(1)
+      eventually {
+        verifyEmailSentWithPasscode(emailToVerify, templateId = "email_verification_passcode_welsh")
+        verifySendEmailWithPasscodeFired(ACCEPTED)
+        verifyEmailPasscodeRequestSuccessfulEvent(1)
+      }
     }
 
     "block user on 6th passcode request to the same email address" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       Given("The email service is running")
       expectEmailToBeSent()
 
       When("a client submits 5 requests to the same email address")
 
-      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
-      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
-      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
-      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
-      await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
+      (1 to 5).foreach { _ =>
+        await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123").post(passcodeRequest(emailToVerify)))
+       }
       WireMock.reset()
 
       Then("client submits a 6th email request")
-      val response = await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
+      expectUserToBeAuthorisedWithGG(credId)
+      val response = await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123").post(passcodeRequest(emailToVerify)))
       Then("the user should get 403 forbidden response")
       response.status shouldBe 403
 
-      Thread.sleep(200)
       And("no email will have been sent")
-      verifyNoEmailSent
+      eventually {
+        verifyNoEmailSent
+      }
     }
 
     "block user on 11th different email passcode request" in new Setup {
+
       Given("The email service is running")
       expectEmailToBeSent()
 
       When("a client submits 10 different emails")
 
       (1 to 10).map { count =>
-        await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(s"email$count@somewhere.com")))
+        expectUserToBeAuthorisedWithGG(credId)
+        await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123").post(passcodeRequest(s"email$count@somewhere.com")))
       }
       WireMock.reset()
 
       Then("client submits 11th email request")
-      val response = await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId).post(passcodeRequest(emailToVerify)))
+      expectUserToBeAuthorisedWithGG(credId)
+      val response = await(wsClient.url(appClient("/request-passcode")).withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123").post(passcodeRequest(emailToVerify)))
       Then("the user should get 403 forbidden response")
       response.status shouldBe 403
 
-      Thread.sleep(200)
       And("no email will have been sent")
-      verifyNoEmailSent
+      eventually {
+        verifyNoEmailSent
+      }
     }
 
     "only latest passcode sent to a given email should be valid" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       Given("The email service is running")
       expectEmailToBeSent()
 
       When("client submits a passcode request")
       val response1 = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response1.status shouldBe 201
       val passcode1 = lastPasscodeEmailed
 
       When("client submits a second passcode request for same email")
       val response2 = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response2.status shouldBe 201
       val passcode2 = lastPasscodeEmailed
 
       Then("only the last passcode sent should be valid")
       val validationResponse1 = await(wsClient.url(appClient("/verify-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeVerificationRequest(emailToVerify, passcode1)))
 
       val validationResponse2 = await(wsClient.url(appClient("/verify-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeVerificationRequest(emailToVerify, passcode2)))
 
       validationResponse1.status shouldBe 404
@@ -225,10 +243,13 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "return 404 Not Found and a PASSCODE_MISMATCH status if the passcode is incorrect" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       expectEmailToBeSent()
 
       val requestedPasscode = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       requestedPasscode.status shouldBe CREATED
       verifyEmailPasscodeRequestSuccessfulEvent(1)
@@ -253,12 +274,15 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "fail with Forbidden on exceeding max permitted passcode verification attempts (default is 5)" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       Given("The email service is running")
       expectEmailToBeSent()
 
       When("client submits a passcode email request")
       val response1 = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response1.status shouldBe 201
       verifyEmailPasscodeRequestSuccessfulEvent(1)
@@ -294,13 +318,38 @@ class EmailPasscodeControllerISpec extends BaseISpec {
       verifyMaxPasscodeAttemptsExceededEventFired(1)
     }
 
+    "lowercase email address" in new Setup {
+      Given("The email service is running")
+      expectEmailToBeSent()
+
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
+      When("client requests a passcode")
+      val response1 = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
+        .post(passcodeRequest(emailToVerify.toUpperCase)))
+      response1.status shouldBe 201
+      verifyEmailPasscodeRequestSuccessfulEvent(1)
+
+      Then("submitting verification request with passcode in lowercase should be successful")
+      await(wsClient.url(appClient("/verify-passcode"))
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
+        .post(passcodeVerificationRequest(emailToVerify, lastPasscodeEmailed))).status shouldBe 201
+
+      verifyEmailAddressConfirmedEventFired(1)
+    }
+
     "uppercase passcode verification is valid" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       Given("The email service is running")
       expectEmailToBeSent()
 
       When("client requests a passcode")
       val response1 = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response1.status shouldBe 201
       verifyEmailPasscodeRequestSuccessfulEvent(1)
@@ -315,12 +364,15 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "lowercase passcode verification is valid" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       Given("The email service is running")
       expectEmailToBeSent()
 
       When("client requests a passcode")
       val response1 = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response1.status shouldBe 201
       verifyEmailPasscodeRequestSuccessfulEvent(1)
@@ -335,12 +387,15 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "second passcode verification request with same session and passcode should return 204 instead of 201 response" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       Given("The email service is running")
       expectEmailToBeSent()
 
       When("client submits a passcode verification request")
       val response1 = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response1.status shouldBe 201
       verifyEmailPasscodeRequestSuccessfulEvent(1)
@@ -359,20 +414,23 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "passcode verification for two different emails on same session should be successful" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       Given("The email service is running")
       expectEmailToBeSent()
 
       When("user sends two passcode requests for two different email addresses")
       val email1 = "example1@domain.com"
       val response1 = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(email1)))
       response1.status shouldBe 201
       val passcode1 = lastPasscodeEmailed
 
       val email2 = "example2@domain.com"
       val response2 = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(email2)))
       response2.status shouldBe 201
       val passcode2 = lastPasscodeEmailed
@@ -392,10 +450,13 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "return 502 error if email sending fails" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       val body = "some-5xx-message"
       expectEmailServiceToRespond(500, body)
       val response = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response.status shouldBe 502
       response.body should include(body)
@@ -405,10 +466,13 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "return BAD_EMAIL_REQUEST error if email sending fails with 400" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       val body = "some-400-message"
       expectEmailServiceToRespond(400, body)
       val response = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response.status shouldBe 400
       response.body should include(body)
@@ -420,10 +484,13 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "return 500 error if email sending fails with 4xx" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       val body = "some-4xx-message"
       expectEmailServiceToRespond(404, body)
       val response = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response.status shouldBe 502
       response.body should include(body)
@@ -433,9 +500,13 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "return 401 error if no sessionID is provided" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       val body = "some-4xx-message"
       expectEmailServiceToRespond(404, body)
       val response = await(wsClient.url(appClient("/request-passcode"))
+        .withHttpHeaders("Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response.status shouldBe 401
       Json.parse(response.body) \ "code" shouldBe JsDefined(JsString("NO_SESSION_ID"))
@@ -444,10 +515,13 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     }
 
     "return 409 if email is already verified" in new Setup {
+      Given("The user is logged in")
+      expectUserToBeAuthorisedWithGG(credId)
+
       assumeEmailAlreadyVerified()
 
       val response = await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify)))
       response.status shouldBe 409
 
@@ -468,7 +542,7 @@ class EmailPasscodeControllerISpec extends BaseISpec {
     def assumeEmailAlreadyVerified(): Assertion = {
       expectEmailToBeSent()
       await(wsClient.url(appClient("/request-passcode"))
-        .withHttpHeaders(HeaderNames.xSessionId -> sessionId)
+        .withHttpHeaders(HeaderNames.xSessionId -> sessionId, "Authorization" -> "Bearer123")
         .post(passcodeRequest(emailToVerify))).status shouldBe 201
       val passcode = lastPasscodeEmailed
       await(wsClient.url(appClient("/verify-passcode"))
@@ -518,108 +592,122 @@ class EmailPasscodeControllerISpec extends BaseISpec {
           )).toFuture())
     }
 
+
     def verifySendEmailWithPasscodeFired(responseCode: Int): Unit = {
-      Thread.sleep(100)
-      verify(postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"SendEmailWithPasscode""""))
-        .withRequestBody(containing(s""""responseCode":"$responseCode""""))
-      )
+      eventually {
+        verify(postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"SendEmailWithPasscode""""))
+          .withRequestBody(containing(s""""responseCode":"$responseCode""""))
+        )
+      }
     }
 
     def verifyCheckEmailVerifiedFired(emailVerified: Boolean, times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"CheckEmailVerified""""))
-        .withRequestBody(containing(s""""emailVerified":"$emailVerified""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"CheckEmailVerified""""))
+          .withRequestBody(containing(s""""emailVerified":"$emailVerified""""))
+        )
+      }
     }
 
     def verifyEmailPasscodeRequestSuccessfulEvent(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"Successfully sent a passcode to the email address requiring verification""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"Successfully sent a passcode to the email address requiring verification""""))
+        )
+      }
     }
 
     def verifyEmailAddressAlreadyVerifiedEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"Email address already confirmed""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"Email address already confirmed""""))
+        )
+      }
     }
 
     def verifyMaxEmailsExceededEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"Max permitted passcode emails per session has been exceeded""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"Max permitted passcode emails per session has been exceeded""""))
+        )
+      }
     }
 
     def verifyMaxDifferentEmailsExceededEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"Max permitted passcode emails per session has been exceeded""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"Max permitted passcode emails per session has been exceeded""""))
+        )
+      }
     }
 
     def verifyPasscodeEmailDeliveryErrorEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"sendEmail request failed""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"sendEmail request failed""""))
+        )
+      }
     }
 
     def verifyEmailAddressConfirmedEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
-        .withRequestBody(containing(s""""outcome":"Email address confirmed""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+          .withRequestBody(containing(s""""outcome":"Email address confirmed""""))
+        )
+      }
     }
 
     def verifyEmailAddressNotFoundOrExpiredEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
-        .withRequestBody(containing(s""""outcome":"Email address not found or verification attempt time expired""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+          .withRequestBody(containing(s""""outcome":"Email address not found or verification attempt time expired""""))
+        )
+      }
     }
 
     def verifyPasscodeMatchNotFoundOrExpiredEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
-        .withRequestBody(containing(s""""outcome":"Email verification passcode match not found or time expired""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+          .withRequestBody(containing(s""""outcome":"Email verification passcode match not found or time expired""""))
+        )
+      }
     }
 
     def verifyVerificationRequestMissingSessionIdEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
-        .withRequestBody(containing(s""""outcome":"SessionId missing""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+          .withRequestBody(containing(s""""outcome":"SessionId missing""""))
+        )
+      }
     }
 
     def verifyEmailRequestMissingSessionIdEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-        .withRequestBody(containing(s""""outcome":"SessionId missing""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
+          .withRequestBody(containing(s""""outcome":"SessionId missing""""))
+        )
+      }
     }
 
     def verifyMaxPasscodeAttemptsExceededEventFired(times: Int = 1): Unit = {
-      Thread.sleep(100)
-      verify(times, postRequestedFor(urlEqualTo("/write/audit"))
-        .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
-        .withRequestBody(containing(s""""outcome":"Max permitted passcode verification attempts per session has been exceeded""""))
-      )
+      eventually {
+        verify(times, postRequestedFor(urlEqualTo("/write/audit"))
+          .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
+          .withRequestBody(containing(s""""outcome":"Max permitted passcode verification attempts per session has been exceeded""""))
+        )
+      }
     }
 
   }

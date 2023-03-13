@@ -42,6 +42,7 @@ class EmailVerificationISpec extends BaseISpec {
       verifyEmailSentWithContinueUrl(emailToVerify, continueUrl, templateId)
     }
 
+
     "only latest email verification request token for a given email should be valid" in new Setup {
       Given("The email service is running")
       expectEmailToBeSent()

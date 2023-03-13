@@ -39,10 +39,10 @@ object ForwardUrl {
 
   private def validate(potentialUrl: String, appConfig: AppConfig): Either[String, ForwardUrl] = {
       def validateDomain(uri: URI): Either[String, ForwardUrl] = {
-        if (appConfig.whitelistedDomains.isEmpty || appConfig.whitelistedDomains.contains(uri.getDomain))
+        if (appConfig.allowlistedDomains.isEmpty || appConfig.allowlistedDomains.contains(uri.getDomain))
           Right(ForwardUrl(uri.toString))
         else
-          Left("URL is not whitelisted")
+          Left("URL is not allowlisted")
       }
 
     Try(new URI(potentialUrl)).map {

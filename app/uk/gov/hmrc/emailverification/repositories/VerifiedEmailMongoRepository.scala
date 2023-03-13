@@ -16,11 +16,15 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
+import org.mongodb.scala.bson.{BsonObjectId, BsonString}
+
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+
+import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -43,4 +47,17 @@ class VerifiedEmailMongoRepository @Inject() (mongoComponent: MongoComponent)(im
     collection.insertOne(VerifiedEmail(email))
       .headOption()
       .map(_ => ())
+
+  //GG-6795 - remove after emails migrated
+  def getBatch(from: Int, batchSize: Int): Future[Seq[(VerifiedEmail, Instant)]] = {
+    mongoComponent.database.getCollection("verifiedEmail").find()
+      .skip(from)
+      .limit(batchSize)
+      .collect().toFuture().map(_.map{ doc =>
+        val id = doc.get[BsonObjectId]("_id").getOrElse(throw new RuntimeException("verifiedEmail document should have '_id' field"))
+        val email = doc.get[BsonString]("email").getOrElse(throw new RuntimeException("verifiedEmail document should have 'email' field"))
+        (VerifiedEmail(email.getValue), Instant.ofEpochSecond(id.getValue.getTimestamp))
+      })
+
+  }
 }

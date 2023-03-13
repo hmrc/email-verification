@@ -17,6 +17,7 @@
 package uk.gov.hmrc.emailverification.controllers
 
 import config.AppConfig
+
 import javax.inject.Inject
 import play.api.Logging
 import play.api.libs.json.{JsArray, JsValue, Json}
@@ -26,11 +27,10 @@ import uk.gov.hmrc.auth.core.retrieve.Credentials
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.models._
-import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, PasscodeMongoRepository, VerifiedEmailMongoRepository}
-import uk.gov.hmrc.emailverification.services.AuditService
+import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, PasscodeMongoRepository}
+import uk.gov.hmrc.emailverification.services.{AuditService, VerifiedEmailService}
 import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.http.SessionId
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
@@ -38,9 +38,8 @@ import scala.util.Random
 class EmailPasscodeController @Inject() (
     emailConnector:       EmailConnector,
     passcodeRepo:         PasscodeMongoRepository,
-    verifiedEmailRepo:    VerifiedEmailMongoRepository,
+    verifiedEmailService: VerifiedEmailService,
     analyticsConnector:   PlatformAnalyticsConnector,
-    auditConnector:       AuditConnector,
     controllerComponents: ControllerComponents,
     auditService:         AuditService,
     val authConnector:    AuthConnector,
@@ -88,8 +87,8 @@ class EmailPasscodeController @Inject() (
       case Welsh   => "email_verification_passcode_welsh"
     }
 
-    val paramsWithPasscode = appConfig.passcodeEmailTemplateParameters +
-      ("passcode" -> passcode, "team_name" -> passcodeRequest.serviceName)
+    val paramsWithPasscode = appConfig.passcodeEmailTemplateParameters ++
+      Map("passcode" -> passcode, "team_name" -> passcodeRequest.serviceName)
     emailConnector.sendEmail(to         = passcodeRequest.email, templateId = templateId, params = paramsWithPasscode).map { emailResponse =>
       auditService.sendPasscodeViaEmailEvent(
         emailAddress = passcodeRequest.email,
@@ -114,6 +113,8 @@ class EmailPasscodeController @Inject() (
 
   case object MissingSessionId extends Exception("missing session id")
 
+  case object MissingAuthSession extends Exception("missing auth session")
+
   case class MaxDifferentEmailsExceeded(differentEmailsCount: Long) extends Exception("Maximum permitted number of emails sent to different addresses reached")
 
   case class MaxEmailsToAddressExceeded(differentEmailsCount: Long, passcodeDoc: PasscodeDoc) extends Exception("Maximum permitted number of emails sent to same address reached")
@@ -124,9 +125,12 @@ class EmailPasscodeController @Inject() (
 
   def requestPasscode(): Action[JsValue] = Action.async(parse.json) {
     implicit httpRequest =>
-      withJsonBody[PasscodeRequest] { request =>
+      withJsonBody[PasscodeRequest] { req =>
+        val mixedCaseEmailAddress = req.email
+        val request = req.copy(email = req.email.toLowerCase)
         (for {
-          emailAlreadyVerified <- verifiedEmailRepo.isVerified(request.email)
+          _ <- authorised(){ Future.successful(()) }.recoverWith{ case _ => Future.failed(MissingAuthSession) }
+          emailAlreadyVerified <- verifiedEmailService.isVerified(mixedCaseEmailAddress)
           _ <- if (emailAlreadyVerified) Future.failed(EmailAlreadyVerified) else Future.unit
           _ = analyticsConnector.sendEvents(GaEvents.passcodeRequested)
           sessionId <- hc.sessionId.fold[Future[SessionId]](Future.failed(MissingSessionId))(Future.successful)
@@ -149,6 +153,11 @@ class EmailPasscodeController @Inject() (
           auditService.sendEmailPasscodeRequestSuccessfulEvent(request.email, passcode, request.serviceName, sessionEmailCount, passcodeDoc, CREATED)
           Created
         }).recover {
+          case MissingAuthSession => {
+            auditService.sendEmailRequestMissingAuthSession(request.email, UNAUTHORIZED)
+            val msg = "No auth session found"
+            Unauthorized(Json.toJson(ErrorResponse("NO_AUTH_SESSION", msg)))
+          }
           case MissingSessionId => {
             auditService.sendEmailRequestMissingSessionIdEvent(request.email, UNAUTHORIZED)
             val msg = "No session id provided"
@@ -184,7 +193,9 @@ class EmailPasscodeController @Inject() (
   }
 
   def verifyPasscode(): Action[JsValue] = Action.async(parse.json) { implicit request: Request[JsValue] =>
-    withJsonBody[PasscodeVerificationRequest] { passcodeVerificationRequest =>
+    withJsonBody[PasscodeVerificationRequest] { req =>
+      val mixedCaseEmail = req.email
+      val passcodeVerificationRequest = req.copy(email = req.email.toLowerCase)
       hc.sessionId match {
         case Some(id) => {
           passcodeRepo.findPasscodeAndIncrementAttempts(id, passcodeVerificationRequest.email).flatMap {
@@ -200,14 +211,14 @@ class EmailPasscodeController @Inject() (
 
             case Some(doc) if doc.passcode == passcodeVerificationRequest.passcode.toUpperCase =>
               analyticsConnector.sendEvents(GaEvents.passcodeSuccess)
-              verifiedEmailRepo.find(doc.email) flatMap {
+              verifiedEmailService.find(mixedCaseEmail) flatMap {
                 case None =>
                   auditService.sendEmailAddressConfirmedEvent(
                     emailAddress = passcodeVerificationRequest.email,
                     passcode     = passcodeVerificationRequest.passcode,
                     passcodeDoc  = doc,
                     responseCode = CREATED)
-                  verifiedEmailRepo.insert(doc.email) map (_ => Created)
+                  verifiedEmailService.insert(mixedCaseEmail) map (_ => Created)
                 case _ =>
                   auditService.sendEmailAddressConfirmedEvent(
                     emailAddress = passcodeVerificationRequest.email,

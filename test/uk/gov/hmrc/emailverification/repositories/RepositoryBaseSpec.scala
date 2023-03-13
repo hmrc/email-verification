@@ -20,13 +20,14 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import uk.gov.hmrc.gg.test.UnitSpec
-import uk.gov.hmrc.mongo.test.MongoSupport
+import uk.gov.hmrc.mongo.test.IndexedMongoQueriesSupport
+
 import java.time.{Clock, Instant, ZoneId}
 import scala.concurrent.ExecutionContext
 
 trait RepositoryBaseSpec
   extends UnitSpec
-  with MongoSupport
+  with IndexedMongoQueriesSupport
   with BeforeAndAfterEach
   with BeforeAndAfterAll
   with ScalaFutures {
@@ -39,14 +40,13 @@ trait RepositoryBaseSpec
 
   val clock = Clock.fixed(Instant.now, ZoneId.systemDefault)
 
-  override def beforeEach() {
+  override def beforeEach(): Unit = {
     super.beforeEach()
     dropDatabase()
   }
 
-  override def afterAll() {
+  override def beforeAll(): Unit = {
     dropDatabase()
-    super.afterAll()
   }
 
 }

@@ -17,27 +17,31 @@
 package uk.gov.hmrc.emailverification.repositories
 
 import com.mongodb.MongoException
+import config.AppConfig
 import org.mongodb.scala.bson.{BsonBoolean, BsonString}
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.Instant
 
-class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
+class VerifiedHashedEmailMongoRepositorySpec extends RepositoryBaseSpec {
 
   val email = "user@email.com"
   val anotherEmail = "another.user@email.com"
   def emailWithNumber(num: Int) = s"user$num@email.com"
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val repository = new VerifiedEmailMongoRepository(mongoComponent)
+  val mockConfig: AppConfig = mock[AppConfig]
+  when(mockConfig.verifiedEmailRepoHashKey).thenReturn("somehashkey")
+
+  lazy val repository = new VerifiedHashedEmailMongoRepository(mongoComponent, mockConfig)
 
   "insert" should {
     "insert a document when it does not exist" in {
       repository.find(email).futureValue shouldBe None
       await(repository.insert(email))
 
-      val docs = repository.find(email).futureValue
+      val docs = await(repository.find(email))
       docs shouldBe Some(VerifiedEmail(email))
     }
 
@@ -64,11 +68,11 @@ class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
       repository.find(email).futureValue shouldBe None
       await(repository.insert(email))
 
-      repository.find(email).futureValue shouldBe Some(VerifiedEmail(email))
+      await(repository.find(email)) shouldBe Some(VerifiedEmail(email))
     }
 
     "return None if email does not exist" in {
-      repository.find(email).futureValue shouldBe None
+      await(repository.find(email)) shouldBe None
     }
   }
 
@@ -77,11 +81,11 @@ class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
       repository.find(email).futureValue shouldBe None
       await(repository.insert(email))
 
-      repository.isVerified(email).futureValue shouldBe true
+      await(repository.isVerified(email)) shouldBe true
     }
 
     "return false if email does not exist" in {
-      repository.isVerified(email).futureValue shouldBe false
+      await(repository.isVerified(email)) shouldBe false
     }
   }
 
@@ -91,27 +95,36 @@ class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
       val indexes = repository.collection.listIndexes().toFuture().futureValue
         .map(_.toBsonDocument)
         .filter(_.get("name") == BsonString("emailUnique"))
-        .filter(_.get("key").toString.contains("email"))
+        .filter(_.get("key").toString.contains("hashedEmail"))
         .filter(_.get("unique") == BsonBoolean(true))
-
       indexes.size shouldBe 1
     }
   }
 
-  "getBatch" should {
-    "fetch correct list of records" in {
-      val emails = (0 to 24).map(emailWithNumber(_))
-      emails.map(email => await(repository.insert(email)))
-      val firstBatch = await(repository.getBatch(0, 5))
-      firstBatch.size shouldBe 5
-      firstBatch.head._2.isAfter(Instant.now().minusSeconds(2)) shouldBe true
-      firstBatch.map(_._1) should contain(VerifiedEmail(emailWithNumber(1)))
-      val lastBatch = await(repository.getBatch(20, 5))
-      lastBatch.size shouldBe 5
-      (20 to 24).map { index =>
-        lastBatch.map(_._1) should contain(VerifiedEmail(emailWithNumber(index)))
-      }
+  "insertBatch" should {
+    "Add a number of hashed verified email records" in {
+      val emails = (0 to 9).map(emailWithNumber(_))
+      emails.map(email => await(repository.find(email)) shouldBe None)
+      val verifiedEmails = emails.map(email => (VerifiedEmail(email), Instant.now()))
+      val insertedCount = await(repository.insertBatch(verifiedEmails))
+      insertedCount shouldBe 10
+      emails.map(email => await(repository.find(email)) shouldBe Some(VerifiedEmail(email)))
     }
 
+    "Add a number of hashed verified email records, where one already exists" in {
+      await(repository.ensureIndexes)
+      val emails = (0 to 9).map(emailWithNumber(_))
+      emails.map(email => await(repository.find(email)) shouldBe None)
+
+      await(repository.insert(emailWithNumber(5)))
+      await(repository.find(emailWithNumber(5))) shouldBe defined
+      Thread.sleep(500) //allow time for index update
+
+      val verifiedEmails = emails.map(email => (VerifiedEmail(email), Instant.now()))
+      val insertedCount = await(repository.insertBatch(verifiedEmails))
+      insertedCount shouldBe 9
+      emails.map(email => await(repository.find(email)) shouldBe Some(VerifiedEmail(email)))
+    }
   }
+
 }
