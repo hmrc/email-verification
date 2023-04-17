@@ -59,7 +59,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       }
     }
 
-    "given a valid payload but the email was previosuly locked out" should {
+    "given a valid payload but the email was previously locked out" should {
       "return unauthorised response" in new Setup {
         val emailsToBeStored = List(
           VerificationStatus("email1", verified = true, locked = false),
@@ -81,6 +81,12 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
         response.status shouldBe BAD_GATEWAY
         verifyEmailRequestEventFired(1,emailAddress,BAD_GATEWAY)
+      }
+    }
+    "given no email in valid payload" should {
+
+      "show the submit email page as continueUrl" in new Setup {
+        pending
       }
     }
   }
@@ -152,6 +158,44 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           .post(Json.obj("email" -> "aaa@bbb.ccc")))
         result.status shouldBe OK
         result.json shouldBe Json.obj("status" -> "accepted")
+      }
+
+      val testEmail = "email1@email.com"
+
+      val journey = Journey(
+        UUID.randomUUID().toString,
+        "credId",
+        "/continueUrl",
+        "origin",
+        "/accessibility",
+        "serviceName",
+        English,
+        Some(testEmail),
+        Some("/enterEmail"),
+        Some("/back"),
+        Some("title"),
+        "passcode",
+        0,
+        0,
+        0
+      )
+
+      "given that there is already 4 email submissions, after making another same email submission, the next same email submission is locked out" in new Setup {
+
+        expectJourneyToExist(journey.copy(emailAddressAttempts = 4))
+
+        val firstResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(testEmail)))
+
+
+        val secondResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(testEmail)))
+
+
+
+        pending
+      }
+
+      "given that there is already 9 different email submissions, after submitting a new different email address, the next different email address lockts the user out" in new Setup {
+
       }
     }
 
@@ -227,6 +271,12 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           .post(Json.obj()))
         result.status shouldBe OK
         result.json shouldBe Json.obj("status" -> "passcodeResent")
+      }
+      "a passcode is submitted correctly after a previous fail returns a 200" in new Setup {
+        pending
+      }
+      "given 4 failed passcode attempts, then a subsequence passcode failure, the next passcode failure submission should lock the user out" in new Setup {
+        pending
       }
     }
 
@@ -350,6 +400,9 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
             )
           )
         )
+      }
+      "verify a second email address if there is already an exist verified email via the passcode journey" in new Setup {
+        pending
       }
     }
 
