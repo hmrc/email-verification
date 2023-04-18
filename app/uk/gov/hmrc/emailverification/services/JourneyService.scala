@@ -47,6 +47,8 @@ class JourneyService @Inject() (
     val passcode = passcodeGenerator.generate()
     val journeyId = UUID.randomUUID().toString
 
+    val emailAddressAttempts = if(verifyEmailRequest.email.isDefined) 1 else 0
+
     val journey = Journey(
       journeyId                 = journeyId,
       credId                    = verifyEmailRequest.credId,
@@ -60,7 +62,7 @@ class JourneyService @Inject() (
       backUrl                   = verifyEmailRequest.backUrl,
       pageTitle                 = verifyEmailRequest.pageTitle,
       passcode                  = passcode,
-      emailAddressAttempts      = 0,
+      emailAddressAttempts      = emailAddressAttempts,
       passcodesSentToEmail      = 0,
       passcodeAttempts          = 0
     )
@@ -85,8 +87,9 @@ class JourneyService @Inject() (
   def lockIfNewEmailAddressExceedsCount(credId: String, emailAddress: String): Future[Boolean] = {
     journeyRepository.findByCredId(credId).flatMap { journeys =>
       val sumOfPasscodesSentToSameEmail = journeys.filter(journey => journey.emailAddress.contains(emailAddress)).map(journey => journey.passcodesSentToEmail).sum + 1
-      val setOfEmailAddresses = journeys.distinctBy(_.emailAddress).flatMap(_.emailAddress).toSet + emailAddress
-      if (setOfEmailAddresses.size > config.maxDifferentEmails) {
+      val includeNewEmail = if(journeys.distinctBy(_.emailAddress).flatMap(_.emailAddress).toSet.contains(emailAddress)) 0 else 1
+      val sumOfEmailAttemptsInJourneys = journeys.map(journey => journey.emailAddressAttempts).sum + includeNewEmail
+      if (sumOfEmailAttemptsInJourneys > config.maxDifferentEmails) {
         verificationStatusRepository.lock(credId, emailAddress)
         Future.successful(true)
       } else if (sumOfPasscodesSentToSameEmail > config.maxAttemptsPerEmail) {

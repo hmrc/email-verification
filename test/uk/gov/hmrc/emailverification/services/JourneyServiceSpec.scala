@@ -196,6 +196,7 @@ class JourneyServiceSpec extends UnitSpec {
           passcodeAttempts          = 0
         ))))
         when(mockAppConfig.maxDifferentEmails).thenReturn(10)
+        when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(email))).thenReturn(Future.unit)
         when(mockEmailService.sendPasscodeEmail(eqTo(email), eqTo(passcode), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
 

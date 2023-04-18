@@ -60,6 +60,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     }
 
     "given that there is already 9 different email submissions, after submitting a new different email address, the next different email address locks the user out" in new Setup {
+      expectEmailToSendSuccessfully()
+
       val testEmail1 = "aaa1@bbb.ccc"
       val testEmail2 = "aaa2@bbb.ccc"
       val testEmail3 = "aaa3@bbb.ccc"
@@ -69,6 +71,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       val testEmail7 = "aaa7@bbb.ccc"
       val testEmail8 = "aaa8@bbb.ccc"
       val testEmail9 = "aaa9@bbb.ccc"
+      val testEmail10 = "aaa10@bbb.ccc"
+      val testEmail11 = "aaa11@bbb.ccc"
 
       val journey = Journey(
         UUID.randomUUID().toString,
@@ -98,6 +102,14 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       expectJourneyToExist(journey.copy(emailAddress = Some(testEmail8)))
       expectJourneyToExist(journey.copy(emailAddress = Some(testEmail9)))
 
+      val firstResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(testEmail10)))
+      val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+      (firstResponse.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=$deskproServiceName"
+      verifyEmailRequestEventFired(1,emailAddress,CREATED)
+
+      val secondResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(testEmail11)))
+
+      secondResponse.status shouldBe UNAUTHORIZED
     }
 
     "given a valid payload but the email was previously locked out" should {
@@ -283,9 +295,6 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           "continueUrl" -> "/continueUrl"
         )
       }
-    }
-    "an email is posted, given a journey with an existing email address, it throws an exception not found" in {
-      pending
     }
   }
 
