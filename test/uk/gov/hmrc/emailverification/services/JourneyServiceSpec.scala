@@ -32,48 +32,11 @@ class JourneyServiceSpec extends UnitSpec {
   "initialise" when {
     "given a request with an email address present and no Deskpro service name" should {
       "store the journey and send a passcode to the email address and return email-verification-frontend journey url" in new Setup {
-
-        //        val test = nonEmptyStringGen
-        //        println("--------------------: " + test)
-
-        //
-        //        def generateJourneyTestDate = Gen[Seq[Journey]] = {
-        //
-        //
-        //
-        //
-        //        }
-
-        //        val genSeqJourneys = for {
-        //
-        //        }
-        //
-        //
-        //
-        //          Journey(
-        //            journeyId = "", // generate string
-        //            credId = "", // generate string
-        //            continueUrl = "", // generate string
-        //            origin = "",  // generate string
-        //            accessibilityStatementUrl = "", // generate string
-        //            serviceName = "", // generate string
-        //            language = "en".asInstanceOf[Language], // generate language
-        //            emailAddress = ???, //option String
-        //            enterEmailUrl = ???, //option String
-        //            backUrl = ???, //  option String
-        //            pageTitle = ???, //option String
-        //            passcode = ???, // string
-        //            emailAddressAttempts = ???, // Int
-        //            passcodesSentToEmail = ???, // Int
-        //            passcodeAttempts = ??? // Int
-        //          )
-
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
 
         val captor = ArgCaptor[Journey]
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
-        when(mockJourneyRepository.findByCredId(credId)).thenReturn(Future.successful(Seq(testJourney)))
         when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(origin), eqTo(English))(any, any)).thenReturn(Future.unit)
 
         val res = await(journeyService.initialise(verifyEmailRequest)(HeaderCarrier()))
@@ -89,7 +52,6 @@ class JourneyServiceSpec extends UnitSpec {
 
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
-        when(mockJourneyRepository.findByCredId(credId)).thenReturn(Future.successful(Seq(testJourney)))
 
         val captor: Captor[Journey] = ArgCaptor[Journey]
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
@@ -111,7 +73,6 @@ class JourneyServiceSpec extends UnitSpec {
 
         val captor: Captor[Journey] = ArgCaptor[Journey]
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
-        when(mockJourneyRepository.findByCredId(credId)).thenReturn(Future.successful(Seq(testJourney)))
 
         val res: String = await(journeyService.initialise(verifyEmailRequest.copy(email = None).copy(deskproServiceName = Some(serviceName)))(HeaderCarrier()))
 
@@ -127,7 +88,6 @@ class JourneyServiceSpec extends UnitSpec {
 
         val captor = ArgCaptor[Journey]
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
-        when(mockJourneyRepository.findByCredId(credId)).thenReturn(Future.successful(Seq(testJourney)))
 
         val res = await(journeyService.initialise(verifyEmailRequest.copy(email = None))(HeaderCarrier()))
 
@@ -144,7 +104,6 @@ class JourneyServiceSpec extends UnitSpec {
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
         when(mockJourneyRepository.initialise(any)).thenReturn(Future.unit)
-        when(mockJourneyRepository.findByCredId(credId)).thenReturn(Future.successful(Seq(testJourney)))
         when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(origin), eqTo(English))(any, any))
           .thenReturn(Future.failed(new Exception("failed")))
 
@@ -159,7 +118,6 @@ class JourneyServiceSpec extends UnitSpec {
 
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockJourneyRepository.initialise(any)).thenReturn(Future.failed(new Exception("failed")))
-        when(mockJourneyRepository.findByCredId(credId)).thenReturn(Future.successful(Seq(testJourney)))
 
         lazy val res = await(journeyService.initialise(verifyEmailRequest)(HeaderCarrier()))
 

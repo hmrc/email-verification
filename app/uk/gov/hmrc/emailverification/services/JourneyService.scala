@@ -47,34 +47,32 @@ class JourneyService @Inject() (
     val passcode = passcodeGenerator.generate()
     val journeyId = UUID.randomUUID().toString
 
-    journeyRepository.findByCredId(verifyEmailRequest.credId).flatMap { journeys =>
-      val journey = Journey(
-        journeyId                 = journeyId,
-        credId                    = verifyEmailRequest.credId,
-        continueUrl               = verifyEmailRequest.continueUrl,
-        origin                    = verifyEmailRequest.origin,
-        accessibilityStatementUrl = verifyEmailRequest.accessibilityStatementUrl,
-        serviceName               = verifyEmailRequest.deskproServiceName.getOrElse(verifyEmailRequest.origin),
-        language                  = verifyEmailRequest.lang.getOrElse(English),
-        emailAddress              = verifyEmailRequest.email.map(_.address),
-        enterEmailUrl             = verifyEmailRequest.email.map(_.enterUrl),
-        backUrl                   = verifyEmailRequest.backUrl,
-        pageTitle                 = verifyEmailRequest.pageTitle,
-        passcode                  = passcode,
-        emailAddressAttempts      = 0, // [GG-6678] suspected to be redundant, clean later
-        passcodesSentToEmail      = journeys.count(journey => journey.emailAddress == verifyEmailRequest.email.map(_.address)),
-        passcodeAttempts          = 0
-      )
-      for {
-        _ <- journeyRepository.initialise(journey)
-        _ <- journey.emailAddress.fold(Future.unit)(saveEmailAndSendPasscode(_, journey))
-      } yield if (verifyEmailRequest.email.isEmpty) {
-        s"/email-verification/journey/$journeyId/email?" +
-          createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
-      } else {
-        s"/email-verification/journey/$journeyId/passcode?" +
-          createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
-      }
+    val journey = Journey(
+      journeyId                 = journeyId,
+      credId                    = verifyEmailRequest.credId,
+      continueUrl               = verifyEmailRequest.continueUrl,
+      origin                    = verifyEmailRequest.origin,
+      accessibilityStatementUrl = verifyEmailRequest.accessibilityStatementUrl,
+      serviceName               = verifyEmailRequest.deskproServiceName.getOrElse(verifyEmailRequest.origin),
+      language                  = verifyEmailRequest.lang.getOrElse(English),
+      emailAddress              = verifyEmailRequest.email.map(_.address),
+      enterEmailUrl             = verifyEmailRequest.email.map(_.enterUrl),
+      backUrl                   = verifyEmailRequest.backUrl,
+      pageTitle                 = verifyEmailRequest.pageTitle,
+      passcode                  = passcode,
+      emailAddressAttempts      = 0,
+      passcodesSentToEmail      = 0,
+      passcodeAttempts          = 0
+    )
+    for {
+      _ <- journeyRepository.initialise(journey)
+      _ <- journey.emailAddress.fold(Future.unit)(saveEmailAndSendPasscode(_, journey))
+    } yield if (verifyEmailRequest.email.isEmpty) {
+      s"/email-verification/journey/$journeyId/email?" +
+        createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
+    } else {
+      s"/email-verification/journey/$journeyId/passcode?" +
+        createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin, journey.serviceName)
     }
   }
 
@@ -84,10 +82,14 @@ class JourneyService @Inject() (
     }
   }
 
-  def lockIfDifferentEmailsCountExceeded(credId: String, emailAddress: String): Future[Boolean] = {
+  def lockIfNewEmailAddressExceedsCount(credId: String, emailAddress: String): Future[Boolean] = {
     journeyRepository.findByCredId(credId).flatMap { journeys =>
+      val sumOfPasscodesSentToSameEmail = journeys.filter(journey => journey.emailAddress.contains(emailAddress)).map(journey => journey.passcodesSentToEmail).sum + 1
       val setOfEmailAddresses = journeys.distinctBy(_.emailAddress).flatMap(_.emailAddress).toSet + emailAddress
       if (setOfEmailAddresses.size > config.maxDifferentEmails) {
+        verificationStatusRepository.lock(credId, emailAddress)
+        Future.successful(true)
+      } else if (sumOfPasscodesSentToSameEmail > config.maxAttemptsPerEmail) {
         verificationStatusRepository.lock(credId, emailAddress)
         Future.successful(true)
       } else {
@@ -102,7 +104,7 @@ class JourneyService @Inject() (
 
   def submitEmail(journeyId: String, email: String)(implicit hc: HeaderCarrier): Future[EmailUpdateResult] = {
     journeyRepository.submitEmail(journeyId, email).flatMap {
-      case Some(journey) if journey.passcodesSentToEmail > config.maxAttemptsPerEmail =>
+      case Some(journey) if journey.emailAddressAttempts > config.maxDifferentEmails =>
         val result = EmailUpdateResult.TooManyAttempts(journey.continueUrl)
         journey.emailAddress match {
           case Some(email) => verificationStatusRepository.lock(journey.credId, email).map(_ => result)

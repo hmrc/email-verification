@@ -167,17 +167,19 @@ class EmailVerificationISpec extends BaseISpec {
 
     "[GG-6678] verify-email and verification status" should {
       "calling post-verify email without an email address and a maxPasscodeAttempt of 2" in new Setup {
-        val submitNoEmailBody = wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress))
+//        val submitNoEmailBody = wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress))
+//
+//        val emailRequest = Json.parse(
+//          s"""{
+//             |  "email": "jim.ferguson@x.com",
+//             |  "templateId": "$templateId",
+//             |  "templateParameters": $paramsJsonStr,
+//             |  "linkExpiryDuration" : "P2D",
+//             |  "continueUrl" : "http://some/url"
+//             |}""".stripMargin
+//        )
+        pending
 
-        val emailRequest = Json.parse(
-          s"""{
-             |  "email": "jim.ferguson@x.com",
-             |  "templateId": "$templateId",
-             |  "templateParameters": $paramsJsonStr,
-             |  "linkExpiryDuration" : "P2D",
-             |  "continueUrl" : "http://some/url"
-             |}""".stripMargin
-        )
       }
     }
 

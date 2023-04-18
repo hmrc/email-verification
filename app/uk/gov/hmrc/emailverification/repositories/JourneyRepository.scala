@@ -39,7 +39,6 @@ trait JourneyRepository {
 
   def get(journeyId: String): Future[Option[Journey]]
   def findByCredId(credId: String): Future[Seq[Journey]]
-  def countMatchingDocs(credId: String, email: String): Future[Long]
 }
 
 @Singleton
@@ -80,19 +79,36 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
 
   @silent("deprecated") // the "other" findAndUpdate is bad and should feel bad
   override def submitEmail(journeyId: String, email: String): Future[Option[Journey]] = {
-    collection.findOneAndUpdate(
-      filter  = Filters.and(
-        Filters.equal("_id", journeyId),
-        Filters.exists("emailAddress", false)
-      ),
-      update  = Updates.combine(
-        Updates.set("emailAddress", email),
-        Updates.inc("passcodesSentToEmail", 1)
-      ),
-      options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
-    )
-      .toFutureOption()
-      .map(_.map(_.toJourney))
+    val isEmailAddressTheSame = collection.find(
+      filter = Filters.equal("_id", journeyId)
+    ).headOption().map(entity => entity.map(_.emailAddress.contains(email)))
+
+    isEmailAddressTheSame.flatMap {
+      case Some(true) => {
+        collection.findOneAndUpdate(
+          filter  = Filters.equal("_id", journeyId),
+          update  = Updates.inc("passcodesSentToEmail", 1),
+          options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
+        )
+          .toFutureOption()
+          .map(_.map(_.toJourney))
+      }
+      case Some(false) => {
+        collection.findOneAndUpdate(
+          filter  = Filters.equal("_id", journeyId),
+          update  = Updates.combine(
+            Updates.set("emailAddress", email),
+            Updates.set("passcodesSentToEmail", 1),
+            Updates.inc("emailAddressAttempts", 1)
+          ),
+          options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
+        )
+          .toFutureOption()
+          .map(_.map(_.toJourney))
+      }
+      case None => Future.successful(None)
+    }
+
   }
 
   @silent("deprecated")
@@ -120,11 +136,6 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
     Filters.equal("credId", credId))
     .toFuture()
     .map(_.map(_.toJourney))
-
-  override def countMatchingDocs(credId: String, email: String): Future[Long] = collection.countDocuments(
-    Filters.and(
-      Filters.equal("credId", credId),
-      Filters.equal("emailAddress", email))).toFuture().map(_.longValue())
 }
 
 object JourneyMongoRepository {
