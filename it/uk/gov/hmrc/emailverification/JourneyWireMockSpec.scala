@@ -59,7 +59,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       }
     }
 
-    "given that there is already 9 different email submissions, after submitting a new different email address, the next different email address locks the user out" in new Setup {
+    "given that there is already 4 different email submissions, after submitting a new different email address, the next different email address locks the user out" in new Setup {
       expectEmailToSendSuccessfully()
 
       val testEmail1 = "aaa1@bbb.ccc"
@@ -68,15 +68,11 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       val testEmail4 = "aaa4@bbb.ccc"
       val testEmail5 = "aaa5@bbb.ccc"
       val testEmail6 = "aaa6@bbb.ccc"
-      val testEmail7 = "aaa7@bbb.ccc"
-      val testEmail8 = "aaa8@bbb.ccc"
-      val testEmail9 = "aaa9@bbb.ccc"
-      val testEmail10 = "aaa10@bbb.ccc"
-      val testEmail11 = "aaa11@bbb.ccc"
+
 
       val journey = Journey(
         UUID.randomUUID().toString,
-        "credId",
+        credId,
         "/continueUrl",
         "origin",
         "/accessibility",
@@ -87,27 +83,23 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         None,
         None,
         "passcode",
-        0,
+        1,
         0,
         0
       )
 
-      expectJourneyToExist(journey.copy(emailAddress = Some(testEmail1)))
-      expectJourneyToExist(journey.copy(emailAddress = Some(testEmail2)))
-      expectJourneyToExist(journey.copy(emailAddress = Some(testEmail3)))
-      expectJourneyToExist(journey.copy(emailAddress = Some(testEmail4)))
-      expectJourneyToExist(journey.copy(emailAddress = Some(testEmail5)))
-      expectJourneyToExist(journey.copy(emailAddress = Some(testEmail6)))
-      expectJourneyToExist(journey.copy(emailAddress = Some(testEmail7)))
-      expectJourneyToExist(journey.copy(emailAddress = Some(testEmail8)))
-      expectJourneyToExist(journey.copy(emailAddress = Some(testEmail9)))
+      expectJourneyToExist(journey.copy(journeyId = UUID.randomUUID().toString, emailAddress = Some(testEmail1)))
+      expectJourneyToExist(journey.copy(journeyId = UUID.randomUUID().toString, emailAddress = Some(testEmail2)))
+      expectJourneyToExist(journey.copy(journeyId = UUID.randomUUID().toString, emailAddress = Some(testEmail3)))
+      expectJourneyToExist(journey.copy(journeyId = UUID.randomUUID().toString, emailAddress = Some(testEmail4)))
 
-      val firstResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(testEmail10)))
+      val firstResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(testEmail5)))
       val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
-      (firstResponse.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=$deskproServiceName"
-      verifyEmailRequestEventFired(1,emailAddress,CREATED)
 
-      val secondResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(testEmail11)))
+      (firstResponse.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=$deskproServiceName"
+      verifyEmailRequestEventFired(1,testEmail5,CREATED)
+
+      val secondResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(testEmail6)))
 
       secondResponse.status shouldBe UNAUTHORIZED
     }
@@ -235,7 +227,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           Some("title"),
           "passcode",
           0,
-          0,
+          4,
           0
         )
 
@@ -250,7 +242,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         val secondResponse = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}/email")
           .post(Json.obj("email" -> testEmail)))
         secondResponse.status shouldBe FORBIDDEN
-        secondResponse.json shouldBe Json.obj("status" -> "tooManyAttempts")
+        secondResponse.json shouldBe Json.obj("status" -> "tooManyAttempts", "continueUrl" -> "/continueUrl")
       }
     }
 
@@ -327,8 +319,43 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         result.status shouldBe OK
         result.json shouldBe Json.obj("status" -> "passcodeResent")
       }
-      "given 4 failed passcode attempts, then a subsequence passcode failure, the next passcode failure submission should lock the user out" in new Setup {
-        pending
+      "given 4 failed passcode resends, then a subsequent passcode resend, the next passcode resend submission should lock the user out" in new Setup {
+        val journey = Journey(
+          UUID.randomUUID().toString,
+          "credId",
+          "/continueUrl",
+          "origin",
+          "/accessibility",
+          "serviceName",
+          English,
+          Some("aa@bb.cc"),
+          Some("/enterEmailUrl"),
+          None,
+          None,
+          "passcode",
+          0,
+          4,
+          0
+        )
+
+        expectJourneyToExist(journey)
+        expectPasscodeEmailToBeSent(journey.passcode)
+
+        val firstResponse = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}/resend-passcode")
+          .post(Json.obj()))
+        firstResponse.status shouldBe OK
+        firstResponse.json shouldBe Json.obj("status" -> "passcodeResent")
+
+        val secondResponse = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}/resend-passcode")
+          .post(Json.obj()))
+        secondResponse.status shouldBe FORBIDDEN
+        secondResponse.json shouldBe Json.obj( "status" -> "tooManyAttemptsForEmail",
+          "journey" -> Json.obj("accessibilityStatementUrl" -> "/accessibility",
+            "deskproServiceName" -> "serviceName",
+            "enterEmailUrl" -> "/enterEmailUrl",
+            "emailAddress" -> "aa@bb.cc"
+          )
+        )
       }
     }
 
@@ -454,10 +481,109 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         )
       }
       "a passcode is submitted correctly after a previous fail returns a 200" in new Setup {
-        pending
+        val journey = Journey(
+          UUID.randomUUID().toString,
+          "credId",
+          "/continueUrl",
+          "origin",
+          "/accessibility",
+          "serviceName",
+          English,
+          Some("aa@bb.cc"),
+          Some("/enterEmailUrl"),
+          Some("/back"),
+          Some("title"),
+          "passcode",
+          0,
+          0,
+          0
+        )
+
+        expectJourneyToExist(journey)
+        expectEmailsToBeStored(List(VerificationStatus("aa@bb.cc", verified = false, locked = false)))
+        expectUserToBeAuthorisedWithGG(credId)
+
+        val firstResponse = await(
+          resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
+            .withHttpHeaders("Authorization" -> "Bearer123")
+            .post(Json.obj("passcode" -> "not the right passcode")))
+        firstResponse.status shouldBe BAD_REQUEST
+        firstResponse.json shouldBe Json.obj(
+          "status" -> "incorrectPasscode",
+          "journey" -> Json.obj(
+            "accessibilityStatementUrl" -> "/accessibility",
+            "enterEmailUrl" -> "/enterEmailUrl",
+            "deskproServiceName" -> "serviceName",
+            "backUrl" -> "/back",
+            "serviceTitle" -> "title",
+            "emailAddress" -> "aa@bb.cc"
+          )
+        )
+        val secondResponse = await(
+          resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
+            .withHttpHeaders("Authorization" -> "Bearer123")
+            .post(Json.obj("passcode" -> "passcode")))
+        secondResponse.status shouldBe OK
+        secondResponse.json shouldBe Json.obj("status" -> "complete", "continueUrl" -> "/continueUrl")
+
+        val verified = await(resourceRequest(s"/email-verification/verification-status/$credId").get())
+        verified.status shouldBe OK
+        verified.json shouldBe Json.obj(
+          "emails" -> Json.arr(
+            Json.obj(
+              "emailAddress" -> "aa@bb.cc",
+              "verified" -> true,
+              "locked" -> false
+            )
+          )
+        )
       }
-      "verify a second email address if there is already an exist verified email via the passcode journey" in new Setup {
-        pending
+      "verify a second email address if there is already exists a verified email via the passcode journey" in new Setup {
+        val journey = Journey(
+          UUID.randomUUID().toString,
+          "credId",
+          "/continueUrl",
+          "origin",
+          "/accessibility",
+          "serviceName",
+          English,
+          Some("aa2@bb.cc"),
+          Some("/enterEmailUrl"),
+          None,
+          None,
+          "passcode",
+          0,
+          0,
+          0
+        )
+
+        expectJourneyToExist(journey)
+        expectEmailsToBeStored(List(VerificationStatus("aa@bb.cc", verified = true, locked = false), VerificationStatus("aa2@bb.cc", verified = false, locked = false)))
+        expectUserToBeAuthorisedWithGG(credId)
+
+        val result = await(
+          resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
+            .withHttpHeaders("Authorization" -> "Bearer123")
+            .post(Json.obj("passcode" -> "passcode")))
+        result.status shouldBe OK
+        result.json shouldBe Json.obj("status" -> "complete", "continueUrl" -> "/continueUrl")
+
+        val verified = await(resourceRequest(s"/email-verification/verification-status/$credId").get())
+        verified.status shouldBe OK
+        verified.json shouldBe Json.obj(
+          "emails" -> Json.arr(
+            Json.obj(
+              "emailAddress" -> "aa@bb.cc",
+              "verified" -> true,
+              "locked" -> false
+            ),
+            Json.obj(
+              "emailAddress" -> "aa2@bb.cc",
+              "verified" -> true,
+              "locked" -> false
+            )
+          )
+        )
       }
     }
 
