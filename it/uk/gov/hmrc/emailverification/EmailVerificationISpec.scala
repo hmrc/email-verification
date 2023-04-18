@@ -178,8 +178,6 @@ class EmailVerificationISpec extends BaseISpec {
              |  "continueUrl" : "http://some/url"
              |}""".stripMargin
         )
-
-        val submitShowEmail: Future[Result] = controller.requestVerification()(request.withBody(emaiLRequest))
       }
     }
 

@@ -24,7 +24,6 @@ import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, VerificationStatusRepository}
 import uk.gov.hmrc.gg.test.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.{ExecutionContext, Future}
 

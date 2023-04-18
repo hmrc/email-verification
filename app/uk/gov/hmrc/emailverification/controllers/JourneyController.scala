@@ -51,18 +51,26 @@ class JourneyController @Inject() (
   def verifyEmail(): Action[VerifyEmailRequest] = Action.async(parse.json[VerifyEmailRequest]) { implicit request =>
     val req = request.body
     val verifyEmailRequest = req.copy(email = req.email.map(e => e.copy(address = e.address.toLowerCase)))
-    journeyService.isLocked(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address)).flatMap { locked =>
-      if (locked) {
+    journeyService.lockIfDifferentEmailsCountExceeded(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address).getOrElse("")).flatMap { hasExceeded =>
+      if (hasExceeded) {
         auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 401)
         Future.successful(Unauthorized)
       } else {
-        journeyService.initialise(verifyEmailRequest).map { redirectUrl =>
-          auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 201)
-          Created(Json.toJson(VerifyEmailResponse(redirectUrl)))
-        }.recover {
-          case ex: UpstreamErrorResponse => {
-            auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, ex.reportAs)
-            Status(ex.reportAs)(ex.getMessage())
+        journeyService.isLocked(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address)).flatMap { locked =>
+          if (locked) {
+            auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 401)
+            Future.successful(Unauthorized)
+          } else {
+
+            journeyService.initialise(verifyEmailRequest).map { redirectUrl => // response model - successful or not successful
+              auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 201)
+              Created(Json.toJson(VerifyEmailResponse(redirectUrl)))
+            }.recover {
+              case ex: UpstreamErrorResponse => {
+                auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, ex.reportAs)
+                Status(ex.reportAs)(ex.getMessage())
+              }
+            }
           }
         }
       }

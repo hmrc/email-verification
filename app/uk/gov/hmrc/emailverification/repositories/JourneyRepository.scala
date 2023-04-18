@@ -79,18 +79,21 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
   }
 
   @silent("deprecated") // the "other" findAndUpdate is bad and should feel bad
-  override def submitEmail(journeyId: String, email: String): Future[Option[Journey]] =
+  override def submitEmail(journeyId: String, email: String): Future[Option[Journey]] = {
     collection.findOneAndUpdate(
-      filter  = Filters.equal("_id", journeyId),
+      filter  = Filters.and(
+        Filters.equal("_id", journeyId),
+        Filters.exists("emailAddress", false)
+      ),
       update  = Updates.combine(
         Updates.set("emailAddress", email),
-        Updates.set("passcodesSentToEmail", 1),
-        Updates.inc("emailAddressAttempts", 1)
+        Updates.inc("passcodesSentToEmail", 1)
       ),
       options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
     )
       .toFutureOption()
       .map(_.map(_.toJourney))
+  }
 
   @silent("deprecated")
   override def recordPasscodeAttempt(journeyId: String): Future[Option[Journey]] = collection.findOneAndUpdate(

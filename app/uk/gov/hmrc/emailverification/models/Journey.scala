@@ -32,8 +32,8 @@ case class Journey(
     backUrl:                   Option[String],
     pageTitle:                 Option[String],
     passcode:                  String,
-    emailAddressAttempts:      Int,
-    passcodesSentToEmail:      Int,
+    emailAddressAttempts:      Int, // [GG-6678] suspected to be redundant, clean later
+    passcodesSentToEmail:      Int, // [GG-6678] how many passcodes have been sent to the same email
     passcodeAttempts:          Int
 ) {
   def frontendData: JourneyData = JourneyData(
