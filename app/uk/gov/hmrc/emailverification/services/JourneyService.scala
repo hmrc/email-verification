@@ -104,7 +104,7 @@ class JourneyService @Inject() (
 
   def submitEmail(journeyId: String, email: String)(implicit hc: HeaderCarrier): Future[EmailUpdateResult] = {
     journeyRepository.submitEmail(journeyId, email).flatMap {
-      case Some(journey) if journey.emailAddressAttempts > config.maxDifferentEmails =>
+      case Some(journey) if (journey.emailAddressAttempts > config.maxDifferentEmails || journey.passcodesSentToEmail > config.maxAttemptsPerEmail) =>
         val result = EmailUpdateResult.TooManyAttempts(journey.continueUrl)
         journey.emailAddress match {
           case Some(email) => verificationStatusRepository.lock(journey.credId, email).map(_ => result)
