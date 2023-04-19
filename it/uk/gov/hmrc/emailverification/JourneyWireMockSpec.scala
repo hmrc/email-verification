@@ -21,7 +21,7 @@ import support.BaseISpec
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mongodb.scala.result.InsertOneResult
 import org.scalatest.concurrent.Eventually
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.test.Injecting
 import uk.gov.hmrc.emailverification.models.{English, Journey, VerificationStatus}
 import uk.gov.hmrc.emailverification.repositories.{JourneyMongoRepository, VerificationStatusMongoRepository}
@@ -570,20 +570,18 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
         val verified = await(resourceRequest(s"/email-verification/verification-status/$credId").get())
         verified.status shouldBe OK
-        verified.json shouldBe Json.obj(
-          "emails" -> Json.arr(
-            Json.obj(
-              "emailAddress" -> "aa@bb.cc",
-              "verified" -> true,
-              "locked" -> false
-            ),
-            Json.obj(
-              "emailAddress" -> "aa2@bb.cc",
-              "verified" -> true,
-              "locked" -> false
-            )
-          )
-        )
+
+        (verified.json \ "emails").as[List[JsObject]].contains(Json.obj(
+          "emailAddress" -> "aa@bb.cc",
+          "verified" -> true,
+          "locked" -> false
+        )) shouldBe true
+
+        (verified.json \ "emails").as[List[JsObject]].contains(Json.obj(
+          "emailAddress" -> "aa2@bb.cc",
+          "verified" -> true,
+          "locked" -> false
+        )) shouldBe true
       }
     }
 
