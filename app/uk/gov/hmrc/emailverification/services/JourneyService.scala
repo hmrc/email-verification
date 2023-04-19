@@ -86,9 +86,11 @@ class JourneyService @Inject() (
 
   def lockIfNewEmailAddressExceedsCount(credId: String, emailAddress: String): Future[Boolean] = {
     journeyRepository.findByCredId(credId).flatMap { journeys =>
+      println("------------------: " + journeys)
       val sumOfPasscodesSentToSameEmail = journeys.filter(journey => journey.emailAddress.contains(emailAddress)).map(journey => journey.passcodesSentToEmail).sum + 1
       val includeNewEmail = if (journeys.flatMap(_.emailAddress).contains(emailAddress)) 0 else 1
       val sumOfEmailAttemptsInJourneys = journeys.map(journey => journey.emailAddressAttempts).sum + includeNewEmail
+      println("-------------- sumOfEmailAttemptsInJourneys: " + sumOfEmailAttemptsInJourneys + "----------------- sumOfPasscodesSentToSameEmail: " + sumOfPasscodesSentToSameEmail)
       if (sumOfEmailAttemptsInJourneys > config.maxDifferentEmails || sumOfPasscodesSentToSameEmail > config.maxAttemptsPerEmail) {
         verificationStatusRepository.lock(credId, emailAddress)
         Future.successful(true)

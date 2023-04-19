@@ -20,6 +20,7 @@ import config.AppConfig
 
 import java.util.UUID
 import org.mockito.captor.{ArgCaptor, Captor}
+import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, VerificationStatusRepository}
 import uk.gov.hmrc.gg.test.UnitSpec
@@ -27,7 +28,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class JourneyServiceSpec extends UnitSpec {
+class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
   "initialise" when {
     "given a request with an email address present and no Deskpro service name" should {
@@ -129,7 +130,81 @@ class JourneyServiceSpec extends UnitSpec {
   }
 
   "lockIfNewEmailAddressExceedsCount" when {
-    ""
+    val emailAddress1 = "emailAddress1@email.com"
+    val emailAddress2 = "emailAddress2@email.com"
+    val emailAddress3 = "emailAddress3@email.com"
+
+    "returned journeys passcodesSentToEmail with only the same email goes over the limit" in new Setup {
+      when(mockAppConfig.maxDifferentEmails).thenReturn(10)
+      when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
+
+      val journey1 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 1, passcodesSentToEmail = 3)
+      val journey2 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 1, passcodesSentToEmail = 2)
+      val journey3 = createTestJourney(credId               = credId, email = Some(emailAddress2), emailAddressAttempts = 1, passcodesSentToEmail = 2)
+
+      when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
+      when(mockVerificationStatusRepository.lock(eqTo(credId), eqTo(emailAddress1))).thenReturn(Future.unit)
+
+      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress1).futureValue shouldBe true
+    }
+    "returned journeys passcodesSentToEmail with only the same email do not go over the limit but different email addresses do" in new Setup {
+      when(mockAppConfig.maxDifferentEmails).thenReturn(10)
+      when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
+
+      val journey1 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 1, passcodesSentToEmail = 4)
+      val journey2 = createTestJourney(credId               = credId, email = Some(emailAddress2), emailAddressAttempts = 1, passcodesSentToEmail = 1000)
+      val journey3 = createTestJourney(credId               = credId, email = Some(emailAddress3), emailAddressAttempts = 1, passcodesSentToEmail = 1000)
+
+      when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
+
+      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress1).futureValue shouldBe false
+    }
+    "the journey has a new email and the sum of the returned journeys emailAddressAttempts goes over the limit" in new Setup {
+      when(mockAppConfig.maxDifferentEmails).thenReturn(10)
+      when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
+
+      val journey1 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 5, passcodesSentToEmail = 0)
+      val journey2 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 5, passcodesSentToEmail = 0)
+      val journey3 = createTestJourney(credId               = credId, email = Some(emailAddress2), emailAddressAttempts = 1, passcodesSentToEmail = 0)
+
+      when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
+      when(mockVerificationStatusRepository.lock(eqTo(credId), eqTo(emailAddress3))).thenReturn(Future.unit)
+
+      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress3).futureValue shouldBe true
+    }
+    "the journey does not have a new email and the sum of the journeys emailAddressAttempts goes over the limit" in new Setup {
+      when(mockAppConfig.maxDifferentEmails).thenReturn(10)
+      when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
+
+      val journey1 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 5, passcodesSentToEmail = 0)
+      val journey2 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 6, passcodesSentToEmail = 0)
+      val journey3 = createTestJourney(credId               = credId, email = Some(emailAddress2), emailAddressAttempts = 0, passcodesSentToEmail = 0)
+
+      when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
+      when(mockVerificationStatusRepository.lock(eqTo(credId), eqTo(emailAddress1))).thenReturn(Future.unit)
+
+      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress1).futureValue shouldBe true
+    }
+    "the journey does not have a new email address is close to the limit in both scenarios returns false" in new Setup {
+      when(mockAppConfig.maxDifferentEmails).thenReturn(10)
+      when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
+
+      val journey1 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 5, passcodesSentToEmail = 2)
+      val journey2 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 5, passcodesSentToEmail = 2)
+      val journey3 = createTestJourney(credId               = credId, email = Some(emailAddress3), emailAddressAttempts = 0, passcodesSentToEmail = 0)
+
+      when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
+
+      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress1).futureValue shouldBe false
+    }
+    "there is no journeys returned returns false" in new Setup {
+      when(mockAppConfig.maxDifferentEmails).thenReturn(10)
+      when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
+
+      when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq()))
+
+      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress1).futureValue shouldBe false
+    }
   }
 
   "submitEmail" when {
@@ -653,7 +728,23 @@ class JourneyServiceSpec extends UnitSpec {
       passcodeAttempts          = 0
     )
 
-    def createTestJourney(credId: String, email: String, emailAddressAttempts: Int, passcodesSentToEmail: Int)
+    def createTestJourney(credId: String, email: Option[String], emailAddressAttempts: Int, passcodesSentToEmail: Int) = new Journey(
+      journeyId                 = UUID.randomUUID().toString,
+      credId                    = credId,
+      continueUrl               = continueUrl,
+      origin                    = "origin",
+      accessibilityStatementUrl = "accessibilityStatementUrl",
+      serviceName               = "serviceName",
+      language                  = English,
+      emailAddress              = email,
+      enterEmailUrl             = None,
+      backUrl                   = None,
+      pageTitle                 = None,
+      passcode                  = passcode,
+      emailAddressAttempts      = emailAddressAttempts,
+      passcodesSentToEmail      = passcodesSentToEmail,
+      passcodeAttempts          = 0
+    )
   }
 
 }
