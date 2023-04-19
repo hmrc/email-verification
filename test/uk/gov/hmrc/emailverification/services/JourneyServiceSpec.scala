@@ -128,6 +128,10 @@ class JourneyServiceSpec extends UnitSpec {
     }
   }
 
+  "lockIfNewEmailAddressExceedsCount" when {
+    ""
+  }
+
   "submitEmail" when {
     "the user has tried too many emails on one journey" should {
       "return TooManyAttempts and the continue URL" in new Setup {
@@ -443,7 +447,7 @@ class JourneyServiceSpec extends UnitSpec {
           passcodesSentToEmail      = 1,
           passcodeAttempts          = 1
         ))))
-        when(mockAppConfig.maxAttemptsPerEmail).thenReturn(1)
+        when(mockAppConfig.maxAttemptsPerEmail).thenReturn(2)
         when(mockAppConfig.maxPasscodeAttempts).thenReturn(100)
         when(mockEmailService.sendPasscodeEmail(eqTo(email), eqTo(passcode), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
 
@@ -648,6 +652,8 @@ class JourneyServiceSpec extends UnitSpec {
       passcodesSentToEmail      = 0,
       passcodeAttempts          = 0
     )
+
+    def createTestJourney(credId: String, email: String, emailAddressAttempts: Int, passcodesSentToEmail: Int)
   }
 
 }

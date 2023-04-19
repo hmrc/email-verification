@@ -129,7 +129,7 @@ class JourneyService @Inject() (
           case Some(email) => verificationStatusRepository.lock(journey.credId, email).map(_ => result)
           case None        => Future.successful(result)
         }
-      case Some(journey) if journey.passcodesSentToEmail >= config.maxAttemptsPerEmail =>
+      case Some(journey) if journey.passcodesSentToEmail >= config.maxAttemptsPerEmail => // [GG-6678] recordPasscodeResent increments but does not return an incremented value
         val result = ResendPasscodeResult.TooManyAttemptsForEmail(journey.frontendData)
         journey.emailAddress match {
           case Some(email) => verificationStatusRepository.lock(journey.credId, email).map(_ => result)

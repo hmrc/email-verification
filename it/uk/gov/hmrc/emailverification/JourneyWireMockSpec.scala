@@ -209,7 +209,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         result.json shouldBe Json.obj("status" -> "accepted")
       }
 
-      "given that there is already 4 email passcode submissions, after making another same email passcode submission, the next same email passcode submission is locked out" in new Setup {
+      "given that there is already 4 email passcode submissions to the same email, after making another same email passcode submission, the next same email passcode submission is locked out" in new Setup {
 
         val testEmail = "aaa@bbb.ccc"
 
@@ -319,7 +319,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         result.status shouldBe OK
         result.json shouldBe Json.obj("status" -> "passcodeResent")
       }
-      "given 4 failed passcode resends, then a subsequent passcode resend, the next passcode resend submission should lock the user out" in new Setup {
+      "given 4 failed passcode resends to the same email, then a subsequent passcode resend, the next passcode resend submission should lock the user out" in new Setup {
         val journey = Journey(
           UUID.randomUUID().toString,
           "credId",
@@ -687,6 +687,57 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         )
 
       }
+
+      "given 4 passcode entry failures, with a following passcode entry failure, the next passcode entry will fail" in new Setup {
+        val journey = Journey(
+          UUID.randomUUID().toString,
+          "credId",
+          "/continueUrl",
+          "origin",
+          "/accessibility",
+          "serviceName",
+          English,
+          Some("aa@bb.cc"),
+          Some("/enterEmailUrl"),
+          None,
+          None,
+          "passcode",
+          0,
+          0,
+          4
+        )
+
+        expectJourneyToExist(journey)
+        expectEmailsToBeStored(List(VerificationStatus("aa@bb.cc", verified = false, locked = false)))
+        expectUserToBeAuthorisedWithGG(credId)
+
+        val firstResponse = await(
+          resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
+            .withHttpHeaders("Authorization" -> "Bearer123")
+            .post(Json.obj("passcode" -> "not the right passcode")))
+        firstResponse.status shouldBe BAD_REQUEST
+        firstResponse.json shouldBe Json.obj(
+          "status" -> "incorrectPasscode",
+          "journey" -> Json.obj(
+            "accessibilityStatementUrl" -> "/accessibility",
+            "enterEmailUrl" -> "/enterEmailUrl",
+            "deskproServiceName" -> "serviceName",
+            "emailAddress" -> "aa@bb.cc"
+          )
+        )
+
+        val secondResponse = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}/passcode")
+          .withHttpHeaders(AUTHORIZATION -> "Bearer some_auth_token_probably")
+          .post(Json.obj("passcode" -> "passcode")))
+        secondResponse.status shouldBe FORBIDDEN
+        secondResponse.json shouldBe Json.obj("status" -> "tooManyAttempts", "continueUrl" -> "/continueUrl")
+
+
+
+
+      }
+
+
 
       "maxPasscodeAttempts should match with config value" in new Setup {
         val journey = Journey(

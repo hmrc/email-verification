@@ -62,7 +62,7 @@ class JourneyController @Inject() (
             Future.successful(Unauthorized)
           } else {
 
-            journeyService.initialise(verifyEmailRequest).map { redirectUrl => // response model - successful or not successful
+            journeyService.initialise(verifyEmailRequest).map { redirectUrl =>
               auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 201)
               Created(Json.toJson(VerifyEmailResponse(redirectUrl)))
             }.recover {
