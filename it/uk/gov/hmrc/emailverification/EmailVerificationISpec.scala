@@ -162,25 +162,6 @@ class EmailVerificationISpec extends BaseISpec {
       Then("verify the email retry count is incremented and status is locked")
       await(verificationStatusRepo.isLocked(credId,emailAddress1)) shouldBe true
     }
-
-    "[GG-6678] verify-email and verification status" should {
-      "calling post-verify email without an email address and a maxPasscodeAttempt of 2" in new Setup {
-//        val submitNoEmailBody = wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress))
-//
-//        val emailRequest = Json.parse(
-//          s"""{
-//             |  "email": "jim.ferguson@x.com",
-//             |  "templateId": "$templateId",
-//             |  "templateParameters": $paramsJsonStr,
-//             |  "linkExpiryDuration" : "P2D",
-//             |  "continueUrl" : "http://some/url"
-//             |}""".stripMargin
-//        )
-        pending
-
-      }
-    }
-
   }
 
   def assumeEmailAlreadyVerified(email: String): Assertion = {
