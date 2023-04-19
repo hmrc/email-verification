@@ -161,7 +161,6 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
     }
     "the journey has a new email and the sum of the returned journeys emailAddressAttempts goes over the limit" in new Setup {
       when(mockAppConfig.maxDifferentEmails).thenReturn(10)
-      when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
 
       val journey1 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 5, passcodesSentToEmail = 0)
       val journey2 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 5, passcodesSentToEmail = 0)
@@ -174,7 +173,6 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
     }
     "the journey does not have a new email and the sum of the journeys emailAddressAttempts goes over the limit" in new Setup {
       when(mockAppConfig.maxDifferentEmails).thenReturn(10)
-      when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
 
       val journey1 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 5, passcodesSentToEmail = 0)
       val journey2 = createTestJourney(credId               = credId, email = Some(emailAddress1), emailAddressAttempts = 6, passcodesSentToEmail = 0)

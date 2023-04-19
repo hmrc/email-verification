@@ -28,7 +28,7 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
   val repository = new JourneyMongoRepository(mongoComponent)
 
   "recordPasscodeAttempt" should {
-    "increment the passcode, but not return the incremented value in the journey" in {
+    "increment the passcode, but not return the incremented passcode value but the old passcode value" in {
       val journeyId = UUID.randomUUID().toString
 
       val testJourney = Journey(
