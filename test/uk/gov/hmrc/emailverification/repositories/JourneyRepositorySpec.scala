@@ -44,8 +44,8 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         Some("/back"),
         Some("title"),
         "passcode",
-        0,
-        passcodesSentToEmail = 0,
+        1,
+        passcodesSentToEmail = 1,
         passcodeAttempts     = 0
       )
 
@@ -55,6 +55,65 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
           whenReady(repository.get(journeyId)) { journey =>
             journey shouldBe Some(testJourney.copy(passcodeAttempts = 1))
           }
+        }
+      }
+    }
+  }
+  "submitEmail" should {
+    "increase the increment on submission of the same email" in {
+      val journeyId = UUID.randomUUID().toString
+      val email = "aaa@bbb.ccc"
+
+      val testJourney = Journey(
+        journeyId,
+        "credId",
+        "/continueUrl",
+        "origin",
+        "/accessibility",
+        "serviceName",
+        English,
+        Some(email),
+        Some("/enterEmailUrl"),
+        Some("/back"),
+        Some("title"),
+        "passcode",
+        1,
+        passcodesSentToEmail = 1,
+        passcodeAttempts     = 0
+      )
+
+      whenReady(repository.initialise(testJourney)){ value =>
+        whenReady(repository.submitEmail(journeyId, email)) { journey =>
+          journey shouldBe Some(testJourney.copy(passcodesSentToEmail = 2))
+        }
+      }
+    }
+    "reset the passcodesSentToEmail value and increment the maxDifferentEmailsValue" in {
+      val journeyId = UUID.randomUUID().toString
+      val email = "aaa@bbb.ccc"
+      val someOtherEmail = "bbb@ccc.ddd"
+
+      val testJourney = Journey(
+        journeyId,
+        "credId",
+        "/continueUrl",
+        "origin",
+        "/accessibility",
+        "serviceName",
+        English,
+        Some(email),
+        Some("/enterEmailUrl"),
+        Some("/back"),
+        Some("title"),
+        "passcode",
+        1,
+        passcodesSentToEmail = 1,
+        passcodeAttempts     = 0
+      )
+
+      whenReady(repository.initialise(testJourney)){ value =>
+        whenReady(repository.submitEmail(journeyId, someOtherEmail)) { journey =>
+          journey shouldBe Some(testJourney.copy(emailAddress         = Some(someOtherEmail), passcodesSentToEmail = 1, emailAddressAttempts = 2))
         }
       }
     }

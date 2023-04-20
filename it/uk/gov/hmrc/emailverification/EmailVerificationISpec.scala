@@ -153,7 +153,7 @@ class EmailVerificationISpec extends BaseISpec {
       val response4 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress4)))
       response4.status shouldBe 201
       val response5 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress5)))
-      response5.status shouldBe 401 //6th fails as mas different emails limit is 5
+      response5.status shouldBe 401 //6th fails as max different emails limit is 5
       val eventualJourneys: Future[Seq[Journey]] = journeyRepo.findByCredId(credId)
       val journeyId4 = await(eventualJourneys).find(_.emailAddress.contains(emailAddress4)).map(_.journeyId).getOrElse("not-found")
       val submitEmailResponse = await(wsClient.url(appClient(s"/journey/$journeyId4/email")).post(Json.obj("email" -> emailAddress1)))

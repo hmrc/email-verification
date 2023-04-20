@@ -208,121 +208,44 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
   "submitEmail" when {
     "the user has tried too many emails on one journey" should {
       "return TooManyAttempts and the continue URL" in new Setup {
-        val journeyId = UUID.randomUUID().toString
         val email = "aaa@bbb.ccc"
 
-        when(mockJourneyRepository.submitEmail(journeyId, email)).thenReturn(Future.successful(Some(Journey(
-          journeyId                 = journeyId,
-          credId                    = "credId",
-          continueUrl               = continueUrl,
-          origin                    = origin,
-          accessibilityStatementUrl = "/accessibility",
-          serviceName               = "My Cool Service",
-          language                  = English,
-          emailAddress              = Some(email),
-          enterEmailUrl             = None,
-          backUrl                   = None,
-          pageTitle                 = None,
-          passcode                  = "code",
-          emailAddressAttempts      = 2,
-          passcodesSentToEmail      = 0,
-          passcodeAttempts          = 0
-        ))))
+        val journey1 = createTestJourney(credId               = "credId", email = Some(email), emailAddressAttempts = 1, passcodesSentToEmail = 3)
+        val journey2 = createTestJourney(credId               = "credId", email = Some(email), emailAddressAttempts = 1, passcodesSentToEmail = 3)
 
-        when(mockJourneyRepository.findByCredId("credId")).thenReturn(Future.successful(Seq(Journey(
-          journeyId                 = journeyId,
-          credId                    = "credId",
-          continueUrl               = continueUrl,
-          origin                    = origin,
-          accessibilityStatementUrl = "/accessibility",
-          serviceName               = "My Cool Service",
-          language                  = English,
-          emailAddress              = Some(email),
-          enterEmailUrl             = None,
-          backUrl                   = None,
-          pageTitle                 = None,
-          passcode                  = "code",
-          emailAddressAttempts      = 2,
-          passcodesSentToEmail      = 0,
-          passcodeAttempts          = 0
-        ))))
+        when(mockJourneyRepository.submitEmail(journey1.journeyId, email)).thenReturn(Future.successful(Some(journey1)))
 
-        when(mockAppConfig.maxDifferentEmails).thenReturn(1)
+        when(mockJourneyRepository.findByCredId("credId")).thenReturn(Future.successful(Seq(journey1, journey2)))
+
+        when(mockAppConfig.maxDifferentEmails).thenReturn(10)
+        when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
 
         when(mockVerificationStatusRepository.lock(eqTo("credId"), eqTo(email))).thenReturn(Future.unit)
 
-        val result = await(journeyService.submitEmail(journeyId, email)(HeaderCarrier()))
+        val result = await(journeyService.submitEmail(journey1.journeyId, email)(HeaderCarrier()))
         result shouldBe EmailUpdateResult.TooManyAttempts(continueUrl)
       }
     }
 
     "the user has tried too many emails over all journeys for the credId" should {
       "return TooManyAttempts and the continue URL" in new Setup {
-        val journeyId = UUID.randomUUID().toString
-        val someOtherJourneyId = UUID.randomUUID().toString
         val email = "aaa@bbb.ccc"
         val someOtherEmail = "bbb@ccc.ddd"
 
-        when(mockJourneyRepository.submitEmail(journeyId, email)).thenReturn(Future.successful(Some(Journey(
-          journeyId                 = journeyId,
-          credId                    = "credId",
-          continueUrl               = continueUrl,
-          origin                    = origin,
-          accessibilityStatementUrl = "/accessibility",
-          serviceName               = "My Cool Service",
-          language                  = English,
-          emailAddress              = Some(email),
-          enterEmailUrl             = None,
-          backUrl                   = None,
-          pageTitle                 = None,
-          passcode                  = "code",
-          emailAddressAttempts      = 1,
-          passcodesSentToEmail      = 0,
-          passcodeAttempts          = 0
-        ))))
+        val journey1 = createTestJourney(credId               = "credId", email = Some(email), emailAddressAttempts = 1, passcodesSentToEmail = 0)
+        val journey2 = createTestJourney(credId               = "credId", email = Some(someOtherEmail), emailAddressAttempts = 1, passcodesSentToEmail = 0)
+
+        when(mockJourneyRepository.submitEmail(journey1.journeyId, email)).thenReturn(Future.successful(Some(journey1)))
 
         when(mockJourneyRepository.findByCredId("credId")).thenReturn(Future.successful(Seq(
-          Journey(
-            journeyId                 = journeyId,
-            credId                    = "credId",
-            continueUrl               = continueUrl,
-            origin                    = origin,
-            accessibilityStatementUrl = "/accessibility",
-            serviceName               = "My Cool Service",
-            language                  = English,
-            emailAddress              = Some(email),
-            enterEmailUrl             = None,
-            backUrl                   = None,
-            pageTitle                 = None,
-            passcode                  = "code",
-            emailAddressAttempts      = 1,
-            passcodesSentToEmail      = 0,
-            passcodeAttempts          = 0
-          ),
-          Journey(
-            journeyId                 = someOtherJourneyId,
-            credId                    = "credId",
-            continueUrl               = continueUrl,
-            origin                    = origin,
-            accessibilityStatementUrl = "/accessibility",
-            serviceName               = "My Cool Service",
-            language                  = English,
-            emailAddress              = Some(someOtherEmail),
-            enterEmailUrl             = None,
-            backUrl                   = None,
-            pageTitle                 = None,
-            passcode                  = "code",
-            emailAddressAttempts      = 1,
-            passcodesSentToEmail      = 0,
-            passcodeAttempts          = 0
-          )
+          journey1, journey2
         )))
 
         when(mockAppConfig.maxDifferentEmails).thenReturn(1)
 
         when(mockVerificationStatusRepository.lock(eqTo("credId"), eqTo(email))).thenReturn(Future.unit)
 
-        val result = await(journeyService.submitEmail(journeyId, email)(HeaderCarrier()))
+        val result = await(journeyService.submitEmail(journey1.journeyId, email)(HeaderCarrier()))
         result shouldBe EmailUpdateResult.TooManyAttempts(continueUrl)
       }
     }
@@ -387,6 +310,27 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         when(mockEmailService.sendPasscodeEmail(eqTo(email), eqTo(passcode), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
 
         val result = await(journeyService.submitEmail(journeyId, email)(HeaderCarrier()))
+        result shouldBe EmailUpdateResult.Accepted
+      }
+      "save the email as unverified, send a passcode email, and return Accepted while filtering out another email which is past the limit" in new Setup {
+        val email = "aaa@bbb.ccc"
+        val someOtherEmail = "bbb@ccc.ddd"
+
+        val journey1 = createTestJourney(credId               = "credId", email = Some(email), emailAddressAttempts = 1, passcodesSentToEmail = 1)
+        val journey2 = createTestJourney(credId               = "credId", email = Some(email), emailAddressAttempts = 1, passcodesSentToEmail = 1)
+        val journey3 = createTestJourney(credId               = "credId", email = Some(someOtherEmail), emailAddressAttempts = 1, passcodesSentToEmail = 1000)
+
+        when(mockAppConfig.maxDifferentEmails).thenReturn(10)
+        when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
+
+        when(mockJourneyRepository.submitEmail(journey1.journeyId, email)).thenReturn(Future.successful(Some(journey1)))
+
+        when(mockJourneyRepository.findByCredId("credId")).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
+
+        when(mockVerificationStatusRepository.initialise(eqTo("credId"), eqTo(email))).thenReturn(Future.unit)
+        when(mockEmailService.sendPasscodeEmail(eqTo(email), eqTo(journey1.passcode), eqTo(journey1.serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
+
+        val result = await(journeyService.submitEmail(journey1.journeyId, email)(HeaderCarrier()))
         result shouldBe EmailUpdateResult.Accepted
       }
     }
