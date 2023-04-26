@@ -51,17 +51,16 @@ class JourneyController @Inject() (
   def verifyEmail(): Action[VerifyEmailRequest] = Action.async(parse.json[VerifyEmailRequest]) { implicit request =>
     val req = request.body
     val verifyEmailRequest = req.copy(email = req.email.map(e => e.copy(address = e.address.toLowerCase)))
-    journeyService.lockIfNewEmailAddressExceedsCount(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address).getOrElse("")).flatMap { hasExceeded =>
-      if (hasExceeded) {
+    journeyService.isLocked(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address)).flatMap{ locked =>
+      if (locked) {
         auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 401)
         Future.successful(Unauthorized)
       } else {
-        journeyService.isLocked(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address)).flatMap { locked =>
-          if (locked) {
+        journeyService.checkIfEmailExceedsCount(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address).getOrElse("")).flatMap { emailExceedsCount =>
+          if (emailExceedsCount) {
             auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 401)
             Future.successful(Unauthorized)
           } else {
-
             journeyService.initialise(verifyEmailRequest).map { redirectUrl =>
               auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 201)
               Created(Json.toJson(VerifyEmailResponse(redirectUrl)))

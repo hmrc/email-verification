@@ -145,7 +145,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
       when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
       when(mockVerificationStatusRepository.lock(eqTo(credId), eqTo(emailAddress1))).thenReturn(Future.unit)
 
-      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress1).futureValue shouldBe true
+      journeyService.checkIfEmailExceedsCount(credId, emailAddress1).futureValue shouldBe true
     }
     "returned journeys passcodesSentToEmail with only the same email do not go over the limit but different email addresses do" in new Setup {
       when(mockAppConfig.maxDifferentEmails).thenReturn(10)
@@ -157,7 +157,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
       when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
 
-      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress1).futureValue shouldBe false
+      journeyService.checkIfEmailExceedsCount(credId, emailAddress1).futureValue shouldBe false
     }
     "the journey has a new email and the sum of the returned journeys emailAddressAttempts goes over the limit" in new Setup {
       when(mockAppConfig.maxDifferentEmails).thenReturn(10)
@@ -169,7 +169,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
       when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
       when(mockVerificationStatusRepository.lock(eqTo(credId), eqTo(emailAddress3))).thenReturn(Future.unit)
 
-      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress3).futureValue shouldBe true
+      journeyService.checkIfEmailExceedsCount(credId, emailAddress3).futureValue shouldBe true
     }
     "the journey does not have a new email and the sum of the journeys emailAddressAttempts goes over the limit" in new Setup {
       when(mockAppConfig.maxDifferentEmails).thenReturn(10)
@@ -181,7 +181,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
       when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
       when(mockVerificationStatusRepository.lock(eqTo(credId), eqTo(emailAddress1))).thenReturn(Future.unit)
 
-      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress1).futureValue shouldBe true
+      journeyService.checkIfEmailExceedsCount(credId, emailAddress1).futureValue shouldBe true
     }
     "the journey does not have a new email address is close to the limit in both scenarios returns false" in new Setup {
       when(mockAppConfig.maxDifferentEmails).thenReturn(10)
@@ -193,7 +193,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
       when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
 
-      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress1).futureValue shouldBe false
+      journeyService.checkIfEmailExceedsCount(credId, emailAddress1).futureValue shouldBe false
     }
     "there is no journeys returned returns false" in new Setup {
       when(mockAppConfig.maxDifferentEmails).thenReturn(10)
@@ -201,7 +201,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
       when(mockJourneyRepository.findByCredId(eqTo(credId))).thenReturn(Future.successful(Seq()))
 
-      journeyService.lockIfNewEmailAddressExceedsCount(credId, emailAddress1).futureValue shouldBe false
+      journeyService.checkIfEmailExceedsCount(credId, emailAddress1).futureValue shouldBe false
     }
   }
 
