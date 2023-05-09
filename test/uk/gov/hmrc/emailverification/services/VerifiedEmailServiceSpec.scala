@@ -170,7 +170,7 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
   "migrateEmailAddresses" should {
     "copy records from emailRepo to hashedEmailRepo" in {
       val emails = (0 to 999).map(emailWithNumber(_))
-      Future.sequence(emails.map(emailRepo.insert(_)))
+      await(Future.sequence(emails.map(emailRepo.insert(_))))
       await(hashedEmailRepo.isVerified(emailWithNumber(0))) shouldBe false
 
       when(mockConfig.emailMigrationBatchSize).thenReturn(50)
@@ -188,7 +188,7 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
 
     "copy records from emailRepo to hashedEmailRepo and finish part way through if max duration reached" in {
       val emails = (0 to 999).map(emailWithNumber(_))
-      Future.sequence(emails.map(emailRepo.insert(_)))
+      await(Future.sequence(emails.map(emailRepo.insert(_))))
       await(hashedEmailRepo.isVerified(emailWithNumber(0))) shouldBe false
 
       when(mockConfig.emailMigrationBatchSize).thenReturn(50)
@@ -205,7 +205,7 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
     "copy records from emailRepo to hashedEmailRepo and not blow up adding duplicate entries" in {
       await(hashedEmailRepo.ensureIndexes)
       val emails = (0 to 999).map(emailWithNumber(_))
-      Future.sequence(emails.map(emailRepo.insert(_)))
+      await(Future.sequence(emails.map(emailRepo.insert(_))))
       await(hashedEmailRepo.isVerified(emailWithNumber(0))) shouldBe false
 
       await(hashedEmailRepo.insert(emailWithNumber(5))) //so a duplicate is already present
@@ -226,7 +226,7 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
     "copy records from emailRepo to hashedEmailRepo ignoring expired records" in {
       await(hashedEmailRepo.ensureIndexes)
       val emails = (0 to 999).map(emailWithNumber(_))
-      Future.sequence(emails.map(emailRepo.insert(_)))
+      await(Future.sequence(emails.map(emailRepo.insert(_))))
       await(hashedEmailRepo.isVerified(emailWithNumber(0))) shouldBe false
 
       Thread.sleep(500) //allow time for index to also update
