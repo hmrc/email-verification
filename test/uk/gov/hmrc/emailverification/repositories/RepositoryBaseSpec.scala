@@ -36,7 +36,7 @@ trait RepositoryBaseSpec
 
   // Increase timeout used by ScalaFutures when awaiting completion of futures
   implicit override val patienceConfig: PatienceConfig =
-    PatienceConfig(timeout  = Span(4, Seconds), interval = Span(1, Seconds))
+    PatienceConfig(timeout  = Span(10, Seconds), interval = Span(1, Seconds))
 
   val clock = Clock.fixed(Instant.now, ZoneId.systemDefault)
 

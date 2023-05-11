@@ -22,6 +22,8 @@ import org.scalatest.time.{Seconds, Span}
 import uk.gov.hmrc.emailverification.models.VerificationDoc
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.MongoUtils
+
+import java.time.temporal.ChronoUnit
 import java.time.{Clock, Duration, Instant}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.DurationInt
@@ -41,11 +43,11 @@ class VerificationTokenMongoRepositorySpec extends RepositoryBaseSpec with Event
       val token1 = token + "1"
       repository.collection.find().toFuture().futureValue shouldBe Nil
       await (repository.upsert(token1, email, Duration.ofDays(1), clock))
-      repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token1, Instant.now(tomorrowClock)))
+      repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token1, Instant.now(tomorrowClock).truncatedTo(ChronoUnit.MILLIS)))
 
       val token2 = token + "2"
       await (repository.upsert(token2, email, Duration.ofDays(1), clock))
-      repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token2, Instant.now(tomorrowClock)))
+      repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token2, Instant.now(tomorrowClock).truncatedTo(ChronoUnit.MILLIS)))
     }
   }
 
@@ -53,7 +55,7 @@ class VerificationTokenMongoRepositorySpec extends RepositoryBaseSpec with Event
     "return the verification document" in {
       await (repository.upsert(token, email, Duration.ofDays(1), clock))
       val doc = repository.findToken(token).futureValue
-      doc shouldBe Some(VerificationDoc(email, token, Instant.now(tomorrowClock)))
+      doc shouldBe Some(VerificationDoc(email, token, Instant.now(tomorrowClock).truncatedTo(ChronoUnit.MILLIS)))
     }
 
     "return None whet token does not exist or has expired" in {
@@ -69,7 +71,7 @@ class VerificationTokenMongoRepositorySpec extends RepositoryBaseSpec with Event
         ), true)
 
       await (repository.upsert(token, email, Duration.ofDays(0), clock))
-      repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token, Instant.now(clock)))
+      repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token, Instant.now(clock).truncatedTo(ChronoUnit.MILLIS)))
 
       eventually(timeout(Span(120, Seconds)))(
         repository.collection.find().toFuture().futureValue shouldBe Nil

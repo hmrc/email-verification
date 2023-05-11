@@ -19,6 +19,8 @@ package uk.gov.hmrc.emailverification.repositories
 import config.AppConfig
 import uk.gov.hmrc.emailverification.models.PasscodeDoc
 import uk.gov.hmrc.http.SessionId
+
+import java.time.temporal.ChronoUnit
 import java.time.{Clock, Instant}
 import scala.concurrent.duration.DurationInt
 
@@ -42,8 +44,8 @@ class PasscodeMongoRepositorySpec extends RepositoryBaseSpec {
       val doc = repository.upsertIncrementingEmailAttempts(SessionId(sessionId), passcode1, email, 1, clock).futureValue
       val doc2 = repository.upsertIncrementingEmailAttempts(SessionId(sessionId), passcode2, email, 1, clock2).futureValue
 
-      doc shouldBe PasscodeDoc(sessionId, email, passcode1.toUpperCase, Instant.now(clock2), 0, 1)
-      doc2 shouldBe PasscodeDoc(sessionId, email, passcode2.toUpperCase, Instant.now(clock3), 0, 2)
+      doc shouldBe PasscodeDoc(sessionId, email, passcode1.toUpperCase, Instant.now(clock2).truncatedTo(ChronoUnit.MILLIS), 0, 1)
+      doc2 shouldBe PasscodeDoc(sessionId, email, passcode2.toUpperCase, Instant.now(clock3).truncatedTo(ChronoUnit.MILLIS), 0, 2)
     }
   }
 
@@ -59,7 +61,7 @@ class PasscodeMongoRepositorySpec extends RepositoryBaseSpec {
     "return correct PasscodeDoc" in {
       repository.findPasscodesBySessionId(sessionId).futureValue shouldBe Nil
       await(repository.upsertIncrementingEmailAttempts(SessionId(sessionId), passcode1, email, 1, clock))
-      val expectedPasscodeDoc = PasscodeDoc(sessionId, email, passcode1.toUpperCase, Instant.now(clock2), 0, 1)
+      val expectedPasscodeDoc = PasscodeDoc(sessionId, email, passcode1.toUpperCase, Instant.now(clock2).truncatedTo(ChronoUnit.MILLIS), 0, 1)
       repository.findPasscodesBySessionId(sessionId).futureValue shouldBe Seq(expectedPasscodeDoc)
     }
   }
@@ -68,7 +70,7 @@ class PasscodeMongoRepositorySpec extends RepositoryBaseSpec {
     "return correct PasscodeDoc" in {
       repository.findPasscodeBySessionIdAndEmail(sessionId, email).futureValue shouldBe Nil
       await(repository.upsertIncrementingEmailAttempts(SessionId(sessionId), passcode1, email, 1, clock))
-      val expectedPasscodeDoc = PasscodeDoc(sessionId, email, passcode1.toUpperCase, Instant.now(clock2), 0, 1)
+      val expectedPasscodeDoc = PasscodeDoc(sessionId, email, passcode1.toUpperCase, Instant.now(clock2).truncatedTo(ChronoUnit.MILLIS), 0, 1)
       repository.findPasscodeBySessionIdAndEmail(sessionId, email).futureValue shouldBe Seq(expectedPasscodeDoc)
     }
   }
@@ -77,7 +79,7 @@ class PasscodeMongoRepositorySpec extends RepositoryBaseSpec {
     "return correct PasscodeDoc" in {
       repository.findPasscodeAndIncrementAttempts(SessionId(sessionId), email).futureValue shouldBe None
       await(repository.upsertIncrementingEmailAttempts(SessionId(sessionId), passcode1, email, 1, clock))
-      val expectedPasscodeDoc = PasscodeDoc(sessionId, email, passcode1.toUpperCase, Instant.now(clock2), 1, 1)
+      val expectedPasscodeDoc = PasscodeDoc(sessionId, email, passcode1.toUpperCase, Instant.now(clock2).truncatedTo(ChronoUnit.MILLIS), 1, 1)
       repository.findPasscodeAndIncrementAttempts(SessionId(sessionId), email).futureValue shouldBe Some(expectedPasscodeDoc)
     }
   }

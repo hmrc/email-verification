@@ -26,7 +26,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.stubControllerComponents
 import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
 import uk.gov.hmrc.emailverification.models._
-import uk.gov.hmrc.emailverification.repositories.{VerificationTokenMongoRepository}
+import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository
 import uk.gov.hmrc.emailverification.services.{AuditService, VerificationLinkService, VerifiedEmailService}
 import uk.gov.hmrc.gg.test.UnitSpec
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}

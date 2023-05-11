@@ -146,25 +146,22 @@ class EmailVerificationISpec extends BaseISpec {
       response.status shouldBe 201
       val response1 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
       response1.status shouldBe 201
-      val response2 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
+      val response2 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress2)))
       response2.status shouldBe 201
-      val response3 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
+      val response3 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress3)))
       response3.status shouldBe 201
-      val response4 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
+      val response4 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress4)))
       response4.status shouldBe 201
-      val response5 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
-      response5.status shouldBe 201
-      val response6 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
-      response6.status shouldBe 201
+      val response5 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress5)))
+      response5.status shouldBe 401 //6th fails as max different emails limit is 5
       val eventualJourneys: Future[Seq[Journey]] = journeyRepo.findByCredId(credId)
-      val existingJourneyId = await(eventualJourneys).last.journeyId
-      val response7 = await(wsClient.url(appClient(s"/journey/$existingJourneyId/email")).post(Json.obj("email" -> emailAddress1)))
-      response7.status shouldBe 403
+      val journeyId4 = await(eventualJourneys).find(_.emailAddress.contains(emailAddress4)).map(_.journeyId).getOrElse("not-found")
+      val submitEmailResponse = await(wsClient.url(appClient(s"/journey/$journeyId4/email")).post(Json.obj("email" -> emailAddress1)))
+      submitEmailResponse.status shouldBe 403
 
       Then("verify the email retry count is incremented and status is locked")
-      await(verificationStatusRepo.isLocked(credId,"barrywood1@hotmail.com")) shouldBe true
+      await(verificationStatusRepo.isLocked(credId,emailAddress1)) shouldBe true
     }
-
   }
 
   def assumeEmailAlreadyVerified(email: String): Assertion = {
