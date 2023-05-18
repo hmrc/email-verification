@@ -49,6 +49,7 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
     domainFormat   = JourneyMongoRepository.mongoFormat,
     indexes        = Seq(
       IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl").expireAfter(4, TimeUnit.HOURS))
+    //      IndexModel(Indexes.ascending("credId"), IndexOptions().name("credId").unique(false))
     ),
     replaceIndexes = false
   )
