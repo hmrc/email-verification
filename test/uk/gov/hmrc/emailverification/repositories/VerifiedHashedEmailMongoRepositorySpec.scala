@@ -126,5 +126,8 @@ class VerifiedHashedEmailMongoRepositorySpec extends RepositoryBaseSpec {
       emails.map(email => await(repository.find(email)) shouldBe Some(VerifiedEmail(email)))
     }
   }
-
+  override def beforeEach() = {
+    super.beforeEach()
+    await(repository.ensureIndexes)
+  }
 }

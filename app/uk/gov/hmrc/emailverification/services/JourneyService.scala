@@ -98,7 +98,7 @@ class JourneyService @Inject() (
     journeyRepository.findByCredId(credId).flatMap { journeys =>
       val sumOfPasscodesSentToSameEmail = journeys.filter(journey => journey.emailAddress.contains(emailAddress)).map(journey => journey.passcodesSentToEmail).sum + 1
       val includeNewEmail = if (journeys.flatMap(_.emailAddress).contains(emailAddress)) 0 else 1
-      val sumOfEmailAttemptsInJourneys = journeys.map(journey => journey.emailAddressAttempts).sum + includeNewEmail
+      val sumOfEmailAttemptsInJourneys = journeys.distinctBy(journey => journey.emailAddress).map(journey => journey.emailAddressAttempts).sum + includeNewEmail
       if (sumOfEmailAttemptsInJourneys > config.maxDifferentEmails || sumOfPasscodesSentToSameEmail > config.maxAttemptsPerEmail) {
         logger.info(s"[GG-6678] either too many emails or too many passcodes to credId: $credId, the passcodes sent to email: $sumOfPasscodesSentToSameEmail, the different emails tried: $sumOfEmailAttemptsInJourneys")
         Future.successful(true)

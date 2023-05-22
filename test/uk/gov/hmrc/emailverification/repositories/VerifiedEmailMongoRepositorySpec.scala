@@ -114,4 +114,8 @@ class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
     }
 
   }
+  override def beforeEach() = {
+    super.beforeEach()
+    await(repository.ensureIndexes)
+  }
 }

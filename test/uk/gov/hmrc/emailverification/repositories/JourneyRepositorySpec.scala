@@ -118,7 +118,8 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
       }
     }
   }
-  "findByCredId correctly find the right journes" in {
+
+  "findByCredId correctly find the right journeys" in {
     val email = "aaa@bbb.ccc"
 
     val testJourney1 = Journey(
@@ -147,12 +148,15 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
     await(repository.initialise(testJourney3))
     await(repository.initialise(testJourney4))
 
-    whenReady(repository.findByCredId("credId")){ journeys =>
-      journeys.contains(testJourney1) shouldBe true
-      journeys.contains(testJourney2) shouldBe true
-      journeys.contains(testJourney3) shouldBe false
-      journeys.contains(testJourney4) shouldBe true
-    }
+    val journeys = await(repository.findByCredId("credId"))
+    journeys.contains(testJourney1) shouldBe true
+    journeys.contains(testJourney2) shouldBe true
+    journeys.contains(testJourney3) shouldBe false
+    journeys.contains(testJourney4) shouldBe true
   }
 
+  override def beforeEach() = {
+    super.beforeEach()
+    await(repository.ensureIndexes)
+  }
 }

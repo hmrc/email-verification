@@ -83,4 +83,9 @@ class PasscodeMongoRepositorySpec extends RepositoryBaseSpec {
       repository.findPasscodeAndIncrementAttempts(SessionId(sessionId), email).futureValue shouldBe Some(expectedPasscodeDoc)
     }
   }
+
+  override def beforeEach() = {
+    super.beforeEach()
+    await(repository.ensureIndexes)
+  }
 }
