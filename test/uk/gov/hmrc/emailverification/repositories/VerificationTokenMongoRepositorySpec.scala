@@ -79,4 +79,8 @@ class VerificationTokenMongoRepositorySpec extends RepositoryBaseSpec with Event
     }
   }
 
+  override def beforeEach() = {
+    super.beforeEach()
+    await(repository.ensureIndexes)
+  }
 }

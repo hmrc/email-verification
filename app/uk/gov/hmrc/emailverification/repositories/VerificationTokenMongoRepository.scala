@@ -34,7 +34,8 @@ class VerificationTokenMongoRepository @Inject() (mongoComponent: MongoComponent
     domainFormat   = VerificationDoc.format,
     indexes        = Seq(
       IndexModel(Indexes.ascending("token"), IndexOptions().name("tokenUnique").unique(true)),
-      IndexModel(Indexes.ascending("expireAt"), IndexOptions().name("expireAtIndex").expireAfter(0, TimeUnit.SECONDS))
+      IndexModel(Indexes.ascending("expireAt"), IndexOptions().name("expireAtIndex").expireAfter(0, TimeUnit.SECONDS)),
+      IndexModel(Indexes.ascending("email"), IndexOptions().name("email"))
     ),
     replaceIndexes = false
   ) {

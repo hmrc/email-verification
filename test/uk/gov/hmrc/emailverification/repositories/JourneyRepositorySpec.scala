@@ -119,4 +119,44 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
     }
   }
 
+  "findByCredId correctly find the right journeys" in {
+    val email = "aaa@bbb.ccc"
+
+    val testJourney1 = Journey(
+      "journeyId1",
+      "credId",
+      "/continueUrl",
+      "origin",
+      "/accessibility",
+      "serviceName",
+      English,
+      Some(email),
+      Some("/enterEmailUrl"),
+      Some("/back"),
+      Some("title"),
+      "passcode",
+      1,
+      passcodesSentToEmail = 1,
+      passcodeAttempts     = 0
+    )
+    val testJourney2 = testJourney1.copy(journeyId = "journeyId2")
+    val testJourney3 = testJourney1.copy(journeyId = "journeyId3", credId = "credId2")
+    val testJourney4 = testJourney1.copy(journeyId = "journeyId4")
+
+    await(repository.initialise(testJourney1))
+    await(repository.initialise(testJourney2))
+    await(repository.initialise(testJourney3))
+    await(repository.initialise(testJourney4))
+
+    val journeys = await(repository.findByCredId("credId"))
+    journeys.contains(testJourney1) shouldBe true
+    journeys.contains(testJourney2) shouldBe true
+    journeys.contains(testJourney3) shouldBe false
+    journeys.contains(testJourney4) shouldBe true
+  }
+
+  override def beforeEach() = {
+    super.beforeEach()
+    await(repository.ensureIndexes)
+  }
 }

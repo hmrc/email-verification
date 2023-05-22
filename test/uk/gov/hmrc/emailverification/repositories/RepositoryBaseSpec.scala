@@ -27,10 +27,10 @@ import scala.concurrent.ExecutionContext
 
 trait RepositoryBaseSpec
   extends UnitSpec
-  with IndexedMongoQueriesSupport
   with BeforeAndAfterEach
-  with BeforeAndAfterAll
-  with ScalaFutures {
+  with ScalaFutures
+  with IndexedMongoQueriesSupport
+  with BeforeAndAfterAll {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
@@ -41,12 +41,11 @@ trait RepositoryBaseSpec
   val clock = Clock.fixed(Instant.now, ZoneId.systemDefault)
 
   override def beforeEach(): Unit = {
-    super.beforeEach()
     dropDatabase()
   }
 
   override def beforeAll(): Unit = {
+    super.beforeAll()
     dropDatabase()
   }
-
 }

@@ -245,4 +245,9 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
 
   }
 
+  override def beforeEach() = {
+    super.beforeEach()
+    await(emailRepo.ensureIndexes)
+    await(hashedEmailRepo.ensureIndexes)
+  }
 }
