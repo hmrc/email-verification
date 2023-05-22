@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import org.scalatest.BeforeAndAfterEach
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import uk.gov.hmrc.gg.test.UnitSpec
@@ -29,7 +29,8 @@ trait RepositoryBaseSpec
   extends UnitSpec
   with BeforeAndAfterEach
   with ScalaFutures
-  with IndexedMongoQueriesSupport {
+  with IndexedMongoQueriesSupport
+  with BeforeAndAfterAll {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
@@ -43,7 +44,8 @@ trait RepositoryBaseSpec
     dropDatabase()
   }
 
-  override def afterEach(): Unit = {
+  override def beforeAll(): Unit = {
+    super.beforeAll()
     dropDatabase()
   }
 }
