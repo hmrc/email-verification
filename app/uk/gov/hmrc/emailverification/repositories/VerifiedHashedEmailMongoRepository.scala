@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import com.mongodb.{MongoBulkWriteException, MongoWriteException}
+import com.mongodb.MongoBulkWriteException
 import config.AppConfig
 import org.mongodb.scala.model.{IndexModel, _}
 import play.api.Logging
