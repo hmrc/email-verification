@@ -1,5 +1,4 @@
 import uk.gov.hmrc.DefaultBuildSettings.{defaultSettings, integrationTestSettings, scalaSettings}
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
 lazy val microservice = Project("email-verification", file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtDistributablesPlugin): _*)
