@@ -56,12 +56,14 @@ class VerifiedHashedEmailMongoRepository @Inject()(mongoComponent: MongoComponen
     collection.find(Filters.equal("hashedEmail", hashEmail(email)))
       .headOption().map(_.map(_ => VerifiedEmail(email)))
 
-  def insert(email: String): Future[Unit] =
+  def insert(email: String): Future[Unit] = {
     collection.insertOne(VerifiedHashedEmail(hashEmail(email)))
       .headOption()
-      .map(_ => ()).recover { case ex =>
-      logger.error(s"[GG-6759] error occurred on insert: $ex.")
-    }
+      .transform(_ => (), ex => {
+        logger.error(s"[GG-6759] error occurred on insert: $ex.")
+        ex
+      })
+  }
 
   // GG-6759 - remove after emails migrated
   def insertBatch(emailsWithCreatedAt: Seq[(VerifiedEmail, Instant)]): Future[Int] = {
