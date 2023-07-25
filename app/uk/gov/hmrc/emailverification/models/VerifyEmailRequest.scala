@@ -27,10 +27,14 @@ case class VerifyEmailRequest(
     email:                     Option[Email],
     lang:                      Option[Language],
     backUrl:                   Option[String],
-    pageTitle:                 Option[String]
+    pageTitle:                 Option[String],
+    labels:                    Option[Labels]
 )
 
 case class Email(address: String, enterUrl: String)
+
+case class Label(pageTitle: Option[String], userFacingServiceName: Option[String])
+case class Labels(en: Label, cy: Label)
 
 object Email {
   implicit val format: Format[Email] = Json.format[Email]
@@ -38,4 +42,12 @@ object Email {
 
 object VerifyEmailRequest {
   implicit val reads: Reads[VerifyEmailRequest] = Json.reads[VerifyEmailRequest]
+}
+
+object Label {
+  implicit val reads: Reads[Label] = Json.reads[Label]
+}
+
+object Labels {
+  implicit val reads: Reads[Labels] = Json.reads[Labels]
 }

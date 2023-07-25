@@ -48,7 +48,6 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
     "given a request with an email address present and a Deskpro service name" should {
       "store the journey and send a passcode to the email address and return email-verification-frontend journey url" in new Setup {
-
         val serviceName = "My Cool Service"
 
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
@@ -62,6 +61,25 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         val res: String = await(journeyService.initialise(verifyEmailRequest.copy(deskproServiceName = Some(serviceName)))(HeaderCarrier()))
 
         res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin&service=$serviceName"
+      }
+    }
+
+    "given a request with an email address present and a english service label" should {
+      "store the journey and send a passcode to the email address and return email-verification-frontend journey url" in new Setup {
+        val englishLabel = "The Team of the best"
+        val request = verifyEmailRequest.copy(deskproServiceName = Some("Desk Pro"), labels = Some(Labels(en = Label(None, userFacingServiceName = Option(englishLabel)), cy = Label(None, None))))
+
+        when(mockPasscodeGenerator.generate()).thenReturn(passcode)
+        when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
+
+        val captor: Captor[Journey] = ArgCaptor[Journey]
+        when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
+
+        when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(englishLabel), eqTo(English))(any, any)).thenReturn(Future.unit)
+
+        val res: String = await(journeyService.initialise(request)(HeaderCarrier()))
+
+        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin&service=$englishLabel"
       }
     }
 
@@ -677,6 +695,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
       lang                      = Some(English),
       backUrl                   = None,
       pageTitle                 = None,
+      labels                    = None
     )
 
     val testJourney = Journey(
