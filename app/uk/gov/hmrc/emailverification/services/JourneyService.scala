@@ -23,6 +23,7 @@ import java.util.UUID
 import javax.inject.Inject
 import uk.gov.hmrc.emailverification.models.{CompletedEmail, English, Journey, JourneyData, VerificationStatus, VerifyEmailRequest}
 import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, VerificationStatusRepository}
+import uk.gov.hmrc.emailverification.utils.JourneyLabelsUtil.getTeamNameLabel
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -56,7 +57,7 @@ class JourneyService @Inject() (
       continueUrl               = verifyEmailRequest.continueUrl,
       origin                    = verifyEmailRequest.origin,
       accessibilityStatementUrl = verifyEmailRequest.accessibilityStatementUrl,
-      serviceName               = verifyEmailRequest.deskproServiceName.getOrElse(verifyEmailRequest.origin),
+      serviceName               = getTeamNameLabel(verifyEmailRequest),
       language                  = verifyEmailRequest.lang.getOrElse(English),
       emailAddress              = verifyEmailRequest.email.map(_.address),
       enterEmailUrl             = verifyEmailRequest.email.map(_.enterUrl),

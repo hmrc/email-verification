@@ -21,7 +21,7 @@ import support.BaseISpec
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mongodb.scala.result.InsertOneResult
 import org.scalatest.concurrent.Eventually
-import play.api.libs.json.{JsArray, JsObject, Json}
+import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
 import play.api.test.Injecting
 import uk.gov.hmrc.emailverification.models.{English, Journey, VerificationStatus}
 import uk.gov.hmrc.emailverification.repositories.{JourneyMongoRepository, VerificationStatusMongoRepository}
@@ -55,6 +55,27 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
         response.status shouldBe CREATED
         (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=$deskproServiceName"
+        verifyEmailRequestEventFired(1, emailAddress, CREATED)
+      }
+
+      "the email should contain the English service name when present" in new Setup {
+        expectEmailToSendSuccessfully()
+        val labels = Json.obj(
+          "cy" -> Json.obj(
+            "pageTitle" -> JsNull,
+            "userFacingServiceName" -> JsNull
+          ),
+          "en" -> Json.obj(
+            "pageTitle" -> JsNull,
+            "userFacingServiceName" -> "Team Name"
+          ),
+        )
+        val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailWithLabelsPayload(emailAddress, labels)))
+
+        val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+
+        response.status shouldBe CREATED
+        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=Team Name"
         verifyEmailRequestEventFired(1, emailAddress, CREATED)
       }
     }
@@ -933,7 +954,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     val accessibilityStatementUrl = "/accessibility"
     val lang = "en"
 
-    def verifyEmailPayload(emailAddress:String=emailAddress) = Json.obj(
+    def verifyEmailPayload(emailAddress: String = emailAddress) = Json.obj(
       "credId" -> credId,
       "continueUrl" -> continueUrl,
       "origin" -> origin,
@@ -946,8 +967,19 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       "lang" -> lang
     )
 
-
+    def verifyEmailWithLabelsPayload(emailAddress: String = emailAddress, labels: JsObject) = Json.obj(
+        "credId" -> credId,
+        "continueUrl" -> continueUrl,
+        "origin" -> origin,
+        "deskproServiceName" -> deskproServiceName,
+        "accessibilityStatementUrl" -> accessibilityStatementUrl,
+        "email" -> Json.obj(
+          "address" -> emailAddress,
+          "enterUrl" -> emailEntryUrl,
+        ),
+        "lang" -> lang,
+        "labels" -> labels
+      )
   }
-
 }
 
