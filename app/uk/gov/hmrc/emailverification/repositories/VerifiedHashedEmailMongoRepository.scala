@@ -34,12 +34,12 @@ import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class VerifiedHashedEmailMongoRepository @Inject() (mongoComponent: MongoComponent, appConfig: AppConfig)(implicit ec: ExecutionContext)
+class VerifiedHashedEmailMongoRepository @Inject()(mongoComponent: MongoComponent, appConfig: AppConfig)(implicit ec: ExecutionContext)
   extends PlayMongoRepository[VerifiedHashedEmail](
     collectionName = "verifiedHashedEmail",
     mongoComponent = mongoComponent,
-    domainFormat   = VerifiedHashedEmail.format,
-    indexes        = Seq(
+    domainFormat = VerifiedHashedEmail.format,
+    indexes = Seq(
       IndexModel(Indexes.ascending("hashedEmail"), IndexOptions().name("emailUnique").unique(true)),
       IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl").expireAfter(appConfig.verifiedEmailRepoTTLDays, TimeUnit.DAYS))
     ),
@@ -56,14 +56,18 @@ class VerifiedHashedEmailMongoRepository @Inject() (mongoComponent: MongoCompone
     collection.find(Filters.equal("hashedEmail", hashEmail(email)))
       .headOption().map(_.map(_ => VerifiedEmail(email)))
 
-  def insert(email: String): Future[Unit] =
+  def insert(email: String): Future[Unit] = {
     collection.insertOne(VerifiedHashedEmail(hashEmail(email)))
       .headOption()
-      .map(_ => ())
+      .transform(_ => (), ex => {
+        logger.error(s"[GG-6759] error occurred on insert: $ex.")
+        ex
+      })
+  }
 
   // GG-6759 - remove after emails migrated
   def insertBatch(emailsWithCreatedAt: Seq[(VerifiedEmail, Instant)]): Future[Int] = {
-    val hashedEmails = emailsWithCreatedAt.map{
+    val hashedEmails = emailsWithCreatedAt.map {
       case (verifiedEmail, createdAt) => VerifiedHashedEmail(hashEmail(verifiedEmail.email.toLowerCase), createdAt)
     }
     collection.bulkWrite(hashedEmails.map(InsertOneModel(_)), BulkWriteOptions().ordered(false))

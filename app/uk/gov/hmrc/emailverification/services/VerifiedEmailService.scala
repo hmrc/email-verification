@@ -104,12 +104,12 @@ class VerifiedEmailService @Inject() (
               logger.warn(s"[GG-6759] Max duration of in ${maxDuration.getSeconds} seconds reached. $totalReadCount records read from verifiedEmail, $newTotalInsertedCount added to verifiedHashedEmail, $newTotalDuplicatesIgnored duplicates ignored and $newTotalExpiredCount were expired.")
               Future.successful(newResultCollector)
             } else if (recordsFound.size == batchSize) {
-              logger.info(s"[GG-6759] sleeping for $batchDelayMS ms")
+              logger.warn(s"[GG-6759] sleeping for $batchDelayMS ms")
               Thread.sleep(batchDelayMS)
               migrateNext(fromIndex + batchSize, newResultCollector)
             } else {
               val duration = Duration.between(startTime, Instant.now)
-              logger.info(s"[GG-6759] Finished migration in ${duration.toMinutes} minutes. $totalReadCount records read from verifiedEmail, $newTotalInsertedCount added to verifiedHashedEmail, $newTotalDuplicatesIgnored duplicates ignored and $newTotalExpiredCount were expired.")
+              logger.warn(s"[GG-6759] Finished migration in ${duration.toMinutes} minutes. $totalReadCount records read from verifiedEmail, $newTotalInsertedCount added to verifiedHashedEmail, $newTotalDuplicatesIgnored duplicates ignored and $newTotalExpiredCount were expired.")
               Future.successful(newResultCollector)
             }
           } yield migratedCount
