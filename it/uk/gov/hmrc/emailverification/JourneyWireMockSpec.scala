@@ -66,7 +66,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
             "userFacingServiceName" -> JsNull
           ),
           "en" -> Json.obj(
-            "pageTitle" -> JsNull,
+            "pageTitle" -> "Page Title.en",
             "userFacingServiceName" -> "Team Name"
           ),
         )
@@ -77,6 +77,12 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         response.status shouldBe CREATED
         (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=Team Name"
         verifyEmailRequestEventFired(1, emailAddress, CREATED)
+        eventually {
+          verify(1, postRequestedFor(urlEqualTo("/hmrc/email"))
+            .withRequestBody(containing(s""""team_name":"Team Name""""))
+            .withRequestBody(containing(s""""page_title":"Page Title.en""""))
+          )
+        }
       }
     }
 

@@ -38,7 +38,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
         val captor = ArgCaptor[Journey]
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
-        when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(origin), eqTo(English))(any, any)).thenReturn(Future.unit)
+        when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(pageTitle), eqTo(origin), eqTo(English))(any, any)).thenReturn(Future.unit)
 
         val res = await(journeyService.initialise(verifyEmailRequest)(HeaderCarrier()))
 
@@ -56,7 +56,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         val captor: Captor[Journey] = ArgCaptor[Journey]
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
 
-        when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
+        when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(pageTitle), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
 
         val res: String = await(journeyService.initialise(verifyEmailRequest.copy(deskproServiceName = Some(serviceName)))(HeaderCarrier()))
 
@@ -66,8 +66,9 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
     "given a request with an email address present and a english service label" should {
       "store the journey and send a passcode to the email address and return email-verification-frontend journey url" in new Setup {
-        val englishLabel = "The Team of the best"
-        val request = verifyEmailRequest.copy(deskproServiceName = Some("Desk Pro"), labels = Some(Labels(en = Label(None, userFacingServiceName = Option(englishLabel)), cy = Label(None, None))))
+        val englishTeamName = "The Team of the best"
+        val englishPageTitle = "The Title of English"
+        val request = verifyEmailRequest.copy(deskproServiceName = Some("Desk Pro"), pageTitle = Some(englishPageTitle), labels = Some(Labels(en = Label(None, userFacingServiceName = Option(englishTeamName)), cy = Label(None, None))))
 
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
@@ -75,11 +76,13 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         val captor: Captor[Journey] = ArgCaptor[Journey]
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
 
-        when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(englishLabel), eqTo(English))(any, any)).thenReturn(Future.unit)
+        when(mockEmailService.sendPasscodeEmail(any, any, any, any, any)(any, any)).thenReturn(Future.unit)
 
         val res: String = await(journeyService.initialise(request)(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin&service=$englishLabel"
+        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin&service=$englishTeamName"
+
+        verify(mockEmailService).sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(englishPageTitle), eqTo(englishTeamName), eqTo(English))(any, any)
       }
     }
 
@@ -123,7 +126,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
         when(mockJourneyRepository.initialise(any)).thenReturn(Future.unit)
-        when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(origin), eqTo(English))(any, any))
+        when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(pageTitle), eqTo(origin), eqTo(English))(any, any))
           .thenReturn(Future.failed(new Exception("failed")))
 
         lazy val res = await(journeyService.initialise(verifyEmailRequest)(HeaderCarrier()))
@@ -324,7 +327,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
           emailAddress              = Some(email),
           enterEmailUrl             = None,
           backUrl                   = None,
-          pageTitle                 = None,
+          pageTitle                 = Some(pageTitle),
           passcode                  = passcode,
           emailAddressAttempts      = 1,
           passcodesSentToEmail      = 0,
@@ -342,7 +345,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
           emailAddress              = Some(email),
           enterEmailUrl             = None,
           backUrl                   = None,
-          pageTitle                 = None,
+          pageTitle                 = Some(pageTitle),
           passcode                  = passcode,
           emailAddressAttempts      = 1,
           passcodesSentToEmail      = 0,
@@ -352,7 +355,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         when(mockAppConfig.maxDifferentEmails).thenReturn(10)
         when(mockAppConfig.maxAttemptsPerEmail).thenReturn(5)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(email))).thenReturn(Future.unit)
-        when(mockEmailService.sendPasscodeEmail(eqTo(email), eqTo(passcode), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
+        when(mockEmailService.sendPasscodeEmail(eqTo(email), eqTo(passcode), eqTo(pageTitle), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
 
         val result = await(journeyService.submitEmail(journeyId, email)(HeaderCarrier()))
         result shouldBe EmailUpdateResult.Accepted
@@ -373,7 +376,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         when(mockJourneyRepository.findByCredId("credId")).thenReturn(Future.successful(Seq(journey1, journey2, journey3)))
 
         when(mockVerificationStatusRepository.initialise(eqTo("credId"), eqTo(email))).thenReturn(Future.unit)
-        when(mockEmailService.sendPasscodeEmail(eqTo(email), eqTo(journey1.passcode), eqTo(journey1.serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
+        when(mockEmailService.sendPasscodeEmail(eqTo(email), eqTo(journey1.passcode), eqTo(pageTitle), eqTo(journey1.serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
 
         val result = await(journeyService.submitEmail(journey1.journeyId, email)(HeaderCarrier()))
         result shouldBe EmailUpdateResult.Accepted
@@ -503,7 +506,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
           emailAddress              = Some(email),
           enterEmailUrl             = Some("/enterEmail"),
           backUrl                   = None,
-          pageTitle                 = None,
+          pageTitle                 = Some(pageTitle),
           passcode                  = passcode,
           emailAddressAttempts      = 1,
           passcodesSentToEmail      = 1,
@@ -511,7 +514,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         ))))
         when(mockAppConfig.maxAttemptsPerEmail).thenReturn(2)
         when(mockAppConfig.maxPasscodeAttempts).thenReturn(100)
-        when(mockEmailService.sendPasscodeEmail(eqTo(email), eqTo(passcode), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
+        when(mockEmailService.sendPasscodeEmail(eqTo(email), eqTo(passcode), eqTo(pageTitle), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
 
         val result = await(journeyService.resendPasscode(journeyId)(HeaderCarrier()))
         result shouldBe ResendPasscodeResult.PasscodeResent
@@ -678,6 +681,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
   trait TestData {
     val passcode = "FGTRWX"
+    val pageTitle = "Page Title"
     val credId = UUID.randomUUID().toString
     val continueUrl = "/plastic-packaging-tax/start"
     val origin = "ppt"
@@ -694,7 +698,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
       email                     = Some(Email(emailAddress, "/ppt/email")),
       lang                      = Some(English),
       backUrl                   = None,
-      pageTitle                 = None,
+      pageTitle                 = Some(pageTitle),
       labels                    = None
     )
 
@@ -727,7 +731,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
       emailAddress              = email,
       enterEmailUrl             = None,
       backUrl                   = None,
-      pageTitle                 = None,
+      pageTitle                 = Some(pageTitle),
       passcode                  = passcode,
       emailAddressAttempts      = emailAddressAttempts,
       passcodesSentToEmail      = passcodesSentToEmail,

@@ -19,7 +19,7 @@ package uk.gov.hmrc.emailverification.utils
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.emailverification.models.{Label, Labels, VerifyEmailRequest}
-import uk.gov.hmrc.emailverification.utils.JourneyLabelsUtil.getTeamNameLabel
+import uk.gov.hmrc.emailverification.utils.JourneyLabelsUtil.{getPageTitleLabel, getTeamNameLabel}
 
 class JourneyLabelsUtilSpec extends AnyWordSpec with Matchers {
 
@@ -56,6 +56,36 @@ class JourneyLabelsUtilSpec extends AnyWordSpec with Matchers {
       val request = VerifyEmailRequest(null, null, "origin", Some("DeskPro Name"), null, null, null, null, null, None)
 
       getTeamNameLabel(request) shouldBe "DeskPro Name"
+    }
+  }
+
+  "getPageTitleLabel" should {
+    "return the Welsh title when Welsh label exist" in {
+      val labels = Some(Labels(cy = Label(Some("Welsh Title"), null), en = Label(Some("English Title"), null)))
+      val request = VerifyEmailRequest(null, null, null, null, null, null, null, null, Some("Page Title"), labels)
+
+      getPageTitleLabel(request) shouldBe Some("Welsh Title")
+    }
+
+    "return the English title when Welsh does not exist but English" in {
+      val labels = Some(Labels(cy = Label(None, null), en = Label(Some("English Title"), null)))
+      val request = VerifyEmailRequest(null, null, null, null, null, null, null, null, Some("Page Title"), labels)
+
+      getPageTitleLabel(request) shouldBe Some("English Title")
+    }
+
+    "return the Page title when Welsh nor English label does not exist" in {
+      val labels = Some(Labels(cy = Label(None, null), en = Label(None, null)))
+      val request = VerifyEmailRequest(null, null, null, null, null, null, null, null, Some("Page Title"), labels)
+
+      getPageTitleLabel(request) shouldBe Some("Page Title")
+    }
+
+    "return the None when Welsh, English nor Page Title does not exist" in {
+      val labels = Some(Labels(cy = Label(None, null), en = Label(None, null)))
+      val request = VerifyEmailRequest(null, null, null, null, null, null, null, null, None, labels)
+
+      getPageTitleLabel(request) shouldBe None
     }
   }
 }
