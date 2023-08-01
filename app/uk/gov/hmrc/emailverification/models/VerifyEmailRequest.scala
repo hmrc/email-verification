@@ -37,17 +37,17 @@ case class Label(pageTitle: Option[String], userFacingServiceName: Option[String
 case class Labels(en: Label, cy: Label)
 
 object Email {
-  implicit val format: Format[Email] = Json.format[Email]
+  implicit val format: Format[Email] = Json.format
 }
 
 object VerifyEmailRequest {
-  implicit val reads: Reads[VerifyEmailRequest] = Json.reads[VerifyEmailRequest]
+  implicit val reads: Reads[VerifyEmailRequest] = Json.reads
 }
 
 object Label {
-  implicit val reads: Reads[Label] = Json.reads[Label]
+  implicit val reads: Reads[Label] = Json.reads
 }
 
 object Labels {
-  implicit val reads: Reads[Labels] = Json.reads[Labels]
+  implicit val reads: Reads[Labels] = Json.reads
 }

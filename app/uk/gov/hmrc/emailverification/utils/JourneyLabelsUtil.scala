@@ -25,19 +25,13 @@ object JourneyLabelsUtil {
     val english = verifyEmailRequest.labels.flatMap(_.en.userFacingServiceName)
     val deskPro = verifyEmailRequest.deskproServiceName
     val origin = verifyEmailRequest.origin
-    welsh.getOrElse(english.getOrElse(deskPro.getOrElse(origin)))
+    welsh orElse english orElse deskPro getOrElse origin
   }
 
   def getPageTitleLabel(verifyEmailRequest: VerifyEmailRequest): Option[String] = {
     val welsh = verifyEmailRequest.labels.flatMap(_.cy.pageTitle)
     val english = verifyEmailRequest.labels.flatMap(_.en.pageTitle)
     val maybePageTitle = verifyEmailRequest.pageTitle
-    welsh match {
-      case Some(w) => Some(w)
-      case None => english match {
-        case Some(e) => Some(e)
-        case None    => maybePageTitle
-      }
-    }
+    welsh orElse english orElse maybePageTitle
   }
 }
