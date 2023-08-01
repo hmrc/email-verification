@@ -100,9 +100,13 @@ The locking strategy is that 5 failed attempts locks any email verification atte
 (*) in retrospect, 403/Forbidden might have been better.
 
 For a user (credId) that has performed two email verification attempts using different emails in a 24 hour period, this example shows what the GET endpoint would return:
+
+Request:
+```GET /verification-status/:credId```
+
+
+Response payload with a 200/OK status code:
 ```json
-request : GET /verification-status/:credId
-response payload with a 200/OK status code:
 {
    "emails":[
       {
@@ -233,15 +237,25 @@ Replace example values with the appropriate values for your service to recommenc
 {
   "credId":"0000000026936462",
   "continueUrl":"/student-tax-checker/verify-email/journey-completed",
-  "origin":"stc",
+  "origin":"stc", // Will be displayed in the email as signature if labels.en.userFacingServiceName is null
   "deskproServiceName":"student-tax-checker",  // Optional, if absent then 'origin' will be used
   "accessibilityStatementUrl":"/accessibility-statement/stc",
-  "pageTitle": "Student Tax Checker", // Optional; will be displayed in the GOV.UK heading of the page
+  "pageTitle": "Student Tax Checker", // Optional, will be displayed in the email as sub title if labels.en.pageTitle is null
   "backUrl": "/student-tax-checker/verify-email/journey-start", // Optional; if provided, all pages will contain a "back" link to this URL
   "email": {
       "address":"johnsmith@hotmail.com",
       "enterUrl":"/student-tax-checker/verify-email/enter-email" // user may get sent here if they cannot verify the provided email, e.g. they misspelled it
   }, // Optional, if absent then SI UI will prompt the User for the email address
+  "labels": {
+    "cy": {
+      "pageTitle": null, // Optional, will be displayed in the email as sub title
+      "userFacingServiceName": null // Optional, will be displayed in the email as signature
+    },
+    "en": {
+      "pageTitle": "Student Tax Checker", // Optional, will be displayed in the email as sub title if labels.cy.pageTitle is null
+      "userFacingServiceName": "Student Tax Team" // Optional, will be displayed in the email as signature if labels.cy.userFacingServiceName is null
+    }
+  }, // Optional
   "lang":"en" // Optional; en or cy; defaults to "en"
 }
 ```
