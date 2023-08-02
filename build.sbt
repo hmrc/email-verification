@@ -6,10 +6,13 @@ lazy val microservice = Project("email-verification", file("."))
   .settings(scalaSettings *)
   .settings(defaultSettings() *)
   .settings(ScoverageSettings())
-  .settings(SilencerSettings())
   .settings(ScalariformSettings())
   .settings(scalaVersion := "2.13.8")
-  .settings(scalacOptions ++= Seq("-Xfatal-warnings", "-feature", "-deprecation"))
+  .settings(scalacOptions ++= Seq(
+    "-feature", "-deprecation",
+    "-Werror",
+    "-Wconf:src=routes/.*&cat=unused-imports:silent"
+  ))
   .settings(
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true
