@@ -1,10 +1,10 @@
 import uk.gov.hmrc.DefaultBuildSettings.{defaultSettings, integrationTestSettings, scalaSettings}
 
 lazy val microservice = Project("email-verification", file("."))
-  .enablePlugins(Seq(play.sbt.PlayScala, SbtDistributablesPlugin): _*)
+  .enablePlugins(Seq(play.sbt.PlayScala, SbtDistributablesPlugin) *)
   .settings(majorVersion := 1)
-  .settings(scalaSettings: _*)
-  .settings(defaultSettings(): _*)
+  .settings(scalaSettings *)
+  .settings(defaultSettings() *)
   .settings(ScoverageSettings())
   .settings(SilencerSettings())
   .settings(ScalariformSettings())
@@ -15,7 +15,7 @@ lazy val microservice = Project("email-verification", file("."))
     retrieveManaged := true
   )
   .configs(IntegrationTest)
-  .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
+  .settings(inConfig(IntegrationTest)(Defaults.itSettings) *)
   .settings(integrationTestSettings())
   .settings(resolvers += Resolver.jcenterRepo)
   .settings(PlayKeys.playDefaultPort := 9891)
