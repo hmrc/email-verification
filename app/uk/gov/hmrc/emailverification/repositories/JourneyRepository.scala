@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import com.github.ghik.silencer.silent
 import com.google.inject.ImplementedBy
 import org.mongodb.scala.model.IndexModel
 import play.api.libs.functional.syntax._
@@ -78,14 +77,13 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
     ).toFuture().map(_ => ())
   }
 
-  @silent("deprecated") // the "other" findAndUpdate is bad and should feel bad
   override def submitEmail(journeyId: String, email: String): Future[Option[Journey]] = {
     val isEmailAddressTheSame = collection.find(
       filter = Filters.equal("_id", journeyId)
     ).headOption().map(entity => entity.map(_.emailAddress.contains(email)))
 
     isEmailAddressTheSame.flatMap {
-      case Some(true) => {
+      case Some(true) =>
         collection.findOneAndUpdate(
           filter  = Filters.equal("_id", journeyId),
           update  = Updates.inc("passcodesSentToEmail", 1),
@@ -93,8 +91,7 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
         )
           .toFutureOption()
           .map(_.map(_.toJourney))
-      }
-      case Some(false) => {
+      case Some(false) =>
         collection.findOneAndUpdate(
           filter  = Filters.equal("_id", journeyId),
           update  = Updates.combine(
@@ -106,13 +103,11 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
         )
           .toFutureOption()
           .map(_.map(_.toJourney))
-      }
       case None => Future.successful(None)
     }
 
   }
 
-  @silent("deprecated")
   override def recordPasscodeAttempt(journeyId: String): Future[Option[Journey]] = collection.findOneAndUpdate(
     Filters.equal("_id", journeyId),
     Updates.inc("passcodeAttempts", 1)
@@ -120,7 +115,6 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
     .toFutureOption()
     .map(_.map(_.toJourney))
 
-  @silent("deprecated")
   override def recordPasscodeResent(journeyId: String): Future[Option[Journey]] = collection.findOneAndUpdate(
     Filters.equal("_id", journeyId),
     Updates.inc("passcodesSentToEmail", 1)

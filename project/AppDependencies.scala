@@ -1,5 +1,5 @@
 import play.sbt.PlayImport.ws
-import sbt._
+import sbt.*
 
 object AppDependencies {
 
