@@ -156,9 +156,11 @@ Welsh
 ## <a id="sent-email-with-passcode">Sent email with Passcode</a>
 
 English
+
 ![](doc-images/Email_WithPasscode.png)
 
 Welsh
+
 ![](doc-images/Email_WithPasscode_Welsh.png)
 
 ## <a id="passcode-entry-screen">Passcode entry screen</a>
