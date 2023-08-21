@@ -223,7 +223,7 @@ Replace example values with the appropriate values for your service.
   "accessibilityStatementUrl":"/accessibility-statement/stc",
   "pageTitle": "Student Tax Checker", // Optional, deprecated, use "labels" instead. Displayed in email as sub-title if "labels" is missing
   "backUrl": "/student-tax-checker/verify-email/journey-start", // Optional; if provided, all pages will contain a "back" link to this URL
-  "labels": {
+  "labels": { // Optional
     "cy": {
       "pageTitle": "Gwiriwr Treth Myfyrwyr", // Optional, will be displayed in email as sub-title
       "userFacingServiceName": "Gwasanaeth Gwiriwr Trethi Myfyrwyr" // Optional, will be displayed in the email as signature
@@ -232,7 +232,7 @@ Replace example values with the appropriate values for your service.
       "pageTitle": "Student Tax Checker", // Optional, will be displayed in the email as sub-title if labels.cy.pageTitle is missing
       "userFacingServiceName": "Student Tax Checker Service" // Optional, will be displayed in the email as signature if labels.cy.userFacingServiceName is missing
     }
-  }, // Optional
+  },
   "lang":"en" // Optional; en or cy; defaults to "en"
 }
 ```
@@ -258,7 +258,7 @@ Replace example values with the appropriate values for your service to recommenc
     "address":"johnsmith@hotmail.com",
     "enterUrl":"/student-tax-checker/verify-email/enter-email" // user may get sent here if they cannot verify the provided email, e.g. they misspelled it
   }, // Optional, if absent then SI UI will prompt the User for the email address
-  "labels": {
+  "labels": { // Optional
     "cy": {
       "pageTitle": "Gwiriwr Treth Myfyrwyr", // Optional, will be displayed in email as sub-title
       "userFacingServiceName": "Gwasanaeth Gwiriwr Trethi Myfyrwyr" // Optional, will be displayed in the email as signature
@@ -267,7 +267,7 @@ Replace example values with the appropriate values for your service to recommenc
       "pageTitle": "Student Tax Checker", // Optional, will be displayed in the email as sub-title if labels.cy.pageTitle is missing
       "userFacingServiceName": "Student Tax Checker Service" // Optional, will be displayed in the email as signature if labels.cy.userFacingServiceName is missing
     }
-  }, // Optional
+  },
   "lang":"en" // Optional; en or cy; defaults to "en"
 }
 ```
