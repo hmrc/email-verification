@@ -221,16 +221,16 @@ Replace example values with the appropriate values for your service.
   "origin":"stc", // Will be displayed in email as signature if labels.en.userFacingServiceName is missing
   "deskproServiceName":"student-tax-checker",  // Optional, if absent then 'origin' will be used
   "accessibilityStatementUrl":"/accessibility-statement/stc",
-  "pageTitle": "Student Tax Checker", // Optional, deprecated, use "labels" instead. Displayed in email as sub-title if "labels" is missing
+  "pageTitle": "Student Tax Checker", // Optional, deprecated, use "labels" instead. Shown in the Page Title of the email address entry screen
   "backUrl": "/student-tax-checker/verify-email/journey-start", // Optional; if provided, all pages will contain a "back" link to this URL
   "labels": { // Optional
     "cy": {
-      "pageTitle": "Gwiriwr Treth Myfyrwyr", // Optional, will be displayed in email as sub-title
-      "userFacingServiceName": "Gwasanaeth Gwiriwr Trethi Myfyrwyr" // Optional, will be displayed in the email as signature
+      "pageTitle": "Gwiriwr Treth Myfyrwyr", // Optional. Shown in the Page Title of the email address & passcode entry screen
+      "userFacingServiceName": "Gwasanaeth Gwiriwr Trethi Myfyrwyr" // Optional. Displayed in the email as a signature starting "Gan y xxxx"
     },
     "en": {
-      "pageTitle": "Student Tax Checker", // Optional, will be displayed in the email as sub-title if labels.cy.pageTitle is missing
-      "userFacingServiceName": "Student Tax Checker Service" // Optional, will be displayed in the email as signature if labels.cy.userFacingServiceName is missing
+      "pageTitle": "Student Tax Checker", Optional. Shown in the Page Title of the email address & passcode entry screen
+      "userFacingServiceName": "Student Tax Checker Service" // Optional. Displayed in the email as a signature starting "From the xxxx"
     }
   },
   "lang":"en" // Optional; en or cy; defaults to "en"
@@ -252,7 +252,6 @@ Replace example values with the appropriate values for your service to recommenc
   "origin":"stc", // Will be displayed in email as a signature if labels.en.userFacingServiceName is missing
   "deskproServiceName":"student-tax-checker",  // Optional, if absent then 'origin' will be used
   "accessibilityStatementUrl":"/accessibility-statement/stc",
-  "pageTitle": "Student Tax Checker", // Optional, deprecated, use "labels" instead. Displayed in email as sub-title if "labels" is missing
   "backUrl": "/student-tax-checker/verify-email/journey-start", // Optional; if provided, all pages will contain a "back" link to this URL
   "email": {
     "address":"johnsmith@hotmail.com",
@@ -260,12 +259,12 @@ Replace example values with the appropriate values for your service to recommenc
   }, // Optional, if absent then SI UI will prompt the User for the email address
   "labels": { // Optional
     "cy": {
-      "pageTitle": "Gwiriwr Treth Myfyrwyr", // Optional, will be displayed in email as sub-title
-      "userFacingServiceName": "Gwasanaeth Gwiriwr Trethi Myfyrwyr" // Optional, will be displayed in the email as signature
+      "pageTitle": "Gwiriwr Treth Myfyrwyr", // Optional. Shown in the Page Title of the passcode entry screen
+      "userFacingServiceName": "Gwasanaeth Gwiriwr Trethi Myfyrwyr" // Optional. Displayed in the email as a signature starting "Gan y xxxx"
     },
     "en": {
-      "pageTitle": "Student Tax Checker", // Optional, will be displayed in the email as sub-title if labels.cy.pageTitle is missing
-      "userFacingServiceName": "Student Tax Checker Service" // Optional, will be displayed in the email as signature if labels.cy.userFacingServiceName is missing
+      "pageTitle": "Student Tax Checker", Optional. Shown in the Page Title of the passcode entry screen
+      "userFacingServiceName": "Student Tax Checker Service" // Optional. Displayed in the email as a signature starting "From the xxxx"
     }
   },
   "lang":"en" // Optional; en or cy; defaults to "en"
