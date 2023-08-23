@@ -23,6 +23,7 @@ import java.util.UUID
 import javax.inject.Inject
 import uk.gov.hmrc.emailverification.models.{CompletedEmail, English, Journey, JourneyData, VerificationStatus, VerifyEmailRequest}
 import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, VerificationStatusRepository}
+import uk.gov.hmrc.emailverification.utils.JourneyLabelsUtil.{getPageTitleLabel, getTeamNameLabel}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -56,12 +57,12 @@ class JourneyService @Inject() (
       continueUrl               = verifyEmailRequest.continueUrl,
       origin                    = verifyEmailRequest.origin,
       accessibilityStatementUrl = verifyEmailRequest.accessibilityStatementUrl,
-      serviceName               = verifyEmailRequest.deskproServiceName.getOrElse(verifyEmailRequest.origin),
+      serviceName               = getTeamNameLabel(verifyEmailRequest),
       language                  = verifyEmailRequest.lang.getOrElse(English),
       emailAddress              = verifyEmailRequest.email.map(_.address),
       enterEmailUrl             = verifyEmailRequest.email.map(_.enterUrl),
       backUrl                   = verifyEmailRequest.backUrl,
-      pageTitle                 = verifyEmailRequest.pageTitle,
+      pageTitle                 = getPageTitleLabel(verifyEmailRequest),
       passcode                  = passcode,
       emailAddressAttempts      = emailAddressAttempts,
       passcodesSentToEmail      = 0,
@@ -81,7 +82,7 @@ class JourneyService @Inject() (
 
   private def saveEmailAndSendPasscode(email: String, journey: Journey)(implicit hc: HeaderCarrier): Future[Unit] = {
     verificationStatusRepository.initialise(journey.credId, email).flatMap { _ =>
-      emailService.sendPasscodeEmail(email, journey.passcode, journey.serviceName, journey.language)
+      emailService.sendPasscodeEmail(email, journey.passcode, journey.pageTitle.getOrElse(""), journey.serviceName, journey.language)
     }
   }
 
@@ -152,6 +153,7 @@ class JourneyService @Inject() (
             emailService.sendPasscodeEmail(
               email,
               journey.passcode,
+              journey.pageTitle.getOrElse(""),
               journey.serviceName,
               journey.language
             ).map(_ => ResendPasscodeResult.PasscodeResent)
