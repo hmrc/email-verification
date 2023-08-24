@@ -51,3 +51,11 @@ object Label {
 object Labels {
   implicit val reads: Reads[Labels] = Json.reads
 }
+
+object Label {
+  implicit val reads: Reads[Label] = Json.reads[Label]
+}
+
+object Labels {
+  implicit val reads: Reads[Labels] = Json.reads[Labels]
+}
