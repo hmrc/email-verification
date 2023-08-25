@@ -82,7 +82,7 @@ class JourneyService @Inject() (
 
   private def saveEmailAndSendPasscode(email: String, journey: Journey)(implicit hc: HeaderCarrier): Future[Unit] = {
     verificationStatusRepository.initialise(journey.credId, email).flatMap { _ =>
-      emailService.sendPasscodeEmail(email, journey.passcode, journey.pageTitle.getOrElse(""), journey.serviceName, journey.language)
+      emailService.sendPasscodeEmail(email, journey.passcode, journey.serviceName, journey.language)
     }
   }
 
@@ -153,7 +153,6 @@ class JourneyService @Inject() (
             emailService.sendPasscodeEmail(
               email,
               journey.passcode,
-              journey.pageTitle.getOrElse(""),
               journey.serviceName,
               journey.language
             ).map(_ => ResendPasscodeResult.PasscodeResent)

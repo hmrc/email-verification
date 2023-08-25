@@ -34,12 +34,12 @@ import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class VerifiedHashedEmailMongoRepository @Inject()(mongoComponent: MongoComponent, appConfig: AppConfig)(implicit ec: ExecutionContext)
+class VerifiedHashedEmailMongoRepository @Inject() (mongoComponent: MongoComponent, appConfig: AppConfig)(implicit ec: ExecutionContext)
   extends PlayMongoRepository[VerifiedHashedEmail](
     collectionName = "verifiedHashedEmail",
     mongoComponent = mongoComponent,
-    domainFormat = VerifiedHashedEmail.format,
-    indexes = Seq(
+    domainFormat   = VerifiedHashedEmail.format,
+    indexes        = Seq(
       IndexModel(Indexes.ascending("hashedEmail"), IndexOptions().name("emailUnique").unique(true)),
       IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl").expireAfter(appConfig.verifiedEmailRepoTTLDays, TimeUnit.DAYS))
     ),

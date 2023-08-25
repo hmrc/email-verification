@@ -100,9 +100,13 @@ The locking strategy is that 5 failed attempts locks any email verification atte
 (*) in retrospect, 403/Forbidden might have been better.
 
 For a user (credId) that has performed two email verification attempts using different emails in a 24 hour period, this example shows what the GET endpoint would return:
+
+Request:
+```GET /verification-status/:credId```
+
+
+Response payload with a 200/OK status code:
 ```json
-request : GET /verification-status/:credId
-response payload with a 200/OK status code:
 {
    "emails":[
       {
@@ -152,9 +156,11 @@ Welsh
 ## <a id="sent-email-with-passcode">Sent email with Passcode</a>
 
 English
+
 ![](doc-images/Email_WithPasscode.png)
 
 Welsh
+
 ![](doc-images/Email_WithPasscode_Welsh.png)
 
 ## <a id="passcode-entry-screen">Passcode entry screen</a>
@@ -212,20 +218,30 @@ Replace example values with the appropriate values for your service.
 {
   "credId":"0000000026936462",
   "continueUrl":"/student-tax-checker/verify-email/journey-completed",
-  "origin":"stc",
+  "origin":"stc", // Will be displayed in email as signature if labels.en.userFacingServiceName is missing
   "deskproServiceName":"student-tax-checker",  // Optional, if absent then 'origin' will be used
   "accessibilityStatementUrl":"/accessibility-statement/stc",
-  "pageTitle": "Student Tax Checker", // Optional; will be displayed in the GOV.UK heading of the page
+  "pageTitle": "Student Tax Checker", // Optional, deprecated, use "labels" instead. Shown in the Page Title of the email address entry screen
   "backUrl": "/student-tax-checker/verify-email/journey-start", // Optional; if provided, all pages will contain a "back" link to this URL
+  "labels": { // Optional
+    "cy": {
+      "pageTitle": "Gwiriwr Treth Myfyrwyr", // Optional. Shown in the Page Title of the email address & passcode entry screen
+      "userFacingServiceName": "Gwasanaeth Gwiriwr Trethi Myfyrwyr" // Optional. Displayed in the email as a signature starting "Gan y xxxx"
+    },
+    "en": {
+      "pageTitle": "Student Tax Checker", Optional. Shown in the Page Title of the email address & passcode entry screen
+      "userFacingServiceName": "Student Tax Checker Service" // Optional. Displayed in the email as a signature starting "From the xxxx"
+    }
+  },
   "lang":"en" // Optional; en or cy; defaults to "en"
 }
 ```
 
 ### <a id="you-provide-email">Example Request</a> - you provide the email address
 
-In this example, ```email-verification``` will use the provided email as a starting point.  If the user decides to click a link on the passcode entry screen to change the entered email address, then this service will reidrect the user back to the originating service's ```email.enterUrl``` page.
+In this example, ```email-verification``` will use the provided email as a starting point.  If the user decides to click a link on the passcode entry screen to change the entered email address, then this service will redirect the user back to the originating service's ```email.enterUrl``` page.
 
-If the user repeats this flow more than 5 times, the user - by credId - is locked out for 24 hours by their account.  If they retry email verification within this period, this service will return a 401/Unauthorized in the POST, and a ```locked=true``` in the GET response payload with a list of the email addresses they have tried.
+If the user repeats this flow more than 5 times, the user - by credId - is locked out of email-veriication for 24 hours.  If they retry email verification within this period, this service will return a 401/Unauthorized in the POST, and a ```locked=true``` in the GET response payload with a list of the email addresses they have tried.
 
 Replace example values with the appropriate values for your service to recommence the email verification journey.  
 
@@ -233,15 +249,24 @@ Replace example values with the appropriate values for your service to recommenc
 {
   "credId":"0000000026936462",
   "continueUrl":"/student-tax-checker/verify-email/journey-completed",
-  "origin":"stc",
+  "origin":"stc", // Will be displayed in email as a signature if labels.en.userFacingServiceName is missing
   "deskproServiceName":"student-tax-checker",  // Optional, if absent then 'origin' will be used
   "accessibilityStatementUrl":"/accessibility-statement/stc",
-  "pageTitle": "Student Tax Checker", // Optional; will be displayed in the GOV.UK heading of the page
   "backUrl": "/student-tax-checker/verify-email/journey-start", // Optional; if provided, all pages will contain a "back" link to this URL
   "email": {
-      "address":"johnsmith@hotmail.com",
-      "enterUrl":"/student-tax-checker/verify-email/enter-email" // user may get sent here if they cannot verify the provided email, e.g. they misspelled it
+    "address":"johnsmith@hotmail.com",
+    "enterUrl":"/student-tax-checker/verify-email/enter-email" // user may get sent here if they cannot verify the provided email, e.g. they misspelled it
   }, // Optional, if absent then SI UI will prompt the User for the email address
+  "labels": { // Optional
+    "cy": {
+      "pageTitle": "Gwiriwr Treth Myfyrwyr", // Optional. Shown in the Page Title of the passcode entry screen
+      "userFacingServiceName": "Gwasanaeth Gwiriwr Trethi Myfyrwyr" // Optional. Displayed in the email as a signature starting "Gan y xxxx"
+    },
+    "en": {
+      "pageTitle": "Student Tax Checker", Optional. Shown in the Page Title of the passcode entry screen
+      "userFacingServiceName": "Student Tax Checker Service" // Optional. Displayed in the email as a signature starting "From the xxxx"
+    }
+  },
   "lang":"en" // Optional; en or cy; defaults to "en"
 }
 ```
@@ -250,7 +275,7 @@ Replace example values with the appropriate values for your service to recommenc
 
 ```json
 {
-   "redirectUri" : "/email-verification/journey/98fe3788-2d39-409c-b400-8f86ed1634ea?continueUrl=/plastic-packaging-tax/start&origin=ppt&service=plastic-packaging-tax"
+  "redirectUri" : "/email-verification/journey/98fe3788-2d39-409c-b400-8f86ed1634ea?continueUrl=/student-tax-checker/verify-email/journey-completed&origin=stc&service=student-tax-checker"
 }
 ```
 

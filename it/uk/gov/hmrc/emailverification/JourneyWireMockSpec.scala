@@ -80,7 +80,6 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         eventually {
           verify(1, postRequestedFor(urlEqualTo("/hmrc/email"))
             .withRequestBody(containing(s""""team_name":"Team Name""""))
-            .withRequestBody(containing(s""""page_title":"Page Title.en""""))
           )
         }
       }
