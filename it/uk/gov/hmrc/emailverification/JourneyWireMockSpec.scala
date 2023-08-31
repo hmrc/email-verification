@@ -83,6 +83,32 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           )
         }
       }
+
+      "the email should contain the Welsh service name when all fields are present" in new Setup {
+        expectEmailToSendSuccessfully()
+        val labels = Json.obj(
+          "cy" -> Json.obj(
+            "pageTitle" -> "Page Title.cy",
+            "userFacingServiceName" -> "Team Name.cy"
+          ),
+          "en" -> Json.obj(
+            "pageTitle" -> "Page Title.en",
+            "userFacingServiceName" -> "Team Name.en"
+          ),
+        )
+        val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailWithLabelsPayload(emailAddress, labels)))
+
+        val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+
+        response.status shouldBe CREATED
+        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=Team Name.cy"
+        verifyEmailRequestEventFired(1, emailAddress, CREATED)
+        eventually {
+          verify(1, postRequestedFor(urlEqualTo("/hmrc/email"))
+            .withRequestBody(containing(s""""team_name":"Team Name.cy""""))
+          )
+        }
+      }
     }
 
     "given that there is already 4 different email submissions, after submitting a new different email address, the next different email address locks the user out" in new Setup {
