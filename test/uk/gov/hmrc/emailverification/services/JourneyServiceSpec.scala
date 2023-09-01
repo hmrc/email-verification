@@ -42,7 +42,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
         val res = await(journeyService.initialise(verifyEmailRequest)(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin&service=$origin"
+        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
       }
     }
 
@@ -60,7 +60,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
         val res: String = await(journeyService.initialise(verifyEmailRequest.copy(deskproServiceName = Some(serviceName)))(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin&service=$serviceName"
+        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
       }
     }
 
@@ -79,7 +79,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
         val res: String = await(journeyService.initialise(request)(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin&service=$englishTeamName"
+        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
 
         verify(mockEmailService).sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(englishTeamName), eqTo(English))(any, any)
       }
@@ -97,7 +97,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
         val res: String = await(journeyService.initialise(verifyEmailRequest.copy(email = None).copy(deskproServiceName = Some(serviceName)))(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/email?continueUrl=$continueUrl&origin=$origin&service=$serviceName"
+        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/email?continueUrl=$continueUrl&origin=$origin"
 
         verifyZeroInteractions(mockEmailService)
       }
@@ -112,7 +112,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
         val res = await(journeyService.initialise(verifyEmailRequest.copy(email = None))(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/email?continueUrl=$continueUrl&origin=$origin&service=$origin"
+        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/email?continueUrl=$continueUrl&origin=$origin"
 
         verifyZeroInteractions(mockEmailService)
 
