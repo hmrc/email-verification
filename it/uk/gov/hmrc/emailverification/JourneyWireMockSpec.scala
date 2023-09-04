@@ -43,7 +43,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
 
         response.status shouldBe CREATED
-        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=$deskproServiceName"
+        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin"
         verifyEmailRequestEventFired(1,emailAddress,CREATED)
       }
 
@@ -54,7 +54,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
 
         response.status shouldBe CREATED
-        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=$deskproServiceName"
+        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin"
         verifyEmailRequestEventFired(1, emailAddress, CREATED)
       }
 
@@ -75,11 +75,37 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
 
         response.status shouldBe CREATED
-        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=Team Name"
+        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin"
         verifyEmailRequestEventFired(1, emailAddress, CREATED)
         eventually {
           verify(1, postRequestedFor(urlEqualTo("/hmrc/email"))
             .withRequestBody(containing(s""""team_name":"Team Name""""))
+          )
+        }
+      }
+
+      "the email should contain the Welsh service name when all fields are present" in new Setup {
+        expectEmailToSendSuccessfully()
+        val labels = Json.obj(
+          "cy" -> Json.obj(
+            "pageTitle" -> "Page Title.cy",
+            "userFacingServiceName" -> "Team Name.cy"
+          ),
+          "en" -> Json.obj(
+            "pageTitle" -> "Page Title.en",
+            "userFacingServiceName" -> "Team Name.en"
+          ),
+        )
+        val response = await(resourceRequest("/email-verification/verify-email").post(verifyEmailWithLabelsPayload(emailAddress, labels)))
+
+        val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+
+        response.status shouldBe CREATED
+        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin"
+        verifyEmailRequestEventFired(1, emailAddress, CREATED)
+        eventually {
+          verify(1, postRequestedFor(urlEqualTo("/hmrc/email"))
+            .withRequestBody(containing(s""""team_name":"Team Name.cy""""))
           )
         }
       }
@@ -122,7 +148,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       val firstResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(testEmail5)))
       val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
 
-      (firstResponse.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin&service=$deskproServiceName"
+      (firstResponse.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin"
       verifyEmailRequestEventFired(1,testEmail5,CREATED)
 
       val secondResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailPayload(testEmail6)))
@@ -161,7 +187,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
 
         response.status shouldBe CREATED
-        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/email\\?continueUrl=$continueUrl&origin=$origin&service=$deskproServiceName"
+        (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/email\\?continueUrl=$continueUrl&origin=$origin"
       }
     }
   }
