@@ -16,15 +16,16 @@
 
 package uk.gov.hmrc.emailverification.services
 
+import com.mongodb.MongoWriteException
 import config.{AppConfig, WhichToUse}
 import play.api.Logging
-
-import javax.inject.Inject
 import uk.gov.hmrc.emailverification.models.{MigrationResultCollector, VerifiedEmail}
 import uk.gov.hmrc.emailverification.repositories.{VerifiedEmailMongoRepository, VerifiedHashedEmailMongoRepository}
+import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.temporal.ChronoUnit
 import java.time.{Duration, Instant}
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class VerifiedEmailService @Inject() (
@@ -59,11 +60,27 @@ class VerifiedEmailService @Inject() (
   }
 
   /**
-   * older plain text collection is stored mixed case, new hashed collection is stored lower cased.
+   * Older plain text collection is stored mixed case; new hashed collection is stored lower cased.
+   * Therefore, if insertion into the old collection succeeds, we should ignore/consume any dupe key
+   * errors thrown by the new collection.
    */
-  def insert(mixedCaseEmail: String): Future[Unit] = appConfig.verifiedEmailUpdateCollection match {
-    case WhichToUse.Both => verifiedEmailRepo.insert(mixedCaseEmail)
-      .flatMap(_ => verifiedHashedEmailRepo.insert(mixedCaseEmail.toLowerCase))
+  def insert(mixedCaseEmail: String)(implicit hc: HeaderCarrier): Future[Unit] = appConfig.verifiedEmailUpdateCollection match {
+    case WhichToUse.Both => for {
+      _ <- verifiedEmailRepo.insert(mixedCaseEmail)
+      lowerCaseEmail = mixedCaseEmail.toLowerCase
+      _ <- verifiedHashedEmailRepo
+        .insert(lowerCaseEmail)
+        .recover {case ex: MongoWriteException if ex.getCode == 11000 =>
+          val msg = if(mixedCaseEmail == lowerCaseEmail)
+            s"Duplicate key error - sessionID: ${hc.sessionId}; requestID: ${hc.requestId}"
+          else {
+            def redact(str: String) = str.head + "*" * 8 + str.takeRight(3)
+            s"Case mismatch in email - ${redact(mixedCaseEmail)} vs ${redact(lowerCaseEmail)}"
+          }
+          logger.warn (s"[GG-7278] $msg")
+          ()
+        }
+    } yield ()
     case WhichToUse.New => verifiedHashedEmailRepo.insert(mixedCaseEmail.toLowerCase)
     case WhichToUse.Old => throw new RuntimeException("Post migration the hashed repo should always be used, so only 'both' or 'new' supported in config")
     case other          => throw new IllegalStateException(s"Unhandled WhichToUse('${other.value}') instance")
