@@ -45,7 +45,6 @@ class EmailVerificationControllerSpec extends UnitSpec {
       when(mockEmailConnector.sendEmail(any, any, any)(any, any))
         .thenReturn(Future.successful(HttpResponse(202, "")))
       when(mockTokenRepo.upsert(any, any, any, any)).thenReturn(Future.unit)
-      when(mockAppConfig.allowlistedDomains) thenReturn Set.empty[String]
 
       val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
 
@@ -64,7 +63,6 @@ class EmailVerificationControllerSpec extends UnitSpec {
       when(mockVerificationLinkService.verificationLinkFor(any, eqTo(ForwardUrl("http://some/url")))).thenReturn(verificationLink)
       when(mockEmailConnector.sendEmail(any, any, any)(any, any))
         .thenReturn(Future.failed(UpstreamErrorResponse.apply("Bad Request from email", 400)))
-      when(mockAppConfig.allowlistedDomains) thenReturn Set.empty[String]
 
       val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
 
@@ -78,7 +76,6 @@ class EmailVerificationControllerSpec extends UnitSpec {
 
     "return 409 when email already registered" in new Setup {
       when(mockVerifiedEmailService.isVerified(eqTo(emailMixedCase))).thenReturn(Future.successful(true))
-      when(mockAppConfig.allowlistedDomains) thenReturn Set.empty[String]
 
       val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
       status(result) shouldBe Status.CONFLICT

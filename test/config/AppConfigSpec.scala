@@ -16,7 +16,6 @@
 
 package config
 
-import org.scalatest.prop.{TableDrivenPropertyChecks, Tables}
 import play.api.Configuration
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
@@ -39,28 +38,6 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
 
       val exception2: RuntimeException = intercept[RuntimeException](appConfig.emailServicePath)
       exception2.getMessage shouldBe s"hardcoded value: No configuration setting found for key 'microservice'"
-    }
-  }
-
-  "allowlistedDomains" should {
-
-    "be empty when no configuration is defined" in new Setup {
-      appConfig.allowlistedDomains shouldBe Set.empty[String]
-    }
-
-    val scenarios = Tables.Table[String, String, Set[String]](
-      ("scenario", "configuration", "expectedValue"),
-      ("be empty when configuration is empty", "", Set.empty[String]),
-      ("contain a string if defined", "example.com", Set("example.com")),
-      ("contain multiple strings when configuration is a list", "example.com,test.example.com", Set("example.com", "test.example.com")),
-      ("filter out empty string values", " ,example.com, ,, ", Set("example.com")),
-      ("trim extraneous whitespace", "     ,   ,  example.com  ,     test.example.com,    ", Set("example.com", "test.example.com"))
-    )
-
-    TableDrivenPropertyChecks.forAll(scenarios) { (scenario, configuration, expectedValue) =>
-      scenario in new Setup(Map("allowlisted-domains" -> configuration)) {
-        appConfig.allowlistedDomains shouldBe expectedValue
-      }
     }
   }
 

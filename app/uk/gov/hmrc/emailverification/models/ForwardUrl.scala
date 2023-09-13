@@ -38,31 +38,9 @@ object ForwardUrl {
   implicit val writes: Writes[ForwardUrl] = (url: ForwardUrl) => JsString(url.url)
 
   private def validate(potentialUrl: String, appConfig: AppConfig): Either[String, ForwardUrl] = {
-      def validateDomain(uri: URI): Either[String, ForwardUrl] = {
-        if (appConfig.allowlistedDomains.isEmpty || appConfig.allowlistedDomains.contains(uri.getDomain))
-          Right(ForwardUrl(uri.toString))
-        else
-          Left("URL is not allowlisted")
-      }
-
     Try(new URI(potentialUrl)).map {
-      case uri if uri.hasHost => validateDomain(uri)
-      case uri                => Right(ForwardUrl(uri.toString))
+      uri => Right(ForwardUrl(uri.toString))
     }.getOrElse(Left("URL could not be parsed"))
-  }
-
-  private implicit class URIOps(uri: URI) {
-    def getDomain: String = {
-      val port = uri.getPort match {
-        case 80 | -1 => ""
-        case _       => s":${uri.getPort}"
-      }
-      s"${uri.getHost}$port"
-    }
-
-    def hasHost: Boolean = {
-      uri.getHost != null
-    }
   }
 
 }
