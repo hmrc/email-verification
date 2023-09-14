@@ -91,16 +91,13 @@ class EmailVerificationController @Inject() (
     data.getBytes("UTF-8").map("%02x".format(_)).mkString
   }
 
-  def validateToken(): Action[JsValue] = Action.async(parse.json) {
+  def validateToken(): Action[JsValue] = Action.async(parse.json) { implicit request =>
       def createEmailIfNotExist(email: String): Future[Result] =
         verifiedEmailService.find(email) flatMap {
-          case Some(verifiedEmail) => Future.successful(NoContent)
+          case Some(_) => Future.successful(NoContent)
           case None                => verifiedEmailService.insert(email) map (_ => Created)
         }
 
-    val tokenNotFoundOrExpiredResponse = Future.successful(BadRequest(Json.toJson(ErrorResponse("TOKEN_NOT_FOUND_OR_EXPIRED", "Token not found or expired"))))
-
-    implicit httpRequest =>
       withJsonBody[TokenVerificationRequest] { request =>
         tokenRepo.findToken(request.token) flatMap {
           case Some(doc) =>
@@ -108,7 +105,7 @@ class EmailVerificationController @Inject() (
             createEmailIfNotExist(doc.email)
           case None =>
             analyticsConnector.sendEvents(GaEvents.verificationFailed)
-            tokenNotFoundOrExpiredResponse
+            Future.successful(BadRequest(Json.toJson(ErrorResponse("TOKEN_NOT_FOUND_OR_EXPIRED", "Token not found or expired"))))
         }
       }
   }
@@ -116,25 +113,21 @@ class EmailVerificationController @Inject() (
   def verifiedEmail(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[VerifiedEmail] { verifiedEmail =>
       verifiedEmailService.find(mixedCaseEmail = verifiedEmail.email).map {
-        case Some(email) => {
+        case Some(email) =>
           auditService.sendCheckEmailVerifiedEvent(
             emailAddress  = verifiedEmail.email,
             failureReason = None,
             responseCode  = OK
           )
           Ok(toJson(email))
-        }
-        case None => {
+        case None =>
           auditService.sendCheckEmailVerifiedEvent(
             emailAddress  = verifiedEmail.email,
             failureReason = Some("email address verification record not found"),
             responseCode  = NOT_FOUND
           )
           NotFound
-        }
       }
     }
   }
-
 }
-
