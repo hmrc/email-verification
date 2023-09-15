@@ -31,11 +31,6 @@ class AppConfig @Inject() (val config: Configuration) {
 
   lazy val passcodeExpiryMinutes: Int = config.get[Int]("passcodeExpiryMinutes")
 
-  lazy val allowlistedDomains: Set[String] = config
-    .getOptional[String]("allowlisted-domains")
-    .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSet)
-    .getOrElse(Set.empty[String])
-
   private def getString(key: String) = config.get[String](key)
 
   lazy val maxPasscodeAttempts: Int = config.get[Int]("maxPasscodeAttempts") //passcode guess attempts

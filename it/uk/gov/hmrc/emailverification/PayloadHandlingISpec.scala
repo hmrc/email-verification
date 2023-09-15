@@ -50,49 +50,6 @@ class PayloadHandlingISpec extends BaseISpec {
       response.status shouldBe CREATED
     }
 
-    "return CREATED when continueUrl is protocol-relative and allowlisted" in new Setup {
-      expectEmailToBeSent()
-      val validPayloadWithRelativeContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "//example.com/continue")
-
-      val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithRelativeContinueUrl))
-
-      response.status shouldBe CREATED
-    }
-
-    "return BAD_REQUEST with structured error when continueUrl is absolute but not allowlisted" in new Setup {
-      val validPayloadWithUnallowlistedContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "http://hackers.ru/continue")
-
-      val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithUnallowlistedContinueUrl))
-
-      response.status shouldBe BAD_REQUEST
-      response.json shouldBe Json.parse(
-        """{
-          |  "code": "VALIDATION_ERROR",
-          |  "message": "Payload validation failed",
-          |  "details":{
-          |    "obj.continueUrl": "URL is not allowlisted"
-          |  }
-          |}""".stripMargin
-      )
-    }
-
-    "return BAD_REQUEST with structured error when continueUrl is protocol-relative but not allowlisted" in new Setup {
-      val validPayloadWithUnallowlistedContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "//hackers.ru/continue")
-
-      val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithUnallowlistedContinueUrl))
-
-      response.status shouldBe BAD_REQUEST
-      response.json shouldBe Json.parse(
-        """{
-          |  "code": "VALIDATION_ERROR",
-          |  "message": "Payload validation failed",
-          |  "details":{
-          |    "obj.continueUrl": "URL is not allowlisted"
-          |  }
-          |}""".stripMargin
-      )
-    }
-
     "return BAD_REQUEST with structured error when continueUrl is not a valid URL" in new Setup {
       val validPayloadWithInvalidContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "not-a-valid-url-$#$#$")
 
@@ -199,10 +156,6 @@ class PayloadHandlingISpec extends BaseISpec {
       )
     }
   }
-
-  override def extraConfig = super.extraConfig ++ Map(
-    "allowlisted-domains" -> ",  test.example.com  ,,    , example.com ,example.com,example.com:1234"
-  )
 
   trait Setup {
     val validPayload: JsObject = Json.obj(
