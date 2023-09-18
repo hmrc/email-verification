@@ -70,14 +70,15 @@ class VerifiedEmailService @Inject() (
       lowerCaseEmail = mixedCaseEmail.toLowerCase
       _ <- verifiedHashedEmailRepo
         .insert(lowerCaseEmail)
-        .recover {case ex: MongoWriteException if ex.getCode == 11000 =>
-          val details = s"sessionID: ${hc.sessionId}; requestID: ${hc.requestId}"
-          val msg = if(mixedCaseEmail == lowerCaseEmail)
-            s"Duplicate key error - $details"
-          else
-            s"Case clash - ignoring dup key error in new collection - $details"
-          logger.warn (s"[GG-7278] $msg")
-          ()
+        .recover {
+          case ex: MongoWriteException if ex.getCode == 11000 =>
+            val details = s"sessionID: ${hc.sessionId}; requestID: ${hc.requestId}"
+            val msg = if (mixedCaseEmail == lowerCaseEmail)
+              s"Duplicate key error - $details"
+            else
+              s"Case clash - ignoring dup key error in new collection - $details"
+            logger.warn (s"[GG-7278] $msg")
+            ()
         }
     } yield ()
     case WhichToUse.New => verifiedHashedEmailRepo.insert(mixedCaseEmail.toLowerCase)

@@ -60,20 +60,20 @@ class JourneyController @Inject() (
           verifyEmailRequest.credId,
           verifyEmailRequest.email.map(_.address).getOrElse("")
         ).flatMap { emailExceedsCount =>
-          if (emailExceedsCount) {
-            auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 401)
-            Future.successful(Unauthorized)
-          } else {
-            journeyService.initialise(verifyEmailRequest).map { redirectUrl =>
-              auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 201)
-              Created(Json.toJson(VerifyEmailResponse(redirectUrl)))
-            }.recover {
-              case ex: UpstreamErrorResponse =>
-                auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, ex.reportAs)
-                Status(ex.reportAs)(ex.getMessage())
+            if (emailExceedsCount) {
+              auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 401)
+              Future.successful(Unauthorized)
+            } else {
+              journeyService.initialise(verifyEmailRequest).map { redirectUrl =>
+                auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 201)
+                Created(Json.toJson(VerifyEmailResponse(redirectUrl)))
+              }.recover {
+                case ex: UpstreamErrorResponse =>
+                  auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, ex.reportAs)
+                  Status(ex.reportAs)(ex.getMessage())
+              }
             }
           }
-        }
       }
     }
   }
