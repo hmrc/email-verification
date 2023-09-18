@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import com.mongodb.MongoWriteException
 import config.{AppConfig, WhichToUse}
+import org.mongodb.scala.MongoException
 import play.api.Logging
 import uk.gov.hmrc.emailverification.models.{MigrationResultCollector, VerifiedEmail}
 import uk.gov.hmrc.emailverification.repositories.{VerifiedEmailMongoRepository, VerifiedHashedEmailMongoRepository}
@@ -66,17 +66,13 @@ class VerifiedEmailService @Inject() (
   def insert(mixedCaseEmail: String)(implicit hc: HeaderCarrier): Future[Unit] = appConfig.verifiedEmailUpdateCollection match {
     case WhichToUse.Both => for {
       _ <- verifiedEmailRepo.insert(mixedCaseEmail)
-      lowerCaseEmail = mixedCaseEmail.toLowerCase
       _ <- verifiedHashedEmailRepo
-        .insert(lowerCaseEmail)
+        .insert(mixedCaseEmail.toLowerCase)
         .recover {
-          case ex: MongoWriteException if ex.getCode == 11000 =>
+          case ex: MongoException if ex.getCode == 11000 =>
             val details = s"sessionID: ${hc.sessionId}; requestID: ${hc.requestId}"
-            val msg = if (mixedCaseEmail == lowerCaseEmail)
-              s"Duplicate key error - $details"
-            else
-              s"Case clash - ignoring dup key error in new collection - $details"
-            logger.warn (s"[GG-7278] $msg")
+            val msg = s"Case clash - ignoring dup key error in new collection - $details"
+            logger.warn(s"[GG-7278] $msg")
             ()
         }
     } yield ()
