@@ -56,7 +56,6 @@ class VerifiedEmailService @Inject() (
       oldVerifiedEmail
     }
     case WhichToUse.New => verifiedHashedEmailRepo.find(mixedCaseEmail.toLowerCase)
-    case other          => throw new IllegalStateException(s"Unhandled WhichToUse('${other.value}') instance")
   }
 
   /**
@@ -83,7 +82,6 @@ class VerifiedEmailService @Inject() (
     } yield ()
     case WhichToUse.New => verifiedHashedEmailRepo.insert(mixedCaseEmail.toLowerCase)
     case WhichToUse.Old => throw new RuntimeException("Post migration the hashed repo should always be used, so only 'both' or 'new' supported in config")
-    case other          => throw new IllegalStateException(s"Unhandled WhichToUse('${other.value}') instance")
   }
 
   def migrateEmailAddresses(): Future[MigrationResultCollector] = {
