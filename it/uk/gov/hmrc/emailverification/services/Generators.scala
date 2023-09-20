@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package support
+package uk.gov.hmrc.emailverification.services
 
-import com.github.tomakehurst.wiremock.client.WireMock._
-import org.mockito.scalatest.MockitoSugar
+import org.scalacheck.Gen
 
-object AnalyticsStub extends MockitoSugar {
-  def stubAnalyticsEvent(): Unit =
-    stubFor(post(urlEqualTo("/platform-analytics/event"))
-      .willReturn(ok()))
-
+trait Generators {
+  val emails: Gen[String] = for {
+    user <- Gen.alphaNumStr if user.nonEmpty
+    domain <- Gen.alphaStr if domain.nonEmpty
+    suffix <- Gen.listOfN(2, Gen.alphaChar)
+  } yield s"$user@$domain.${suffix.mkString}"
 }

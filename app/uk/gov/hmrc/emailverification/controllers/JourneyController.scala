@@ -56,22 +56,24 @@ class JourneyController @Inject() (
         auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 401)
         Future.successful(Unauthorized)
       } else {
-        journeyService.checkIfEmailExceedsCount(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address).getOrElse("")).flatMap { emailExceedsCount =>
-          if (emailExceedsCount) {
-            auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 401)
-            Future.successful(Unauthorized)
-          } else {
-            journeyService.initialise(verifyEmailRequest).map { redirectUrl =>
-              auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 201)
-              Created(Json.toJson(VerifyEmailResponse(redirectUrl)))
-            }.recover {
-              case ex: UpstreamErrorResponse => {
-                auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, ex.reportAs)
-                Status(ex.reportAs)(ex.getMessage())
+        journeyService.checkIfEmailExceedsCount(
+          verifyEmailRequest.credId,
+          verifyEmailRequest.email.map(_.address).getOrElse("")
+        ).flatMap { emailExceedsCount =>
+            if (emailExceedsCount) {
+              auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 401)
+              Future.successful(Unauthorized)
+            } else {
+              journeyService.initialise(verifyEmailRequest).map { redirectUrl =>
+                auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, 201)
+                Created(Json.toJson(VerifyEmailResponse(redirectUrl)))
+              }.recover {
+                case ex: UpstreamErrorResponse =>
+                  auditService.sendVerifyEmailRequestReceivedEvent(verifyEmailRequest, ex.reportAs)
+                  Status(ex.reportAs)(ex.getMessage())
               }
             }
           }
-        }
       }
     }
   }
@@ -160,14 +162,12 @@ class JourneyController @Inject() (
 
   def completedEmails(credId: String): Action[AnyContent] = Action.async(parse.anyContent) { implicit request =>
     journeyService.findCompletedEmails(credId).map {
-      case Nil => {
+      case Nil =>
         auditService.sendEmailVerificationOutcomeRequestEvent(credId, JsArray(), 404)
         NotFound(Json.obj("error" -> s"no verified or locked emails found for cred ID: $credId"))
-      }
-      case emails => {
+      case emails =>
         auditService.sendEmailVerificationOutcomeRequestEvent(credId, Json.toJson(emails).as[JsArray], 200)
         Ok(Json.toJson(VerificationStatusResponse(emails)))
-      }
     }
   }
 

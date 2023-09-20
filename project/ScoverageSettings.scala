@@ -1,8 +1,8 @@
-import scoverage._
-import sbt._
+import sbt.*
+import scoverage.*
 
 object ScoverageSettings {
-  def apply(): Seq[Def.Setting[_]] = {
+  def apply(): Seq[Def.Setting[?]] = {
     Seq(
       ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;.*BuildInfo.*;.*Routes.*;.*RoutesPrefix.*",
       ScoverageKeys.coverageMinimumStmtTotal := 95,

@@ -17,14 +17,15 @@
 package uk.gov.hmrc.emailverification.services
 
 import config.{AppConfig, WhichToUse}
+import org.mongodb.scala.MongoException
 import play.api.Logging
-
-import javax.inject.Inject
 import uk.gov.hmrc.emailverification.models.{MigrationResultCollector, VerifiedEmail}
 import uk.gov.hmrc.emailverification.repositories.{VerifiedEmailMongoRepository, VerifiedHashedEmailMongoRepository}
+import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.temporal.ChronoUnit
 import java.time.{Duration, Instant}
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class VerifiedEmailService @Inject() (
@@ -55,18 +56,28 @@ class VerifiedEmailService @Inject() (
       oldVerifiedEmail
     }
     case WhichToUse.New => verifiedHashedEmailRepo.find(mixedCaseEmail.toLowerCase)
-    case other          => throw new IllegalStateException(s"Unhandled WhichToUse('${other.value}') instance")
   }
 
   /**
-   * older plain text collection is stored mixed case, new hashed collection is stored lower cased.
+   * Older plain text collection is stored mixed case; new hashed collection is stored lower cased.
+   * Therefore, if insertion into the old collection succeeds, we should ignore/consume any dupe key
+   * errors thrown by the new collection.
    */
-  def insert(mixedCaseEmail: String): Future[Unit] = appConfig.verifiedEmailUpdateCollection match {
-    case WhichToUse.Both => verifiedEmailRepo.insert(mixedCaseEmail)
-      .flatMap(_ => verifiedHashedEmailRepo.insert(mixedCaseEmail.toLowerCase))
+  def insert(mixedCaseEmail: String)(implicit hc: HeaderCarrier): Future[Unit] = appConfig.verifiedEmailUpdateCollection match {
+    case WhichToUse.Both => for {
+      _ <- verifiedEmailRepo.insert(mixedCaseEmail)
+      _ <- verifiedHashedEmailRepo
+        .insert(mixedCaseEmail.toLowerCase)
+        .recover {
+          case ex: MongoException if ex.getCode == 11000 =>
+            val details = s"sessionID: ${hc.sessionId}; requestID: ${hc.requestId}"
+            val msg = s"Case clash - ignoring dup key error in new collection - $details"
+            logger.warn(s"[GG-7278] $msg")
+            ()
+        }
+    } yield ()
     case WhichToUse.New => verifiedHashedEmailRepo.insert(mixedCaseEmail.toLowerCase)
     case WhichToUse.Old => throw new RuntimeException("Post migration the hashed repo should always be used, so only 'both' or 'new' supported in config")
-    case other          => throw new IllegalStateException(s"Unhandled WhichToUse('${other.value}') instance")
   }
 
   def migrateEmailAddresses(): Future[MigrationResultCollector] = {

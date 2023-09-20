@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.emailverification.models
+package uk.gov.hmrc.emailverification.services
 
-import play.api.libs.json.{Json, Writes}
+import org.scalacheck.Arbitrary
 
-case class AnalyticsRequest(gaClientId: String, events: Seq[GaEvent])
-
-object AnalyticsRequest {
-  implicit val writes: Writes[AnalyticsRequest] = Json.writes[AnalyticsRequest]
+final case class CaseMismatchScenario (email: String){
+  def oldRepoEmail: String = email.toUpperCase
+  def newRepoEmail: String = email.toLowerCase
+}
+object CaseMismatchScenario extends Generators {
+  implicit val arb: Arbitrary[CaseMismatchScenario] = Arbitrary(
+    emails map apply
+  )
 }

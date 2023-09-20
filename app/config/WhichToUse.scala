@@ -16,7 +16,7 @@
 
 package config
 
-abstract class WhichToUse(val value: String)
+sealed abstract class WhichToUse(val value: String)
 object WhichToUse {
   case object New extends WhichToUse("new")
   case object Old extends WhichToUse("old")

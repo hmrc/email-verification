@@ -64,7 +64,7 @@ trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
   val maxPasscodeAttempts = 5
 
   lazy val verificationStatusRepo = new VerificationStatusMongoRepository(mongoComponent, config = appConfig)
-  lazy val journeyRepo =new JourneyMongoRepository(mongoComponent)
+  lazy val journeyRepo = new JourneyMongoRepository(mongoComponent)
   lazy val passcodeRepo = new PasscodeMongoRepository(mongoComponent = mongoComponent, config = appConfig)
 
   override def beforeEach(): Unit = {
@@ -72,7 +72,6 @@ trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
     WireMock.reset()
 
     dropDatabase()
-    AnalyticsStub.stubAnalyticsEvent()
     stubFor(post("/write/audit").willReturn(noContent))
     stubFor(post("/write/audit/merged").willReturn(noContent))
   }

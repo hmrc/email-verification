@@ -25,7 +25,7 @@ import play.api.mvc._
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.auth.core.retrieve.Credentials
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
-import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
+import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, PasscodeMongoRepository}
 import uk.gov.hmrc.emailverification.services.{AuditService, VerifiedEmailService}
@@ -39,7 +39,6 @@ class EmailPasscodeController @Inject() (
     emailConnector:       EmailConnector,
     passcodeRepo:         PasscodeMongoRepository,
     verifiedEmailService: VerifiedEmailService,
-    analyticsConnector:   PlatformAnalyticsConnector,
     controllerComponents: ControllerComponents,
     auditService:         AuditService,
     val authConnector:    AuthConnector,
@@ -132,7 +131,6 @@ class EmailPasscodeController @Inject() (
           _ <- authorised(){ Future.successful(()) }.recoverWith{ case _ => Future.failed(MissingAuthSession) }
           emailAlreadyVerified <- verifiedEmailService.isVerified(mixedCaseEmailAddress)
           _ <- if (emailAlreadyVerified) Future.failed(EmailAlreadyVerified) else Future.unit
-          _ = analyticsConnector.sendEvents(GaEvents.passcodeRequested)
           sessionId <- hc.sessionId.fold[Future[SessionId]](Future.failed(MissingSessionId))(Future.successful)
           sessionEmailCount <- passcodeRepo.getSessionEmailsCount(sessionId)
           _ <- if (sessionEmailCount < appConfig.maxDifferentEmails) Future.unit else Future.failed(MaxDifferentEmailsExceeded(sessionEmailCount))
@@ -210,7 +208,6 @@ class EmailPasscodeController @Inject() (
               Future.successful(Forbidden(Json.toJson(ErrorResponse("MAX_PASSCODE_ATTEMPTS_EXCEEDED", msg))))
 
             case Some(doc) if doc.passcode == passcodeVerificationRequest.passcode.toUpperCase =>
-              analyticsConnector.sendEvents(GaEvents.passcodeSuccess)
               verifiedEmailService.find(mixedCaseEmail) flatMap {
                 case None =>
                   auditService.sendEmailAddressConfirmedEvent(
@@ -229,7 +226,6 @@ class EmailPasscodeController @Inject() (
               }
 
             case Some(doc) =>
-              analyticsConnector.sendEvents(GaEvents.passcodeFailed)
               auditService.sendPasscodeMatchNotFoundOrExpiredEvent(
                 emailAddress = passcodeVerificationRequest.email,
                 passcode     = passcodeVerificationRequest.passcode,
@@ -240,9 +236,7 @@ class EmailPasscodeController @Inject() (
                 "code" -> "PASSCODE_MISMATCH",
                 "message" -> "Passcode mismatch"
               )))
-
             case _ =>
-              analyticsConnector.sendEvents(GaEvents.passcodeFailed)
               val message = "Passcode not found"
               auditService.sendEmailAddressNotFoundOrExpiredEvent(
                 emailAddress = passcodeVerificationRequest.email,

@@ -16,15 +16,12 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
-import java.util.UUID
 import config.AppConfig
-
-import javax.inject.Inject
 import play.api.Logging
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
-import uk.gov.hmrc.emailverification.connectors.{EmailConnector, PlatformAnalyticsConnector}
+import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository
 import uk.gov.hmrc.emailverification.services.{AuditService, VerificationLinkService, VerifiedEmailService}
@@ -33,6 +30,8 @@ import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
+import java.util.UUID
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class EmailVerificationController @Inject() (
@@ -40,7 +39,6 @@ class EmailVerificationController @Inject() (
     verificationLinkService: VerificationLinkService,
     tokenRepo:               VerificationTokenMongoRepository,
     verifiedEmailService:    VerifiedEmailService,
-    analyticsConnector:      PlatformAnalyticsConnector,
     auditConnector:          AuditConnector,
     auditService:            AuditService,
     controllerComponents:    ControllerComponents
@@ -64,7 +62,6 @@ class EmailVerificationController @Inject() (
         verifiedEmailService.isVerified(mixedCaseEmail) flatMap {
           case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY", "Email has already been verified"))))
           case false =>
-            analyticsConnector.sendEvents(GaEvents.verificationRequested)
             sendEmailAndCreateVerification(request).recover {
               case ex @ UpstreamErrorResponse(_, 400, _, _) =>
                 val event = ExtendedDataEvent(
@@ -91,50 +88,41 @@ class EmailVerificationController @Inject() (
     data.getBytes("UTF-8").map("%02x".format(_)).mkString
   }
 
-  def validateToken(): Action[JsValue] = Action.async(parse.json) {
+  def validateToken(): Action[JsValue] = Action.async(parse.json) { implicit request =>
       def createEmailIfNotExist(email: String): Future[Result] =
         verifiedEmailService.find(email) flatMap {
-          case Some(verifiedEmail) => Future.successful(NoContent)
-          case None                => verifiedEmailService.insert(email) map (_ => Created)
+          case Some(_) => Future.successful(NoContent)
+          case None    => verifiedEmailService.insert(email) map (_ => Created)
         }
 
-    val tokenNotFoundOrExpiredResponse = Future.successful(BadRequest(Json.toJson(ErrorResponse("TOKEN_NOT_FOUND_OR_EXPIRED", "Token not found or expired"))))
-
-    implicit httpRequest =>
-      withJsonBody[TokenVerificationRequest] { request =>
-        tokenRepo.findToken(request.token) flatMap {
-          case Some(doc) =>
-            analyticsConnector.sendEvents(GaEvents.verificationSuccess)
-            createEmailIfNotExist(doc.email)
-          case None =>
-            analyticsConnector.sendEvents(GaEvents.verificationFailed)
-            tokenNotFoundOrExpiredResponse
-        }
+    withJsonBody[TokenVerificationRequest] { request =>
+      tokenRepo.findToken(request.token) flatMap {
+        case Some(doc) =>
+          createEmailIfNotExist(doc.email)
+        case None =>
+          Future.successful(BadRequest(Json.toJson(ErrorResponse("TOKEN_NOT_FOUND_OR_EXPIRED", "Token not found or expired"))))
       }
+    }
   }
 
   def verifiedEmail(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[VerifiedEmail] { verifiedEmail =>
       verifiedEmailService.find(mixedCaseEmail = verifiedEmail.email).map {
-        case Some(email) => {
+        case Some(email) =>
           auditService.sendCheckEmailVerifiedEvent(
             emailAddress  = verifiedEmail.email,
             failureReason = None,
             responseCode  = OK
           )
           Ok(toJson(email))
-        }
-        case None => {
+        case None =>
           auditService.sendCheckEmailVerifiedEvent(
             emailAddress  = verifiedEmail.email,
             failureReason = Some("email address verification record not found"),
             responseCode  = NOT_FOUND
           )
           NotFound
-        }
       }
     }
   }
-
 }
-
