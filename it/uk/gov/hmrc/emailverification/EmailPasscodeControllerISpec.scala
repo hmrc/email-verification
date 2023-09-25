@@ -624,7 +624,7 @@ class EmailPasscodeControllerISpec extends BaseISpec with Eventually{
       eventually {
         verify(times, postRequestedFor(urlEqualTo("/write/audit"))
           .withRequestBody(containing(""""auditType":"PasscodeVerificationRequest""""))
-          .withRequestBody(containing(s""""outcome":"Email address already confirmed""""))
+          .withRequestBody(containing(s""""outcome":"Email address already verified""""))
         )
       }
     }
