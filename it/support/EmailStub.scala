@@ -23,9 +23,9 @@ import com.typesafe.config.Config
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import play.api.http.Status
-import uk.gov.hmrc.crypto.Crypted.fromBase64
-import uk.gov.hmrc.crypto.SymmetricCryptoFactory
+import uk.gov.hmrc.crypto.{Crypted, SymmetricCryptoFactory}
 
+import java.util.Base64
 import scala.jdk.CollectionConverters._
 
 object EmailStub extends Matchers {
@@ -100,7 +100,7 @@ object EmailStub extends Matchers {
   }
 
   def decryptToJson(encrypted: String)(implicit config: Config): JsValue = {
-    val base64DecodedEncrypted = fromBase64(encrypted)
+    val base64DecodedEncrypted = Crypted(new String(Base64.getUrlDecoder.decode(encrypted.getBytes("UTF-8"))))
     val decrypted = crypto.decrypt(base64DecodedEncrypted).value
     Json.parse(decrypted)
   }

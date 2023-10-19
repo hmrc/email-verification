@@ -31,7 +31,7 @@ class VerificationLinkServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
 
       val continueUrl = ForwardUrl("http://continue-url.com")
 
-      val base64CryptedJsonToken = "d3Uvc3JNSFd0V0FWOEEvKzhPM0M5TTBvOXZrNURNMEgxWkV5d29JSmE4UkpuQkROdEZQcHMxUG1tN3Z3eDhPU3hUOXdCbHAyd1dWR1NIWEp1SHEyZlE9PQ=="
+      val base64CryptedJsonToken = "d3Uvc3JNSFd0V0FWOEEvKzhPM0M5TTBvOXZrNURNMEgxWkV5d29JSmE4UkpuQkROdEZQcHMxUG1tN3Z3eDhPU3hUOXdCbHAyd1dWR1NIWEp1SHEyZlE9PQ"
 
       underTest.verificationLinkFor(token, continueUrl) shouldBe s"/email-verification/verify?token=$base64CryptedJsonToken"
     }

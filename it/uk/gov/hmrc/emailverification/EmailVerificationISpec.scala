@@ -20,82 +20,101 @@ import org.scalatest.Assertion
 import play.api.libs.json.{JsValue, Json}
 import support.BaseISpec
 import support.EmailStub._
-import uk.gov.hmrc.emailverification.models.Journey
 
 import java.util.UUID
+import org.scalatest.prop.TableDrivenPropertyChecks._
+import uk.gov.hmrc.emailverification.models.Journey
+
 import scala.concurrent.Future
 
 class EmailVerificationISpec extends BaseISpec {
   val emailToVerify = "example@domain.com"
 
   "email verification" should {
-    "send the verification email to the specified address successfully" in new Setup {
-      Given("The email service is running")
-      expectEmailToBeSent()
+    val continueUrls = Table[String, String, String](
+      ("emailToVerify", "templateId", "continueUrl"),
+      (emailToVerify, "dd_email_verifcation", "https://www.tax.service.gov.uk/direct-debit/email-success"),
+      (emailToVerify, "register_your_company_verification_email", "https://www.tax.service.gov.uk/register-your-company/post-sign-in"),
+      (emailToVerify, "verifyEmailAddress", "https://www.tax.service.gov.uk/manage-email-cds/email-address-confirmed"),
+      (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/subscribed/amend-details/verify-email?p=${UUID.randomUUID().toString}"),
+      (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/about-person/verify-email?p=${UUID.randomUUID().toString}"),
+      (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/registration/verify-email?p=${UUID.randomUUID().toString}"),
+      (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/registration/amend-details/verify-email?p=${UUID.randomUUID().toString}"),
+      (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/subscription/amend-details/verify-email?p=${UUID.randomUUID().toString}"),
+      (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/subscription/verify-email?p=${UUID.randomUUID().toString}"),
+      (emailToVerify, "hts_verification_email", s"https://www.tax.service.gov.uk/help-to-save/email-confirmed-callback?p=${UUID.randomUUID().toString}"),
+      (emailToVerify, "hts_verification_email", s"https://www.tax.service.gov.uk/help-to-save/account-home/email-confirmed-callback?p=${UUID.randomUUID().toString}"),
+      (emailToVerify, "fhdds_email_verification", s"https://www.tax.service.gov.uk/fhdds/email-verify/${emailToVerify.hashCode.toHexString.toUpperCase}")
+    )
 
-      When("a client submits a verification request")
+    forAll(continueUrls) { (email, template, url) =>
+      s"send the verification email to the specified address successfully with continue url $url" in new Setup {
+        Given("The email service is running")
+        expectEmailToBeSent()
 
-      val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
-      response.status shouldBe 201
+        When("a client submits a verification request")
 
-      Then("an email is sent")
-      verifyEmailSentWithContinueUrl(emailToVerify, continueUrl, templateId)
-    }
-
-
-    "only latest email verification request token for a given email should be valid" in new Setup {
-      Given("The email service is running")
-      expectEmailToBeSent()
-
-      When("client submits a verification request")
-      val response1 = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
-      response1.status shouldBe 201
-      val token1 = decryptedToken(lastVerificationEmail)._1.get
-
-      When("client submits a second verification request for same email")
-      val response2 = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
-      response2.status shouldBe 201
-      val token2 = decryptedToken(lastVerificationEmail)._1.get
-
-      Then("only the last verification request token should be valid")
-      await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token1))).status shouldBe 400
-      await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token2))).status shouldBe 201
-    }
-
-    "second verification request should return successful 204 response" in new Setup {
-      Given("The email service is running")
-      expectEmailToBeSent()
-
-      When("client submits a verification request")
-      val response1 = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
-      response1.status shouldBe 201
-      val token = decryptedToken(lastVerificationEmail)._1.get
-
-      Then("the verification request with the token should be successful")
-      await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 201
-      Then("an additional verification requests with the token should be successful, but return with a 204 response")
-      await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 204
-    }
-
-    "email verification for two different emails should be successful" in new Setup {
-      def submitVerificationRequest(emailToVerify: String, templateId: String, continueUrl: String): Assertion = {
-        val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
+        val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
         response.status shouldBe 201
-        val token = decryptedToken(lastVerificationEmail)._1.get
-        And("the client verifies the token")
-        await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 201
-        Then("the email should be verified")
-        await(wsClient.url(appClient("/verified-email-check")).post(Json.obj("email" -> emailToVerify))).status shouldBe 200
+
+        Then("an email is sent")
+        verifyEmailSentWithContinueUrl(email, url, template)
       }
 
-      Given("The email service is running")
-      expectEmailToBeSent()
+      s"only latest email verification request token with continue url $url for a given email should be valid" in new Setup {
+        Given("The email service is running")
+        expectEmailToBeSent()
 
-      When("client submits first verification request ")
-      submitVerificationRequest("example1@domain.com", templateId, continueUrl)
+        When("client submits a verification request")
+        val response1 = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
+        response1.status shouldBe 201
+        val token1 = decryptedToken(lastVerificationEmail)._1.get
 
-      When("client submits second verification request ")
-      submitVerificationRequest("example2@domain.com", templateId, continueUrl)
+        When("client submits a second verification request for same email")
+        val response2 = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
+        response2.status shouldBe 201
+        val token2 = decryptedToken(lastVerificationEmail)._1.get
+
+        Then("only the last verification request token should be valid")
+        await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token1))).status shouldBe 400
+        await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token2))).status shouldBe 201
+      }
+
+      s"second verification request with continue url $url should return successful 204 response" in new Setup {
+        Given("The email service is running")
+        expectEmailToBeSent()
+
+        When("client submits a verification request")
+        val response1 = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
+        response1.status shouldBe 201
+        val token = decryptedToken(lastVerificationEmail)._1.get
+
+        Then("the verification request with the token should be successful")
+        await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 201
+        Then("an additional verification requests with the token should be successful, but return with a 204 response")
+        await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 204
+      }
+
+      s"email verification for two different emails with continue url $url should be successful" in new Setup {
+        def submitVerificationRequest(emailToVerify: String, templateId: String, continueUrl: String): Assertion = {
+          val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
+          response.status shouldBe 201
+          val token = decryptedToken(lastVerificationEmail)._1.get
+          And("the client verifies the token")
+          await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 201
+          Then("the email should be verified")
+          await(wsClient.url(appClient("/verified-email-check")).post(Json.obj("email" -> emailToVerify))).status shouldBe 200
+        }
+
+        Given("The email service is running")
+        expectEmailToBeSent()
+
+        When("client submits first verification request ")
+        submitVerificationRequest("example1@domain.com", template, url)
+
+        When("client submits second verification request ")
+        submitVerificationRequest("example2@domain.com", template, url)
+      }
     }
 
     "return 502 error if email sending fails" in new Setup {
@@ -160,7 +179,7 @@ class EmailVerificationISpec extends BaseISpec {
       submitEmailResponse.status shouldBe 403
 
       Then("verify the email retry count is incremented and status is locked")
-      await(verificationStatusRepo.isLocked(credId,emailAddress1)) shouldBe true
+      await(verificationStatusRepo.isLocked(credId, emailAddress1)) shouldBe true
     }
   }
 
