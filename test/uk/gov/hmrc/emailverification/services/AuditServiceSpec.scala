@@ -81,23 +81,23 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
     dataEvent.detail shouldBe details
   }
 
-  def confirmPasscodeVerificationRequestEvent(details: Map[String, String])(implicit mockAuditConnector: AuditConnector) = {
+  def confirmPasscodeVerificationRequestEvent(details: Map[String, String], expectedTransactionName: String)(implicit mockAuditConnector: AuditConnector) = {
     val dataEventCaptor = ArgCaptor[DataEvent]
     verify(mockAuditConnector).sendEvent(dataEventCaptor.capture)(any, any)
     val dataEvent: DataEvent = dataEventCaptor.value
 
     dataEvent.auditType shouldBe "PasscodeVerificationRequest"
-    confirmDataEventSourceAndTags(dataEvent, expectedTransactionName = "HMRC Gateway - Email Verification - send new passcode to email address")
+    confirmDataEventSourceAndTags(dataEvent, expectedTransactionName)
     dataEvent.detail shouldBe normalisedPasscodeVerificationRequestEventDetails(details)
   }
 
-  def confirmPasscodeVerificationResponseEvent(details: Map[String, String])(implicit mockAuditConnector: AuditConnector) = {
+  def confirmPasscodeVerificationResponseEvent(details: Map[String, String], expectedTransactionName: String)(implicit mockAuditConnector: AuditConnector) = {
     val dataEventCaptor = ArgCaptor[DataEvent]
     verify(mockAuditConnector).sendEvent(dataEventCaptor.capture)(any, any)
     val dataEvent: DataEvent = dataEventCaptor.value
 
     dataEvent.auditType shouldBe "PasscodeVerificationResponse"
-    confirmDataEventSourceAndTags(dataEvent, expectedTransactionName = "HMRC Gateway - Email Verification - verifies the passcode matches with the stored passcode and HMRC email address")
+    confirmDataEventSourceAndTags(dataEvent, expectedTransactionName)
     dataEvent.detail shouldBe normalisedPasscodeVerificationRequestEventDetails(details)
   }
 
@@ -140,7 +140,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "responseCode" -> CREATED.toString,
         "outcome" -> "Successfully sent a passcode to the email address requiring verification",
         "callingService" -> serviceName
-      ))
+      ), "HMRC Gateway - Email Verification - Send new passcode to email address")
     }
   }
 
@@ -152,7 +152,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "success" -> "false",
         "outcome" -> "SessionId missing",
         "responseCode" -> UNAUTHORIZED.toString
-      ))
+      ), "HMRC Gateway - Email Verification - Send session id missing from email passcode request")
     }
   }
 
@@ -163,9 +163,9 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "emailAddress" -> emailAddress,
         "success" -> "true",
         "responseCode" -> CONFLICT.toString,
-        "outcome" -> "Email address already confirmed",
+        "outcome" -> "Email address already verified",
         "callingService" -> serviceName,
-      ))
+      ), "HMRC Gateway - Email Verification - Send email address already verified request")
     }
   }
 
@@ -181,7 +181,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "responseCode" -> FORBIDDEN.toString,
         "outcome" -> "Max permitted passcode emails per session has been exceeded",
         "callingService" -> serviceName
-      ))
+      ), "HMRC Gateway - Email Verification - Send max permitted passcode emails per session has been exceeded request")
     }
   }
 
@@ -195,7 +195,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "responseCode" -> FORBIDDEN.toString,
         "outcome" -> "Max permitted passcode emails per session has been exceeded",
         "callingService" -> serviceName
-      ))
+      ), "HMRC Gateway - Email Verification - Send max permitted number of different email addresses per session has been exceeded")
     }
   }
 
@@ -211,7 +211,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "responseCode" -> BAD_GATEWAY.toString,
         "outcome" -> "sendEmail request failed",
         "callingService" -> serviceName
-      ))
+      ), "HMRC Gateway - Email Verification - Send passcode to email address request failed")
     }
   }
 
@@ -226,7 +226,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "success" -> "true",
         "responseCode" -> OK.toString,
         "outcome" -> "Email address confirmed",
-      ))
+      ), "HMRC Gateway - Email Verification - Send email address confirmed request")
     }
   }
 
@@ -239,7 +239,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "success" -> "false",
         "responseCode" -> NOT_FOUND.toString,
         "outcome" -> "Email address not found or verification attempt time expired"
-      ))
+      ), "HMRC Gateway - Email Verification - Send email address not found or verification attempt time expired request")
     }
   }
 
@@ -254,7 +254,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "success" -> "false",
         "responseCode" -> NOT_FOUND.toString,
         "outcome" -> "Email verification passcode match not found or time expired",
-      ))
+      ), "HMRC Gateway - Email Verification - Send email verification passcode match not found or time expired request")
     }
   }
 
@@ -267,7 +267,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "success" -> "false",
         "responseCode" -> UNAUTHORIZED.toString,
         "outcome" -> "SessionId missing",
-      ))
+      ), "HMRC Gateway - Email Verification - Send session id missing from passcode verification request")
     }
   }
 
@@ -282,7 +282,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "success" -> "false",
         "responseCode" -> FORBIDDEN.toString,
         "outcome" -> "Max permitted passcode verification attempts per session has been exceeded",
-      ))
+      ), "HMRC Gateway - Email Verification - Send max permitted passcode verification attempts per session has been exceeded request")
     }
   }
 
