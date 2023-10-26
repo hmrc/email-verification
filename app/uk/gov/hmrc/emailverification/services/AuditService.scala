@@ -108,7 +108,7 @@ class AuditService @Inject() (
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
     logger.warn(s"[GG-5115] SessionId missing from email passcode request. ${requestContextForLog(request)}")
-    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - Send session id missing from email passcode request")
+    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - error, unauthorised, session id missing from email passcode request")
   }
 
   def sendEmailRequestMissingAuthSession(emailAddress: String, responseCode: Int)(implicit request: Request[_]): Future[Unit] = {
@@ -125,7 +125,7 @@ class AuditService @Inject() (
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
     logger.warn(s"[GG-6759] auth session not found to authorise email passcode request. ${requestContextForLog(request)}")
-    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - Send auth session not found to authorise email passcode request")
+    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - error, unauthorised, auth session not found to authorise email passcode request")
   }
 
   def sendEmailAddressAlreadyVerifiedEvent(emailAddress: String, callingService: String, responseCode: Int)(implicit request: Request[_]): Future[Unit] = {
@@ -142,7 +142,7 @@ class AuditService @Inject() (
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
     logger.info(s"[GG-5115] Email address already verified. 409/Conflict, ${requestContextForLog(request)}")
-    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - Send email address already verified request")
+    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - warning, conflict, email address already verified request")
   }
 
   def sendMaxEmailsExceededEvent(emailAddress: String, callingService: String, differentEmailAttempts: Long, passcodeDoc: PasscodeDoc, responseCode: Int)(implicit request: Request[_]): Future[Unit] = {
@@ -159,7 +159,7 @@ class AuditService @Inject() (
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
     logger.warn(s"[GG-5115] Max permitted passcode emails per session has been exceeded. ${requestContextForLog(request)}")
-    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - Send max permitted passcode emails per session has been exceeded request")
+    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - warning, forbidden, max permitted passcode emails per session has been exceeded")
   }
 
   def sendMaxDifferentEmailsExceededEvent(emailAddress: String, callingService: String, differentEmailAttempts: Long, responseCode: Int)(implicit request: Request[_]): Future[Unit] = {
@@ -176,7 +176,7 @@ class AuditService @Inject() (
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
     logger.warn(s"[GG-5115] Max permitted number of different email addresses per session has been exceeded. ${requestContextForLog(request)}")
-    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - Send max permitted number of different email addresses per session has been exceeded")
+    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - warning, forbidden, max permitted number of different email addresses per session has been exceeded")
   }
 
   def sendPasscodeEmailDeliveryErrorEvent(emailAddress: String, callingService: String, differentEmailAttempts: Long, passcodeDoc: PasscodeDoc, responseCode: Int)(implicit request: Request[_]): Future[Unit] = {
@@ -193,7 +193,7 @@ class AuditService @Inject() (
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
     logger.warn(s"[GG-5115] sendEmail request failed. ${requestContextForLog(request)}")
-    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - Send passcode to email address request failed")
+    sendEvent("PasscodeVerificationRequest", details, "HMRC Gateway - Email Verification - error, bad request or email delivery failure whilst sending a passcode to an email address")
   }
 
 /**************** PasscodeVerificationResponse Events ****************/
@@ -212,7 +212,7 @@ class AuditService @Inject() (
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
     logger.warn(s"[GG-5074] Email address confirmed ${requestContextForLog(request)}")
-    sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - Send email address confirmed request")
+    sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - passcode email verification was successful")
   }
 
   def sendEmailAddressNotFoundOrExpiredEvent(emailAddress: String, passcode: String, responseCode: Int)(implicit request: Request[_]): Future[Unit] = {
@@ -229,7 +229,7 @@ class AuditService @Inject() (
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
     logger.warn(s"[GG-5074] Email address not found or verification attempt time expired ${requestContextForLog(request)}")
-    sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - Send email address not found or verification attempt time expired request")
+    sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - warning, email address not found or verification attempt was time expired")
   }
 
   def sendPasscodeMatchNotFoundOrExpiredEvent(emailAddress: String, passcode: String, passcodeDoc: PasscodeDoc, responseCode: Int)(implicit request: Request[_]): Future[Unit] = {
@@ -246,7 +246,7 @@ class AuditService @Inject() (
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
     logger.warn(s"[GG-5074] Email verification passcode match not found or time expired ${requestContextForLog(request)}")
-    sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - Send email verification passcode match not found or time expired request")
+    sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - warning, email verification passcode not found or was time expired")
   }
 
   def sendVerificationRequestMissingSessionIdEvent(emailAddress: String, passcode: String, responseCode: Int)(implicit request: Request[_]): Future[Unit] = {
@@ -263,7 +263,7 @@ class AuditService @Inject() (
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
     logger.warn(s"[GG-5074] SessionId missing ${requestContextForLog(request)}")
-    sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - Send session id missing from passcode verification request")
+    sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - error, unauthorised, session id missing from passcode verification request")
   }
 
   def sendMaxPasscodeAttemptsExceededEvent(emailAddress: String, passcode: String, passcodeDoc: PasscodeDoc, responseCode: Int)(implicit request: Request[_]): Future[Unit] = {
@@ -275,17 +275,36 @@ class AuditService @Inject() (
       "differentEmailAttempts" -> "-",
       "success" -> "false",
       "responseCode" -> responseCode.toString,
-      "outcome" -> "Max permitted passcode verification attempts per session has been exceeded",
+      "outcome" -> "Max permitted passcode verification attempts have been exceeded",
       "callingService" -> "-",
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value
     )
-    logger.warn(s"[GG-5074] Max permitted passcode verification attempts per session has been exceeded ${requestContextForLog(request)}")
-    sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - Send max permitted passcode verification attempts per session has been exceeded request")
+    logger.warn(s"[GG-5074] Max permitted passcode verification attempts have been exceeded ${requestContextForLog(request)}")
+    sendEvent("PasscodeVerificationResponse", details, "HMRC Gateway - Email Verification - warning, forbidden, max permitted passcode verification attempts per session has been exceeded")
   }
 
   //************ JourneyController Events **********************
 
-  def sendVerifyEmailRequestReceivedEvent(verifyEmailRequest: VerifyEmailRequest, responseStatus: Int)(implicit request: Request[_]): Future[Unit] = {
+  def sendEmailVerificationRequestLockedEvent(verifyEmailRequest: VerifyEmailRequest, responseStatus: Int)(implicit request: Request[_]): Future[Unit] = {
+    val details = Map(
+      "credId" -> verifyEmailRequest.credId,
+      "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value,
+      "origin" -> verifyEmailRequest.origin,
+      "continueUrl" -> verifyEmailRequest.continueUrl,
+      "deskproServiceName" -> verifyEmailRequest.deskproServiceName.getOrElse("-"),
+      "accessibilityStatementUrl" -> verifyEmailRequest.accessibilityStatementUrl,
+      "pageTitle" -> verifyEmailRequest.pageTitle.getOrElse("-"),
+      "backUrl" -> verifyEmailRequest.backUrl.getOrElse("-"),
+      "emailAddress" -> verifyEmailRequest.email.fold("-")(_.address),
+      "emailEntryUrl" -> verifyEmailRequest.email.fold("-")(_.enterUrl),
+      "lang" -> verifyEmailRequest.lang.fold("-")(_.value),
+      "statusCode" -> responseStatus.toString
+    )
+    logger.warn(s"[GG-5074] Email verification now locked for 24hrs by the requestor’s credId ${requestContextForLog(request)}")
+    sendEvent("VerifyEmailRequest", details, "HMRC Gateway - Email Verification - warning, unauthorised, email verification failed, retries expended, attempts locked for 24hrs by credId from first locked state")
+  }
+
+  def sendVerifyEmailSuccessEvent(verifyEmailRequest: VerifyEmailRequest, responseStatus: Int)(implicit request: Request[_]): Future[Unit] = {
     val details = Map(
       "credId" -> verifyEmailRequest.credId,
       "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value,
@@ -304,6 +323,25 @@ class AuditService @Inject() (
     sendEvent("VerifyEmailRequest", details, "HMRC Gateway - Email Verification - a VerifyEmailRequest has been made to verify an email address associated with the requester")
   }
 
+  def sendEmailVerificationRequestFailed(verifyEmailRequest: VerifyEmailRequest, responseStatus: Int)(implicit request: Request[_]): Future[Unit] = {
+    val details = Map(
+      "credId" -> verifyEmailRequest.credId,
+      "bearerToken" -> hc.authorization.getOrElse(Authorization("-")).value,
+      "origin" -> verifyEmailRequest.origin,
+      "continueUrl" -> verifyEmailRequest.continueUrl,
+      "deskproServiceName" -> verifyEmailRequest.deskproServiceName.getOrElse("-"),
+      "accessibilityStatementUrl" -> verifyEmailRequest.accessibilityStatementUrl,
+      "pageTitle" -> verifyEmailRequest.pageTitle.getOrElse("-"),
+      "backUrl" -> verifyEmailRequest.backUrl.getOrElse("-"),
+      "emailAddress" -> verifyEmailRequest.email.fold("-")(_.address),
+      "emailEntryUrl" -> verifyEmailRequest.email.fold("-")(_.enterUrl),
+      "lang" -> verifyEmailRequest.lang.fold("-")(_.value),
+      "statusCode" -> responseStatus.toString
+    )
+    logger.warn(s"[GG-5646] VerifyEmailRequest received. ${requestContextForLog(request)}")
+    sendEvent("VerifyEmailRequest", details, "HMRC Gateway - Email Verification - error, request to send an email to verify by passcode failed")
+  }
+
   def sendEmailVerificationOutcomeRequestEvent(credId: String, emailsJsonArray: JsArray, responseStatus: Int)(implicit request: Request[_]): Future[Unit] = {
     val details = Json.obj(
       "credId" -> JsString(credId),
@@ -313,7 +351,11 @@ class AuditService @Inject() (
       "statusCode" -> JsString(responseStatus.toString)
     )
     logger.warn(s"[GG-5646] EmailVerification outcome requested for credId $credId. ${requestContextForLog(request)}")
-    sendEventWithJsonDetails("EmailVerificationOutcomeRequest", details, "HMRC Gateway - Email Verification - Send email verification outcome request")
+
+    if (responseStatus == 200)
+      sendEventWithJsonDetails("EmailVerificationOutcomeRequest", details, "HMRC Gateway - Email Verification - Email address is verified or locked")
+    else
+      sendEventWithJsonDetails("EmailVerificationOutcomeRequest", details, "HMRC Gateway - Email Verification - Email address not found or expired")
   }
 
   private def sendEvent(auditType: String, details: Map[String, String], transactionName: String)(implicit request: Request[_]) = {

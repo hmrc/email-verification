@@ -854,8 +854,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
           "locked" -> true
         ))
 
-        verifyEmailVerificationOutcomeEventFired(1, """{"emailAddress":"email1","verified":true,"locked":false}""",200)
-        verifyEmailVerificationOutcomeEventFired(1, """{"emailAddress":"email3","verified":false,"locked":true}""",200)
+        verifyEmailVerificationOutcomeEventFired(1, """{"emailAddress":"email1","verified":true,"locked":false}""", "Email address is verified or locked", 200)
+        verifyEmailVerificationOutcomeEventFired(1, """{"emailAddress":"email3","verified":false,"locked":true}""", "Email address is verified or locked", 200)
 
       }
     }
@@ -869,7 +869,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
         response.json shouldBe Json.obj("error" -> s"no verified or locked emails found for cred ID: $credId")
 
-        verifyEmailVerificationOutcomeEventFired(1,"[]", 404)
+        verifyEmailVerificationOutcomeEventFired(1,"[]", "Email address not found or expired", 404)
       }
     }
   }
@@ -898,10 +898,11 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       }
     }
 
-    def verifyEmailVerificationOutcomeEventFired(times: Int = 1, emailJson:String, expectedStatus:Int): Unit = {
+    def verifyEmailVerificationOutcomeEventFired(times: Int = 1, emailJson:String, expectedTransactionName: String, expectedStatus:Int): Unit = {
       eventually {
         verify(times, postRequestedFor(urlEqualTo("/write/audit"))
           .withRequestBody(containing(""""auditType":"EmailVerificationOutcomeRequest""""))
+          .withRequestBody(containing(s""""transactionName":"HMRC Gateway - Email Verification - $expectedTransactionName""""))
           .withRequestBody(containing(s""""credId":"${credId}""""))
           .withRequestBody(containing(s""""bearerToken""""))
           .withRequestBody(containing(s""""userAgentString":"AHC/2.1""""))

@@ -705,7 +705,7 @@ class EmailPasscodeControllerISpec extends BaseISpec with Eventually{
       eventually {
         verify(times, postRequestedFor(urlEqualTo("/write/audit"))
           .withRequestBody(containing(""""auditType":"PasscodeVerificationResponse""""))
-          .withRequestBody(containing(s""""outcome":"Max permitted passcode verification attempts per session has been exceeded""""))
+          .withRequestBody(containing(s""""outcome":"Max permitted passcode verification attempts have been exceeded""""))
         )
       }
     }
