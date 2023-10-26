@@ -152,7 +152,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "success" -> "false",
         "outcome" -> "SessionId missing",
         "responseCode" -> UNAUTHORIZED.toString
-      ), "HMRC Gateway - Email Verification - Send session id missing from email passcode request")
+      ), "HMRC Gateway - Email Verification - error, unauthorised, session id missing from email passcode request")
     }
   }
 
@@ -165,7 +165,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "responseCode" -> CONFLICT.toString,
         "outcome" -> "Email address already verified",
         "callingService" -> serviceName,
-      ), "HMRC Gateway - Email Verification - Send email address already verified request")
+      ), "HMRC Gateway - Email Verification - warning, conflict, email address already verified request")
     }
   }
 
@@ -181,7 +181,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "responseCode" -> FORBIDDEN.toString,
         "outcome" -> "Max permitted passcode emails per session has been exceeded",
         "callingService" -> serviceName
-      ), "HMRC Gateway - Email Verification - Send max permitted passcode emails per session has been exceeded request")
+      ), "HMRC Gateway - Email Verification - warning, forbidden, max permitted passcode emails per session has been exceeded")
     }
   }
 
@@ -195,7 +195,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "responseCode" -> FORBIDDEN.toString,
         "outcome" -> "Max permitted passcode emails per session has been exceeded",
         "callingService" -> serviceName
-      ), "HMRC Gateway - Email Verification - Send max permitted number of different email addresses per session has been exceeded")
+      ), "HMRC Gateway - Email Verification - warning, forbidden, max permitted number of different email addresses per session has been exceeded")
     }
   }
 
@@ -211,7 +211,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "responseCode" -> BAD_GATEWAY.toString,
         "outcome" -> "sendEmail request failed",
         "callingService" -> serviceName
-      ), "HMRC Gateway - Email Verification - Send passcode to email address request failed")
+      ), "HMRC Gateway - Email Verification - error, bad request or email delivery failure whilst sending a passcode to an email address")
     }
   }
 
@@ -226,7 +226,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "success" -> "true",
         "responseCode" -> OK.toString,
         "outcome" -> "Email address confirmed",
-      ), "HMRC Gateway - Email Verification - Send email address confirmed request")
+      ), "HMRC Gateway - Email Verification - passcode email verification was successful")
     }
   }
 
@@ -239,7 +239,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "success" -> "false",
         "responseCode" -> NOT_FOUND.toString,
         "outcome" -> "Email address not found or verification attempt time expired"
-      ), "HMRC Gateway - Email Verification - Send email address not found or verification attempt time expired request")
+      ), "HMRC Gateway - Email Verification - warning, email address not found or verification attempt was time expired")
     }
   }
 
@@ -254,7 +254,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "success" -> "false",
         "responseCode" -> NOT_FOUND.toString,
         "outcome" -> "Email verification passcode match not found or time expired",
-      ), "HMRC Gateway - Email Verification - Send email verification passcode match not found or time expired request")
+      ), "HMRC Gateway - Email Verification - warning, email verification passcode not found or was time expired")
     }
   }
 
@@ -267,7 +267,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "success" -> "false",
         "responseCode" -> UNAUTHORIZED.toString,
         "outcome" -> "SessionId missing",
-      ), "HMRC Gateway - Email Verification - Send session id missing from passcode verification request")
+      ), "HMRC Gateway - Email Verification - error, unauthorised, session id missing from passcode verification request")
     }
   }
 
@@ -281,8 +281,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         "sameEmailAttempts" -> emailAttempts.toString,
         "success" -> "false",
         "responseCode" -> FORBIDDEN.toString,
-        "outcome" -> "Max permitted passcode verification attempts per session has been exceeded",
-      ), "HMRC Gateway - Email Verification - Send max permitted passcode verification attempts per session has been exceeded request")
+        "outcome" -> "Max permitted passcode verification attempts have been exceeded",
+      ), "HMRC Gateway - Email Verification - warning, forbidden, max permitted passcode verification attempts per session has been exceeded")
     }
   }
 
