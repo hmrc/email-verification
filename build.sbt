@@ -5,7 +5,6 @@ ThisBuild / scalaVersion := "2.13.12"
 
 lazy val microservice = Project("email-verification", file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtDistributablesPlugin) *)
-  .settings(DefaultBuildSettings.scalaSettings *)
   .settings(DefaultBuildSettings.defaultSettings() *)
   .settings(scalafmtOnCompile := true)
   .settings(ScoverageSettings())
@@ -16,7 +15,7 @@ lazy val microservice = Project("email-verification", file("."))
     "-Wconf:src=routes/.*:s"
   ))
   .settings(
-    libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
+    libraryDependencies ++= AppDependencies(),
     retrieveManaged := true
   )
   .settings(resolvers += Resolver.jcenterRepo)
