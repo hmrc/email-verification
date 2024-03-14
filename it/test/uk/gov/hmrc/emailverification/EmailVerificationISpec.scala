@@ -23,9 +23,10 @@ import support.EmailStub._
 
 import java.util.UUID
 import org.scalatest.prop.TableDrivenPropertyChecks._
+import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.emailverification.models.Journey
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
 class EmailVerificationISpec extends BaseISpec {
   val emailToVerify = "example@domain.com"
@@ -36,11 +37,20 @@ class EmailVerificationISpec extends BaseISpec {
       (emailToVerify, "dd_email_verifcation", "https://www.tax.service.gov.uk/direct-debit/email-success"),
       (emailToVerify, "register_your_company_verification_email", "https://www.tax.service.gov.uk/register-your-company/post-sign-in"),
       (emailToVerify, "verifyEmailAddress", "https://www.tax.service.gov.uk/manage-email-cds/email-address-confirmed"),
-      (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/subscribed/amend-details/verify-email?p=${UUID.randomUUID().toString}"),
+      (emailToVerify,
+       "cgtpd_email_verification",
+       s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/subscribed/amend-details/verify-email?p=${UUID.randomUUID().toString}"
+      ),
       (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/about-person/verify-email?p=${UUID.randomUUID().toString}"),
       (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/registration/verify-email?p=${UUID.randomUUID().toString}"),
-      (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/registration/amend-details/verify-email?p=${UUID.randomUUID().toString}"),
-      (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/subscription/amend-details/verify-email?p=${UUID.randomUUID().toString}"),
+      (emailToVerify,
+       "cgtpd_email_verification",
+       s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/registration/amend-details/verify-email?p=${UUID.randomUUID().toString}"
+      ),
+      (emailToVerify,
+       "cgtpd_email_verification",
+       s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/subscription/amend-details/verify-email?p=${UUID.randomUUID().toString}"
+      ),
       (emailToVerify, "cgtpd_email_verification", s"https://www.tax.service.gov.uk/capital-gains-tax-uk-property/subscription/verify-email?p=${UUID.randomUUID().toString}"),
       (emailToVerify, "hts_verification_email", s"https://www.tax.service.gov.uk/help-to-save/email-confirmed-callback?p=${UUID.randomUUID().toString}"),
       (emailToVerify, "hts_verification_email", s"https://www.tax.service.gov.uk/help-to-save/account-home/email-confirmed-callback?p=${UUID.randomUUID().toString}"),
@@ -54,7 +64,7 @@ class EmailVerificationISpec extends BaseISpec {
 
         When("a client submits a verification request")
 
-        val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
+        val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
         response.status shouldBe 201
 
         Then("an email is sent")
@@ -66,14 +76,14 @@ class EmailVerificationISpec extends BaseISpec {
         expectEmailToBeSent()
 
         When("client submits a verification request")
-        val response1 = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
+        val response1: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
         response1.status shouldBe 201
-        val token1 = decryptedToken(lastVerificationEmail)._1.get
+        val token1: String = decryptedToken(lastVerificationEmail)._1.get
 
         When("client submits a second verification request for same email")
-        val response2 = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
+        val response2: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
         response2.status shouldBe 201
-        val token2 = decryptedToken(lastVerificationEmail)._1.get
+        val token2: String = decryptedToken(lastVerificationEmail)._1.get
 
         Then("only the last verification request token should be valid")
         await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token1))).status shouldBe 400
@@ -85,9 +95,9 @@ class EmailVerificationISpec extends BaseISpec {
         expectEmailToBeSent()
 
         When("client submits a verification request")
-        val response1 = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
+        val response1: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
         response1.status shouldBe 201
-        val token = decryptedToken(lastVerificationEmail)._1.get
+        val token: String = decryptedToken(lastVerificationEmail)._1.get
 
         Then("the verification request with the token should be successful")
         await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 201
@@ -120,17 +130,17 @@ class EmailVerificationISpec extends BaseISpec {
     "return 502 error if email sending fails" in new Setup {
       val body = "some-5xx-message"
       expectEmailServiceToRespond(500, body)
-      val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest()))
+      val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest()))
       response.status shouldBe 502
-      response.body should include(body)
+      response.body     should include(body)
     }
 
     "return BAD_EMAIL_REQUEST error if email sending fails with 400" in new Setup {
       val body = "some-400-message"
       expectEmailServiceToRespond(400, body)
-      val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest()))
+      val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest()))
       response.status shouldBe 400
-      response.body should include(body)
+      response.body     should include(body)
 
       (Json.parse(response.body) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
     }
@@ -138,22 +148,23 @@ class EmailVerificationISpec extends BaseISpec {
     "return 500 error if email sending fails with 4xx" in new Setup {
       val body = "some-4xx-message"
       expectEmailServiceToRespond(404, body)
-      val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest()))
+      val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest()))
       response.status shouldBe 502
-      response.body should include(body)
+      response.body     should include(body)
     }
 
     "return 409 if email is already verified" in new Setup {
       assumeEmailAlreadyVerified(emailToVerify)
 
-      val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify)))
+      val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify)))
       response.status shouldBe 409
       response.body shouldBe
-        Json.parse(
-          """{
+        Json
+          .parse("""{
             |"code":"EMAIL_VERIFIED_ALREADY",
             |"message":"Email has already been verified"
-            |}""".stripMargin).toString()
+            |}""".stripMargin)
+          .toString()
     }
 
     "submit multiple emails should increase the email attempts count" in new Setup {
@@ -161,21 +172,21 @@ class EmailVerificationISpec extends BaseISpec {
       expectEmailToBeSent()
 
       When("client submits two verify email requests with diff email")
-      val response = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress)))
+      val response: WSResponse = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress)))
       response.status shouldBe 201
-      val response1 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
+      val response1: WSResponse = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
       response1.status shouldBe 201
-      val response2 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress2)))
+      val response2: WSResponse = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress2)))
       response2.status shouldBe 201
-      val response3 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress3)))
+      val response3: WSResponse = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress3)))
       response3.status shouldBe 201
-      val response4 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress4)))
+      val response4: WSResponse = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress4)))
       response4.status shouldBe 201
-      val response5 = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress5)))
-      response5.status shouldBe 401 //6th fails as max different emails limit is 5
+      val response5: WSResponse = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress5)))
+      response5.status shouldBe 401 // 6th fails as max different emails limit is 5
       val eventualJourneys: Future[Seq[Journey]] = journeyRepo.findByCredId(credId)
-      val journeyId4 = await(eventualJourneys).find(_.emailAddress.contains(emailAddress4)).map(_.journeyId).getOrElse("not-found")
-      val submitEmailResponse = await(wsClient.url(appClient(s"/journey/$journeyId4/email")).post(Json.obj("email" -> emailAddress1)))
+      val journeyId4: String = await(eventualJourneys).find(_.emailAddress.contains(emailAddress4)).map(_.journeyId).getOrElse("not-found")
+      val submitEmailResponse: WSResponse = await(wsClient.url(appClient(s"/journey/$journeyId4/email")).post(Json.obj("email" -> emailAddress1)))
       submitEmailResponse.status shouldBe 403
 
       Then("verify the email retry count is incremented and status is locked")
@@ -196,11 +207,12 @@ class EmailVerificationISpec extends BaseISpec {
     val continueUrl = "http://some/url"
 
     val paramsJsonStr: String = Json.toJson(templateParams).toString()
-    val expectedVerificationLink = "http://localhost:9890/verification?token=UG85NW1OcWdjR29xS29EM1pIQ1NqMlpzOEduemZCeUhvZVlLNUVtU2c3emp2TXZzRmFRSzlIdjJBTkFWVVFRUkg1M21MRUY4VE1TWDhOZ0hMNmQ0WHRQQy95NDZCditzNHd6ZUhpcEoyblNsT3F0bGJmNEw5RnhjOU0xNlQ3Y2o1dFdYVUE0NGFSUElURFRrSS9HRHhoTFZxdU9YRkw4OTZ4Z0tOTWMvQTJJd1ZqR3NJZ0pTNjRJNVRUc2RpcFZ1MjdOV1dhNUQ3OG9ITkVlSGJnaUJyUT09"
+    val expectedVerificationLink =
+      "http://localhost:9890/verification?token=UG85NW1OcWdjR29xS29EM1pIQ1NqMlpzOEduemZCeUhvZVlLNUVtU2c3emp2TXZzRmFRSzlIdjJBTkFWVVFRUkg1M21MRUY4VE1TWDhOZ0hMNmQ0WHRQQy95NDZCditzNHd6ZUhpcEoyblNsT3F0bGJmNEw5RnhjOU0xNlQ3Y2o1dFdYVUE0NGFSUElURFRrSS9HRHhoTFZxdU9YRkw4OTZ4Z0tOTWMvQTJJd1ZqR3NJZ0pTNjRJNVRUc2RpcFZ1MjdOV1dhNUQ3OG9ITkVlSGJnaUJyUT09"
     val paramsWithVerificationLink: Map[String, String] = templateParams + ("verificationLink" -> expectedVerificationLink)
 
     val passcode = "FGTRWX"
-    val credId = UUID.randomUUID().toString
+    val credId: String = UUID.randomUUID().toString
     val origin = "ppt"
     val emailAddress = "barrywood@hotmail.com"
     val emailAddress1 = "barrywood1@hotmail.com"
@@ -210,9 +222,9 @@ class EmailVerificationISpec extends BaseISpec {
     val emailAddress5 = "barrywood5@hotmail.com"
     val emailAddress6 = "barrywood6@hotmail.com"
 
-    val ec = scala.concurrent.ExecutionContext.global
+    val ec: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
 
-    def verifyEmailRequestJson(emailAddr: String) : JsValue = {
+    def verifyEmailRequestJson(emailAddr: String): JsValue = {
       Json.parse(s"""{
                     |  "credId": "$credId",
                     |  "continueUrl": "$continueUrl",

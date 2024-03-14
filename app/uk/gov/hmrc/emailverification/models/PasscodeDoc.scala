@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.emailverification.models
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{Format, Json, OFormat}
+
 import java.time.Instant
 
 case class PasscodeDoc(sessionId: String, email: String, passcode: String, expireAt: Instant, passcodeAttempts: Int, emailAttempts: Int)
 
 object PasscodeDoc {
   implicit val dateTimeFormats: Format[Instant] = uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.instantFormat
-  implicit val format = Json.format[PasscodeDoc]
+  implicit val format: OFormat[PasscodeDoc] = Json.format[PasscodeDoc]
 }

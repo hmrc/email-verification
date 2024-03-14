@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.emailverification.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OWrites}
 
 case class SendEmailRequest(to: Seq[String], templateId: String, parameters: Map[String, String])
 
 object SendEmailRequest {
-  implicit val writes = Json.writes[SendEmailRequest]
+  implicit val writes: OWrites[SendEmailRequest] = Json.writes[SendEmailRequest]
 }

@@ -29,31 +29,37 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class VerifiedEmailMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
-  extends PlayMongoRepository[VerifiedEmail](
-    collectionName = "verifiedEmail",
-    mongoComponent = mongoComponent,
-    domainFormat   = VerifiedEmail.format,
-    indexes        = Seq(IndexModel(Indexes.ascending("email"), IndexOptions().name("emailUnique").unique(true))),
-    replaceIndexes = false
-  ) {
+    extends PlayMongoRepository[VerifiedEmail](
+      collectionName = "verifiedEmail",
+      mongoComponent = mongoComponent,
+      domainFormat = VerifiedEmail.format,
+      indexes = Seq(IndexModel(Indexes.ascending("email"), IndexOptions().name("emailUnique").unique(true))),
+      replaceIndexes = false
+    ) {
 
   def isVerified(email: String): Future[Boolean] = find(email).map(_.isDefined)
 
   def find(email: String): Future[Option[VerifiedEmail]] =
-    collection.find(Filters.equal("email", email))
+    collection
+      .find(Filters.equal("email", email))
       .headOption()
 
   def insert(email: String): Future[Unit] =
-    collection.insertOne(VerifiedEmail(email))
+    collection
+      .insertOne(VerifiedEmail(email))
       .headOption()
       .map(_ => ())
 
-  //GG-6795 - remove after emails migrated
+  // GG-6795 - remove after emails migrated
   def getBatch(from: Int, batchSize: Int): Future[Seq[(VerifiedEmail, Instant)]] = {
-    mongoComponent.database.getCollection("verifiedEmail").find()
+    mongoComponent.database
+      .getCollection("verifiedEmail")
+      .find()
       .skip(from)
       .limit(batchSize)
-      .collect().toFuture().map(_.map{ doc =>
+      .collect()
+      .toFuture()
+      .map(_.map { doc =>
         val id = doc.get[BsonObjectId]("_id").getOrElse(throw new RuntimeException("verifiedEmail document should have '_id' field"))
         val email = doc.get[BsonString]("email").getOrElse(throw new RuntimeException("verifiedEmail document should have 'email' field"))
         (VerifiedEmail(email.getValue), Instant.ofEpochSecond(id.getValue.getTimestamp))

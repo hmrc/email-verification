@@ -16,25 +16,26 @@
 
 package uk.gov.hmrc.emailverification.models
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{Format, Json, OFormat}
+
 import java.time.Instant
 
 case class Journey(
-    journeyId:                 String,
-    credId:                    String,
-    continueUrl:               String,
-    origin:                    String,
-    accessibilityStatementUrl: String,
-    serviceName:               String,
-    language:                  Language,
-    emailAddress:              Option[String],
-    enterEmailUrl:             Option[String],
-    backUrl:                   Option[String],
-    pageTitle:                 Option[String],
-    passcode:                  String,
-    emailAddressAttempts:      Int,
-    passcodesSentToEmail:      Int,
-    passcodeAttempts:          Int
+  journeyId: String,
+  credId: String,
+  continueUrl: String,
+  origin: String,
+  accessibilityStatementUrl: String,
+  serviceName: String,
+  language: Language,
+  emailAddress: Option[String],
+  enterEmailUrl: Option[String],
+  backUrl: Option[String],
+  pageTitle: Option[String],
+  passcode: String,
+  emailAddressAttempts: Int,
+  passcodesSentToEmail: Int,
+  passcodeAttempts: Int
 ) {
   def frontendData: JourneyData = JourneyData(
     accessibilityStatementUrl,
@@ -48,5 +49,5 @@ case class Journey(
 
 object Journey {
   implicit val dateTimeFormats: Format[Instant] = uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.instantFormat
-  implicit val format = Json.format[Journey]
+  implicit val format: OFormat[Journey] = Json.format[Journey]
 }

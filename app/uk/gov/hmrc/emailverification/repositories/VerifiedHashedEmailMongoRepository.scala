@@ -35,16 +35,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class VerifiedHashedEmailMongoRepository @Inject() (mongoComponent: MongoComponent, appConfig: AppConfig)(implicit ec: ExecutionContext)
-  extends PlayMongoRepository[VerifiedHashedEmail](
-    collectionName = "verifiedHashedEmail",
-    mongoComponent = mongoComponent,
-    domainFormat   = VerifiedHashedEmail.format,
-    indexes        = Seq(
-      IndexModel(Indexes.ascending("hashedEmail"), IndexOptions().name("emailUnique").unique(true)),
-      IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl").expireAfter(appConfig.verifiedEmailRepoTTLDays, TimeUnit.DAYS))
-    ),
-    replaceIndexes = appConfig.verifiedEmailRepoReplaceIndex
-  ) with Logging {
+    extends PlayMongoRepository[VerifiedHashedEmail](
+      collectionName = "verifiedHashedEmail",
+      mongoComponent = mongoComponent,
+      domainFormat = VerifiedHashedEmail.format,
+      indexes = Seq(
+        IndexModel(Indexes.ascending("hashedEmail"), IndexOptions().name("emailUnique").unique(true)),
+        IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl").expireAfter(appConfig.verifiedEmailRepoTTLDays, TimeUnit.DAYS))
+      ),
+      replaceIndexes = appConfig.verifiedEmailRepoReplaceIndex
+    )
+    with Logging {
 
   private val hasher: Sha512Crypto = OnewayCryptoFactory.sha(appConfig.verifiedEmailRepoHashKey)
 
@@ -53,20 +54,22 @@ class VerifiedHashedEmailMongoRepository @Inject() (mongoComponent: MongoCompone
   def isVerified(email: String): Future[Boolean] = find(email).map(_.isDefined)
 
   def find(email: String): Future[Option[VerifiedEmail]] =
-    collection.find(Filters.equal("hashedEmail", hashEmail(email)))
-      .headOption().map(_.map(_ => VerifiedEmail(email)))
+    collection
+      .find(Filters.equal("hashedEmail", hashEmail(email)))
+      .headOption()
+      .map(_.map(_ => VerifiedEmail(email)))
 
   def insert(email: String): Future[Unit] =
-    collection.insertOne(VerifiedHashedEmail(hashEmail(email)))
+    collection
+      .insertOne(VerifiedHashedEmail(hashEmail(email)))
       .headOption()
       .map(_ => ())
 
   // GG-6759 - remove after emails migrated
   def insertBatch(emailsWithCreatedAt: Seq[(VerifiedEmail, Instant)]): Future[Int] = {
-    val hashedEmails = emailsWithCreatedAt.map {
-      case (verifiedEmail, createdAt) => VerifiedHashedEmail(hashEmail(verifiedEmail.email.toLowerCase), createdAt)
-    }
-    collection.bulkWrite(hashedEmails.map(InsertOneModel(_)), BulkWriteOptions().ordered(false))
+    val hashedEmails = emailsWithCreatedAt.map { case (verifiedEmail, createdAt) => VerifiedHashedEmail(hashEmail(verifiedEmail.email.toLowerCase), createdAt) }
+    collection
+      .bulkWrite(hashedEmails.map(InsertOneModel(_)), BulkWriteOptions().ordered(false))
       .toFuture()
       .map(_.getInsertedCount)
       .recover {

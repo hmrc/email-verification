@@ -24,12 +24,14 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
 
   "simple string configuration values" should {
 
-    "be available when configuration is defined" in new Setup(Map(
-      "platform.frontend.host" -> "some-host",
-      "microservice.services.email.path" -> "some-path"
-    )) {
+    "be available when configuration is defined" in new Setup(
+      Map(
+        "platform.frontend.host"           -> "some-host",
+        "microservice.services.email.path" -> "some-path"
+      )
+    ) {
       appConfig.platformFrontendHost shouldBe "some-host"
-      appConfig.emailServicePath shouldBe "some-path"
+      appConfig.emailServicePath     shouldBe "some-path"
     }
 
     "throw exceptions when configuration not defined" in new Setup() {

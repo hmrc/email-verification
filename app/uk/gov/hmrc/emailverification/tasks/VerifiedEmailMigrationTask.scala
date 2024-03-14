@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.emailverification.tasks
 
-import akka.actor.ActorSystem
 import config.AppConfig
+import org.apache.pekko.actor.ActorSystem
 import play.api.Logging
 import uk.gov.hmrc.emailverification.services.VerifiedEmailService
 import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
@@ -28,11 +28,12 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration, MINUTES}
 
 @Singleton
 class VerifiedEmailMigrationTask @Inject() (
-    verifiedEmailService: VerifiedEmailService,
-    lockRepo:             MongoLockRepository,
-    system:               ActorSystem,
-    config:               AppConfig
-)(implicit ec: ExecutionContext) extends Logging {
+  verifiedEmailService: VerifiedEmailService,
+  lockRepo: MongoLockRepository,
+  system: ActorSystem,
+  config: AppConfig
+)(implicit ec: ExecutionContext)
+    extends Logging {
 
   val taskName = "verified-email-migration-task"
 
@@ -41,18 +42,19 @@ class VerifiedEmailMigrationTask @Inject() (
     val startDelayDuration = FiniteDuration(startDelayMinutes, MINUTES)
     val lockService = LockService(lockRepo, lockId = taskName, ttl = 10.minutes)
 
-    lockService.withLock {
-      logger.info(s"[GG-6759] mongo lock acquired for $taskName")
-      system.scheduler.scheduleOnce(startDelayDuration) {
-        verifiedEmailService.migrateEmailAddresses()
+    lockService
+      .withLock {
+        logger.info(s"[GG-6759] mongo lock acquired for $taskName")
+        system.scheduler.scheduleOnce(startDelayDuration) {
+          verifiedEmailService.migrateEmailAddresses()
+        }
+        Future.unit
       }
-      Future.unit
-    }.map {
-      case Some(_) => logger.info(s"[GG-6759] $taskName scheduled to start after ${startDelayDuration.toCoarsest}, mongo lock released.")
-      case None    => logger.info(s"[GG-6759] Failed to acquire mongo lock for $taskName")
-    }.recover {
-      case e: Exception => logger.error(s"[GG-6759] Failed to run $taskName", e)
-    }
+      .map {
+        case Some(_) => logger.info(s"[GG-6759] $taskName scheduled to start after ${startDelayDuration.toCoarsest}, mongo lock released.")
+        case None    => logger.info(s"[GG-6759] Failed to acquire mongo lock for $taskName")
+      }
+      .recover { case e: Exception => logger.error(s"[GG-6759] Failed to run $taskName", e) }
 
   } else {
     logger.info(s"[GG-6759] $taskName disabled")

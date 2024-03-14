@@ -33,8 +33,8 @@ class AppConfig @Inject() (val config: Configuration) {
 
   private def getString(key: String) = config.get[String](key)
 
-  lazy val maxPasscodeAttempts: Int = config.get[Int]("maxPasscodeAttempts") //passcode guess attempts
-  lazy val maxAttemptsPerEmail: Int = config.get[Int]("maxEmailAttempts") //passcodes emailed to same address
+  lazy val maxPasscodeAttempts: Int = config.get[Int]("maxPasscodeAttempts") // passcode guess attempts
+  lazy val maxAttemptsPerEmail: Int = config.get[Int]("maxEmailAttempts") // passcodes emailed to same address
   lazy val maxDifferentEmails: Int = config.get[Int]("maxDifferentEmails")
   lazy val verificationStatusRepositoryTtl: Duration = config.get[Duration]("verificationStatusRepositoryTtl")
 
@@ -42,7 +42,7 @@ class AppConfig @Inject() (val config: Configuration) {
   lazy val verifiedEmailRepoReplaceIndex: Boolean = config.get[Boolean]("verifiedEmailRepo.replaceIndex")
   lazy val verifiedEmailRepoTTLDays: Int = config.get[Int]("verifiedEmailRepo.ttlDays")
 
-  //GG-6759 remove after email migration..
+  // GG-6759 remove after email migration..
   lazy val emailMigrationEnabled: Boolean = config.get[Boolean]("emailMigration.enabled")
   lazy val emailMigrationStartAfterMinutes: Int = config.get[Int]("emailMigration.startAfterMinutes")
   lazy val emailMigrationBatchSize: Int = config.get[Int]("emailMigration.batchSize")
@@ -54,4 +54,3 @@ class AppConfig @Inject() (val config: Configuration) {
   lazy val verifiedEmailUpdateCollection: WhichToUse = WhichToUse.forCollectionToUpdate(config.get[String]("verifiedEmailUpdateCollection"))
 
 }
-

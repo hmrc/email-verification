@@ -46,15 +46,13 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         "passcode",
         1,
         passcodesSentToEmail = 1,
-        passcodeAttempts     = 0
+        passcodeAttempts = 0
       )
 
-      whenReady(repository.initialise(testJourney)){ value =>
+      whenReady(repository.initialise(testJourney)) { value =>
         whenReady(repository.recordPasscodeAttempt(journeyId)) { journey =>
           journey shouldBe Some(testJourney)
-          whenReady(repository.get(journeyId)) { journey =>
-            journey shouldBe Some(testJourney.copy(passcodeAttempts = 1))
-          }
+          whenReady(repository.get(journeyId))(journey => journey shouldBe Some(testJourney.copy(passcodeAttempts = 1)))
         }
       }
     }
@@ -79,13 +77,11 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         "passcode",
         1,
         passcodesSentToEmail = 1,
-        passcodeAttempts     = 0
+        passcodeAttempts = 0
       )
 
-      whenReady(repository.initialise(testJourney)){ value =>
-        whenReady(repository.submitEmail(journeyId, email)) { journey =>
-          journey shouldBe Some(testJourney.copy(passcodesSentToEmail = 2))
-        }
+      whenReady(repository.initialise(testJourney)) { value =>
+        whenReady(repository.submitEmail(journeyId, email))(journey => journey shouldBe Some(testJourney.copy(passcodesSentToEmail = 2)))
       }
     }
     "reset the passcodesSentToEmail value and increment the maxDifferentEmailsValue" in {
@@ -108,12 +104,12 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         "passcode",
         1,
         passcodesSentToEmail = 1,
-        passcodeAttempts     = 0
+        passcodeAttempts = 0
       )
 
-      whenReady(repository.initialise(testJourney)){ value =>
+      whenReady(repository.initialise(testJourney)) { value =>
         whenReady(repository.submitEmail(journeyId, someOtherEmail)) { journey =>
-          journey shouldBe Some(testJourney.copy(emailAddress         = Some(someOtherEmail), passcodesSentToEmail = 1, emailAddressAttempts = 2))
+          journey shouldBe Some(testJourney.copy(emailAddress = Some(someOtherEmail), passcodesSentToEmail = 1, emailAddressAttempts = 2))
         }
       }
     }
@@ -137,7 +133,7 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
       "passcode",
       1,
       passcodesSentToEmail = 1,
-      passcodeAttempts     = 0
+      passcodeAttempts = 0
     )
     val testJourney2 = testJourney1.copy(journeyId = "journeyId2")
     val testJourney3 = testJourney1.copy(journeyId = "journeyId3", credId = "credId2")
@@ -155,8 +151,8 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
     journeys.contains(testJourney4) shouldBe true
   }
 
-  override def beforeEach() = {
+  override def beforeEach(): Unit = {
     super.beforeEach()
-    await(repository.ensureIndexes)
+    await(repository.ensureIndexes())
   }
 }

@@ -19,9 +19,9 @@ package uk.gov.hmrc.emailverification.models
 import play.api.libs.json.{Json, Writes}
 
 case class CompletedEmail(
-    emailAddress: String,
-    verified:     Boolean,
-    locked:       Boolean
+  emailAddress: String,
+  verified: Boolean,
+  locked: Boolean
 )
 
 object CompletedEmail {

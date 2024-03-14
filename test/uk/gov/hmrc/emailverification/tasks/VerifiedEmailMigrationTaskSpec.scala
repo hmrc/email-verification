@@ -16,15 +16,17 @@
 
 package uk.gov.hmrc.emailverification.tasks
 
-import akka.actor.{ActorSystem, Cancellable, Scheduler}
 import config.AppConfig
+import org.apache.pekko.actor.{ActorSystem, Cancellable, Scheduler}
 import org.scalatest.concurrent.Eventually
 import play.api.Logger
 import uk.gov.hmrc.emailverification.models.MigrationResultCollector
 import uk.gov.hmrc.emailverification.services.VerifiedEmailService
 import uk.gov.hmrc.gg.test.{LogCapturing, UnitSpec}
-import uk.gov.hmrc.mongo.lock.MongoLockRepository
+import uk.gov.hmrc.mongo.lock.{Lock, MongoLockRepository}
 
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
@@ -35,7 +37,12 @@ class VerifiedEmailMigrationTaskSpec extends UnitSpec with LogCapturing with Eve
     "obtain mongo lock and call verified email service migrateEmailAddresses()" in new Setup {
       withCaptureOfLoggingFrom(Logger(Class.forName("uk.gov.hmrc.emailverification.tasks.VerifiedEmailMigrationTask"))) { logs =>
         when(mockConfig.emailMigrationEnabled).thenReturn(true)
-        when(mockMongoLockRepo.takeLock(*, *, *)).thenReturn(Future.successful(true))
+//        when(mockMongoLockRepo.takeLock(*, *, *)).thenReturn(Future.successful(true))
+
+        when(mockMongoLockRepo.takeLock(*, *, *)).thenReturn(Future.successful(Some(Lock("id", "owner", Instant.now(), Instant.now().plus(5, ChronoUnit.MINUTES)))))
+
+//        when(mockMongoLockRepo.takeLock(*, *, *)).thenReturn(Future[Option[new Lock]])
+
         when(mockMongoLockRepo.releaseLock(*, *)).thenReturn(Future.unit)
         when(mockConfig.emailMigrationStartAfterMinutes).thenReturn(0)
         when(mockActorSystem.scheduler).thenReturn(myScheduler)
@@ -54,7 +61,9 @@ class VerifiedEmailMigrationTaskSpec extends UnitSpec with LogCapturing with Eve
       withCaptureOfLoggingFrom(Logger(Class.forName("uk.gov.hmrc.emailverification.tasks.VerifiedEmailMigrationTask"))) { logs =>
         when(mockConfig.emailMigrationEnabled).thenReturn(true)
         when(mockConfig.emailMigrationStartAfterMinutes).thenReturn(0)
-        when(mockMongoLockRepo.takeLock(*, *, *)).thenReturn(Future.successful(false))
+//        when(mockMongoLockRepo.takeLock(*, *, *)).thenReturn(Future.successful(false))
+
+        when(mockMongoLockRepo.takeLock(*, *, *)).thenReturn(Future.successful(None))
 
         new VerifiedEmailMigrationTask(mockVerifiedEmailService, mockMongoLockRepo, mockActorSystem, mockConfig)
         eventually {
@@ -92,11 +101,12 @@ class VerifiedEmailMigrationTaskSpec extends UnitSpec with LogCapturing with Eve
   }
 
   trait Setup {
-    val mockVerifiedEmailService = mock[VerifiedEmailService]
-    val mockMongoLockRepo = mock[MongoLockRepository]
-    val mockActorSystem = mock[ActorSystem]
-    val mockScheduler = mock[Scheduler]
-    val myScheduler = new Scheduler() {
+    val mockVerifiedEmailService: VerifiedEmailService = mock[VerifiedEmailService]
+    val mockMongoLockRepo: MongoLockRepository = mock[MongoLockRepository]
+    val mockLock: Lock = mock[Lock]
+    val mockActorSystem: ActorSystem = mock[ActorSystem]
+    val mockScheduler: Scheduler = mock[Scheduler]
+    val myScheduler: Scheduler = new Scheduler() {
       override def schedule(initialDelay: FiniteDuration, interval: FiniteDuration, runnable: Runnable)(implicit executor: ExecutionContext): Cancellable = ???
       override def scheduleOnce(delay: FiniteDuration, runnable: Runnable)(implicit executor: ExecutionContext): Cancellable = {
         runnable.run()
@@ -104,7 +114,7 @@ class VerifiedEmailMigrationTaskSpec extends UnitSpec with LogCapturing with Eve
       }
       override def maxFrequency: Double = ???
     }
-    val mockConfig = mock[AppConfig]
+    val mockConfig: AppConfig = mock[AppConfig]
   }
 
 }

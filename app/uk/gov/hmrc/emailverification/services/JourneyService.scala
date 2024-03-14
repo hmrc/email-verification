@@ -29,21 +29,22 @@ import uk.gov.hmrc.http.HeaderCarrier
 import scala.concurrent.{ExecutionContext, Future}
 
 class JourneyService @Inject() (
-    emailService:                 EmailService,
-    passcodeGenerator:            PasscodeGenerator,
-    journeyRepository:            JourneyRepository,
-    verificationStatusRepository: VerificationStatusRepository,
-    config:                       AppConfig
-)(implicit ec: ExecutionContext) extends Logging {
+  emailService: EmailService,
+  passcodeGenerator: PasscodeGenerator,
+  journeyRepository: JourneyRepository,
+  verificationStatusRepository: VerificationStatusRepository,
+  config: AppConfig
+)(implicit ec: ExecutionContext)
+    extends Logging {
 
-  //return the url on email-verification-frontend for the next step/
-  //Only sends email if we have an email address to send to, otherwise will send when user comes back from frontend with
-  //an email address
+  // return the url on email-verification-frontend for the next step/
+  // Only sends email if we have an email address to send to, otherwise will send when user comes back from frontend with
+  // an email address
   def initialise(verifyEmailRequest: VerifyEmailRequest)(implicit hc: HeaderCarrier): Future[String] = {
 
-      def createQueryParams(continueUrl: String, origin: String): String =
-        s"continueUrl=$continueUrl" +
-          s"&origin=$origin"
+    def createQueryParams(continueUrl: String, origin: String): String =
+      s"continueUrl=$continueUrl" +
+        s"&origin=$origin"
 
     val passcode = passcodeGenerator.generate()
     val journeyId = UUID.randomUUID().toString
@@ -51,38 +52,37 @@ class JourneyService @Inject() (
     val emailAddressAttempts = if (verifyEmailRequest.email.isDefined) 1 else 0
 
     val journey = Journey(
-      journeyId                 = journeyId,
-      credId                    = verifyEmailRequest.credId,
-      continueUrl               = verifyEmailRequest.continueUrl,
-      origin                    = verifyEmailRequest.origin,
+      journeyId = journeyId,
+      credId = verifyEmailRequest.credId,
+      continueUrl = verifyEmailRequest.continueUrl,
+      origin = verifyEmailRequest.origin,
       accessibilityStatementUrl = verifyEmailRequest.accessibilityStatementUrl,
-      serviceName               = getTeamNameLabel(verifyEmailRequest),
-      language                  = verifyEmailRequest.lang.getOrElse(English),
-      emailAddress              = verifyEmailRequest.email.map(_.address),
-      enterEmailUrl             = verifyEmailRequest.email.map(_.enterUrl),
-      backUrl                   = verifyEmailRequest.backUrl,
-      pageTitle                 = getPageTitleLabel(verifyEmailRequest),
-      passcode                  = passcode,
-      emailAddressAttempts      = emailAddressAttempts,
-      passcodesSentToEmail      = 0,
-      passcodeAttempts          = 0
+      serviceName = getTeamNameLabel(verifyEmailRequest),
+      language = verifyEmailRequest.lang.getOrElse(English),
+      emailAddress = verifyEmailRequest.email.map(_.address),
+      enterEmailUrl = verifyEmailRequest.email.map(_.enterUrl),
+      backUrl = verifyEmailRequest.backUrl,
+      pageTitle = getPageTitleLabel(verifyEmailRequest),
+      passcode = passcode,
+      emailAddressAttempts = emailAddressAttempts,
+      passcodesSentToEmail = 0,
+      passcodeAttempts = 0
     )
     for {
       _ <- journeyRepository.initialise(journey)
       _ <- journey.emailAddress.fold(Future.unit)(saveEmailAndSendPasscode(_, journey))
-    } yield if (verifyEmailRequest.email.isEmpty) {
-      s"/email-verification/journey/$journeyId/email?" +
-        createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin)
-    } else {
-      s"/email-verification/journey/$journeyId/passcode?" +
-        createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin)
-    }
+    } yield
+      if (verifyEmailRequest.email.isEmpty) {
+        s"/email-verification/journey/$journeyId/email?" +
+          createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin)
+      } else {
+        s"/email-verification/journey/$journeyId/passcode?" +
+          createQueryParams(verifyEmailRequest.continueUrl, verifyEmailRequest.origin)
+      }
   }
 
   private def saveEmailAndSendPasscode(email: String, journey: Journey)(implicit hc: HeaderCarrier): Future[Unit] = {
-    verificationStatusRepository.initialise(journey.credId, email).flatMap { _ =>
-      emailService.sendPasscodeEmail(email, journey.passcode, journey.serviceName, journey.language)
-    }
+    verificationStatusRepository.initialise(journey.credId, email).flatMap(_ => emailService.sendPasscodeEmail(email, journey.passcode, journey.serviceName, journey.language))
   }
 
   def checkIfEmailExceedsCount(credId: String, emailAddress: String): Future[Boolean] = {
@@ -100,7 +100,9 @@ class JourneyService @Inject() (
       val includeNewEmail = if (journeys.flatMap(_.emailAddress).contains(emailAddress)) 0 else 1
       val sumOfEmailAttemptsInJourneys = journeys.distinctBy(journey => journey.emailAddress).map(journey => journey.emailAddressAttempts).sum + includeNewEmail
       if (sumOfEmailAttemptsInJourneys > config.maxDifferentEmails || sumOfPasscodesSentToSameEmail > config.maxAttemptsPerEmail) {
-        logger.info(s"[GG-6678] either too many emails or too many passcodes to credId: $credId, the passcodes sent to email: $sumOfPasscodesSentToSameEmail, the different emails tried: $sumOfEmailAttemptsInJourneys")
+        logger.info(
+          s"[GG-6678] either too many emails or too many passcodes to credId: $credId, the passcodes sent to email: $sumOfPasscodesSentToSameEmail, the different emails tried: $sumOfEmailAttemptsInJourneys"
+        )
         Future.successful(true)
       } else {
         Future.successful(false)
@@ -114,19 +116,21 @@ class JourneyService @Inject() (
 
   def submitEmail(journeyId: String, email: String)(implicit hc: HeaderCarrier): Future[EmailUpdateResult] = {
     journeyRepository.submitEmail(journeyId, email).flatMap {
-      case Some(journey) => journeyRepository.findByCredId(journey.credId).flatMap{
-        journeys =>
+      case Some(journey) =>
+        journeyRepository.findByCredId(journey.credId).flatMap { journeys =>
           val sumOfEmailAttempts = journeys.map(journey => journey.emailAddressAttempts).sum
           val sumOfPasscodesSentToSameEmail = journeys.filter(journey => journey.emailAddress.contains(email)).map(journey => journey.passcodesSentToEmail).sum
           if (sumOfEmailAttempts > config.maxDifferentEmails || sumOfPasscodesSentToSameEmail > config.maxAttemptsPerEmail) {
-            logger.info(s"[GG-6678] journey with journeyId: $journeyId has too many max different emails or too many passcodes sent to same email, passcodes sent to email: $sumOfPasscodesSentToSameEmail, different emails tried: $sumOfEmailAttempts")
+            logger.info(
+              s"[GG-6678] journey with journeyId: $journeyId has too many max different emails or too many passcodes sent to same email, passcodes sent to email: $sumOfPasscodesSentToSameEmail, different emails tried: $sumOfEmailAttempts"
+            )
             val result = EmailUpdateResult.TooManyAttempts(journey.continueUrl)
             journey.emailAddress match {
               case Some(email) => verificationStatusRepository.lock(journey.credId, email).map(_ => result)
               case None        => Future.successful(result)
             }
           } else saveEmailAndSendPasscode(email, journey).map(_ => EmailUpdateResult.Accepted)
-      }
+        }
       case None =>
         Future.successful(EmailUpdateResult.JourneyNotFound)
     }
@@ -149,12 +153,14 @@ class JourneyService @Inject() (
       case Some(journey) =>
         journey.emailAddress match {
           case Some(email) =>
-            emailService.sendPasscodeEmail(
-              email,
-              journey.passcode,
-              journey.serviceName,
-              journey.language
-            ).map(_ => ResendPasscodeResult.PasscodeResent)
+            emailService
+              .sendPasscodeEmail(
+                email,
+                journey.passcode,
+                journey.serviceName,
+                journey.language
+              )
+              .map(_ => ResendPasscodeResult.PasscodeResent)
           case None =>
             Future.successful(ResendPasscodeResult.NoEmailProvided)
         }
@@ -167,14 +173,10 @@ class JourneyService @Inject() (
     journeyRepository.recordPasscodeAttempt(journeyId).flatMap {
       case Some(journey) if journey.passcodeAttempts >= config.maxPasscodeAttempts =>
         val email = journey.emailAddress.getOrElse(throw new IllegalStateException(s"cannot lock email address for credId $credId as no email address found"))
-        verificationStatusRepository.lock(credId, email).map { _ =>
-          PasscodeValidationResult.TooManyAttempts(journey.continueUrl)
-        }
+        verificationStatusRepository.lock(credId, email).map(_ => PasscodeValidationResult.TooManyAttempts(journey.continueUrl))
       case Some(journey) if journey.passcode == passcode =>
         val email = journey.emailAddress.getOrElse(throw new IllegalStateException(s"cannot complete journey $journeyId as there is no email address"))
-        verificationStatusRepository.verify(credId, email).map { _ =>
-          PasscodeValidationResult.Complete(journey.continueUrl)
-        }
+        verificationStatusRepository.verify(credId, email).map(_ => PasscodeValidationResult.Complete(journey.continueUrl))
       case Some(journey) =>
         Future.successful(PasscodeValidationResult.IncorrectPasscode(journey.frontendData))
       case None =>
@@ -182,9 +184,10 @@ class JourneyService @Inject() (
     }
   }
 
-  //returns email addresses that are verified or locked
+  // returns email addresses that are verified or locked
   def findCompletedEmails(credId: String): Future[Seq[CompletedEmail]] = {
-    verificationStatusRepository.retrieve(credId)
+    verificationStatusRepository
+      .retrieve(credId)
       .map(
         _.collect {
           case VerificationStatus(email, verified, locked) if verified | locked =>

@@ -38,9 +38,7 @@ object ForwardUrl {
   implicit val writes: Writes[ForwardUrl] = (url: ForwardUrl) => JsString(url.url)
 
   private def validate(potentialUrl: String, appConfig: AppConfig): Either[String, ForwardUrl] = {
-    Try(new URI(potentialUrl)).map {
-      uri => Right(ForwardUrl(uri.toString))
-    }.getOrElse(Left("URL could not be parsed"))
+    Try(new URI(potentialUrl)).map(uri => Right(ForwardUrl(uri.toString))).getOrElse(Left("URL could not be parsed"))
   }
 
 }

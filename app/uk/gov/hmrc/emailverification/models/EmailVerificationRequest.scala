@@ -21,11 +21,11 @@ import play.api.libs.json.{Json, Reads}
 import java.time.Duration
 
 case class EmailVerificationRequest(
-    email:              String,
-    templateId:         String,
-    templateParameters: Option[Map[String, String]],
-    linkExpiryDuration: Duration,
-    continueUrl:        ForwardUrl
+  email: String,
+  templateId: String,
+  templateParameters: Option[Map[String, String]],
+  linkExpiryDuration: Duration,
+  continueUrl: ForwardUrl
 )
 
 object EmailVerificationRequest {

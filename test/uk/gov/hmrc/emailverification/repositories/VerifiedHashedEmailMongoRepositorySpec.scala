@@ -46,7 +46,7 @@ class VerifiedHashedEmailMongoRepositorySpec extends RepositoryBaseSpec {
     }
 
     "blow up if the email already exists" in {
-      await(repository.ensureIndexes)
+      await(repository.ensureIndexes())
       await(repository.insert(email))
       val result = intercept[MongoException](await(repository.insert(email)))
       result.getCode shouldBe 11000
@@ -57,7 +57,7 @@ class VerifiedHashedEmailMongoRepositorySpec extends RepositoryBaseSpec {
       await(repository.insert(email))
       await(repository.insert(anotherEmail))
 
-      repository.find(email).futureValue shouldBe Some(VerifiedEmail(email))
+      repository.find(email).futureValue        shouldBe Some(VerifiedEmail(email))
       repository.find(anotherEmail).futureValue shouldBe Some(VerifiedEmail(anotherEmail))
     }
 
@@ -91,8 +91,11 @@ class VerifiedHashedEmailMongoRepositorySpec extends RepositoryBaseSpec {
 
   "ensureIndexes" should {
     "verify indexes exist" in {
-      await(repository.ensureIndexes)
-      val indexes = repository.collection.listIndexes().toFuture().futureValue
+      await(repository.ensureIndexes())
+      val indexes = repository.collection
+        .listIndexes()
+        .toFuture()
+        .futureValue
         .map(_.toBsonDocument)
         .filter(_.get("name") == BsonString("emailUnique"))
         .filter(_.get("key").toString.contains("hashedEmail"))
@@ -103,7 +106,7 @@ class VerifiedHashedEmailMongoRepositorySpec extends RepositoryBaseSpec {
 
   "insertBatch" should {
     "Add a number of hashed verified email records" in {
-      val emails = (0 to 9).map(emailWithNumber(_))
+      val emails = (0 to 9).map(emailWithNumber)
       emails.map(email => await(repository.find(email)) shouldBe None)
       val verifiedEmails = emails.map(email => (VerifiedEmail(email), Instant.now()))
       val insertedCount = await(repository.insertBatch(verifiedEmails))
@@ -112,13 +115,13 @@ class VerifiedHashedEmailMongoRepositorySpec extends RepositoryBaseSpec {
     }
 
     "Add a number of hashed verified email records, where one already exists" in {
-      await(repository.ensureIndexes)
-      val emails = (0 to 9).map(emailWithNumber(_))
+      await(repository.ensureIndexes())
+      val emails = (0 to 9).map(emailWithNumber)
       emails.map(email => await(repository.find(email)) shouldBe None)
 
       await(repository.insert(emailWithNumber(5)))
       await(repository.find(emailWithNumber(5))) shouldBe defined
-      Thread.sleep(500) //allow time for index update
+      Thread.sleep(500) // allow time for index update
 
       val verifiedEmails = emails.map(email => (VerifiedEmail(email), Instant.now()))
       val insertedCount = await(repository.insertBatch(verifiedEmails))
@@ -126,8 +129,8 @@ class VerifiedHashedEmailMongoRepositorySpec extends RepositoryBaseSpec {
       emails.map(email => await(repository.find(email)) shouldBe Some(VerifiedEmail(email)))
     }
   }
-  override def beforeEach() = {
+  override def beforeEach(): Unit = {
     super.beforeEach()
-    await(repository.ensureIndexes)
+    await(repository.ensureIndexes())
   }
 }

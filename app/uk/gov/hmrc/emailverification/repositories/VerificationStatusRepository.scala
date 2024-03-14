@@ -42,57 +42,71 @@ trait VerificationStatusRepository {
 
 @Singleton
 class VerificationStatusMongoRepository @Inject() (mongoComponent: MongoComponent, config: AppConfig)(implicit ec: ExecutionContext)
-  extends PlayMongoRepository[VerificationStatusMongoRepository.Entity](
-    collectionName = "verificationStatus",
-    mongoComponent = mongoComponent,
-    domainFormat   = VerificationStatusMongoRepository.mongoFormat,
-    indexes        = Seq(
-      IndexModel(Indexes.ascending("credId"), IndexOptions().name("credId").unique(false)),
-      IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl_index").expireAfter(config.verificationStatusRepositoryTtl.toSeconds, TimeUnit.SECONDS))
-    ),
-    replaceIndexes = false
-  ) with VerificationStatusRepository {
+    extends PlayMongoRepository[VerificationStatusMongoRepository.Entity](
+      collectionName = "verificationStatus",
+      mongoComponent = mongoComponent,
+      domainFormat = VerificationStatusMongoRepository.mongoFormat,
+      indexes = Seq(
+        IndexModel(Indexes.ascending("credId"), IndexOptions().name("credId").unique(false)),
+        IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl_index").expireAfter(config.verificationStatusRepositoryTtl.toSeconds, TimeUnit.SECONDS))
+      ),
+      replaceIndexes = false
+    )
+    with VerificationStatusRepository {
 
   def retrieve(credId: String): Future[Seq[VerificationStatus]] =
-    collection.find(Filters.equal("credId", credId))
+    collection
+      .find(Filters.equal("credId", credId))
       .map(entity =>
         VerificationStatus(
           entity.emailAddress,
           entity.verified,
-          entity.locked,
+          entity.locked
         )
-      ).toFuture()
+      )
+      .toFuture()
 
   def initialise(credId: String, emailAddress: String): Future[Unit] =
-    collection.insertOne(
-      VerificationStatusMongoRepository.Entity(
-        credId,
-        emailAddress,
-        verified = false,
-        locked   = false,
-        Instant.now()
-      )).head().map(_ => ())
+    collection
+      .insertOne(
+        VerificationStatusMongoRepository.Entity(
+          credId,
+          emailAddress,
+          verified = false,
+          locked = false,
+          Instant.now()
+        )
+      )
+      .head()
+      .map(_ => ())
 
   override def verify(credId: String, emailAddress: String): Future[Unit] =
-    collection.findOneAndUpdate(
-      Filters.and(
-        Filters.equal("credId", credId),
-        Filters.equal("emailAddress", emailAddress)
-      ),
-      Updates.set("verified", true)
-    ).head().map(_ => ())
+    collection
+      .findOneAndUpdate(
+        Filters.and(
+          Filters.equal("credId", credId),
+          Filters.equal("emailAddress", emailAddress)
+        ),
+        Updates.set("verified", true)
+      )
+      .head()
+      .map(_ => ())
 
   override def lock(credId: String, emailAddress: String): Future[Unit] =
-    collection.findOneAndUpdate(
-      Filters.and(
-        Filters.equal("credId", credId),
-        Filters.equal("emailAddress", emailAddress)
-      ),
-      Updates.set("locked", true)
-    ).head().map(_ => ())
+    collection
+      .findOneAndUpdate(
+        Filters.and(
+          Filters.equal("credId", credId),
+          Filters.equal("emailAddress", emailAddress)
+        ),
+        Updates.set("locked", true)
+      )
+      .head()
+      .map(_ => ())
 
   override def isLocked(credId: String, emailAddress: String): Future[Boolean] =
-    collection.find(Filters.equal("credId", credId))
+    collection
+      .find(Filters.equal("credId", credId))
       .filter(_.emailAddress == emailAddress)
       .filter(_.locked)
       .headOption()
@@ -102,18 +116,18 @@ class VerificationStatusMongoRepository @Inject() (mongoComponent: MongoComponen
 object VerificationStatusMongoRepository {
 
   case class Entity(
-      credId:       String,
-      emailAddress: String,
-      verified:     Boolean,
-      locked:       Boolean,
-      createdAt:    Instant
+    credId: String,
+    emailAddress: String,
+    verified: Boolean,
+    locked: Boolean,
+    createdAt: Instant
   )
 
   val mongoFormat: OFormat[Entity] = (
     (__ \ "credId").format[String] and
-    (__ \ "emailAddress").format[String] and
-    (__ \ "verified").format[Boolean] and
-    (__ \ "locked").format[Boolean] and
-    (__ \ "createdAt").format[Instant](uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.instantFormat)
-  ) (Entity.apply, unlift(Entity.unapply))
+      (__ \ "emailAddress").format[String] and
+      (__ \ "verified").format[Boolean] and
+      (__ \ "locked").format[Boolean] and
+      (__ \ "createdAt").format[Instant](uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.instantFormat)
+  )(Entity.apply, unlift(Entity.unapply))
 }

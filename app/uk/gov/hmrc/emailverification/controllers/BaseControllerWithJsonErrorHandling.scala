@@ -29,13 +29,11 @@ abstract class BaseControllerWithJsonErrorHandling @Inject() (cc: ControllerComp
 
   private val separatorChar: String = ";"
 
-  override protected def withJsonBody[T](f: (T) => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] =
+  override protected def withJsonBody[T](f: T => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] =
     Try(request.body.validate[T]) match {
       case Success(JsSuccess(payload, _)) => f(payload)
       case Success(JsError(errs)) =>
-        val details = errs.map {
-          case (jsPath, errors) => jsPath.toJsonString -> errors.map(_.message).mkString(separatorChar)
-        }.toMap
+        val details = errs.map { case (jsPath, errors) => jsPath.toJsonString -> errors.map(_.message).mkString(separatorChar) }.toMap
         Future.successful(BadRequest(Json.toJson(ErrorResponse("VALIDATION_ERROR", "Payload validation failed", Some(details)))))
       case Failure(e) =>
         Future.successful(BadRequest(Json.toJson(ErrorResponse("VALIDATION_ERROR", e.getMessage))))

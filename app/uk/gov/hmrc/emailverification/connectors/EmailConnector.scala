@@ -26,16 +26,17 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import scala.concurrent.{ExecutionContext, Future}
 
 class EmailConnector @Inject() (
-    appConfig:      AppConfig,
-    httpClient:     HttpClient,
-    servicesConfig: ServicesConfig
+  appConfig: AppConfig,
+  httpClient: HttpClient,
+  servicesConfig: ServicesConfig
 ) {
   private lazy val servicePath: String = appConfig.emailServicePath
 
   private lazy val baseServiceUrl: String = servicesConfig.baseUrl("email")
 
   def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
-    httpClient.POST[SendEmailRequest, Either[UpstreamErrorResponse, HttpResponse]](s"$baseServiceUrl$servicePath/hmrc/email", SendEmailRequest(Seq(to), templateId, params))
+    httpClient
+      .POST[SendEmailRequest, Either[UpstreamErrorResponse, HttpResponse]](s"$baseServiceUrl$servicePath/hmrc/email", SendEmailRequest(Seq(to), templateId, params))
       .map {
         case Left(err)    => throw err
         case Right(value) => value

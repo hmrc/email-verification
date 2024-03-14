@@ -35,13 +35,13 @@ class EmailConnectorSpec extends UnitSpec with ScalaFutures {
 
       // given
       val endpointUrl = "emailHost://emailHost:1337/emailservicepath/hmrc/email"
-      val expectedRequestBody = SendEmailRequest(Seq(recipient), templateId, params)
+      val expectedRequestBody: SendEmailRequest = SendEmailRequest(Seq(recipient), templateId, params)
 
-      when(mockHttp.POST[SendEmailRequest, Either[UpstreamErrorResponse, HttpResponse]] (eqTo(endpointUrl), eqTo(expectedRequestBody), any)(any, any, any, any)
-      ).thenReturn(Future.successful(Right(HttpResponse(202, ""))))
+      when(mockHttp.POST[SendEmailRequest, Either[UpstreamErrorResponse, HttpResponse]](eqTo(endpointUrl), eqTo(expectedRequestBody), any)(any, any, any, any))
+        .thenReturn(Future.successful(Right(HttpResponse(202, ""))))
 
       // when
-      val result = await(connector.sendEmail(recipient, templateId, params)(HeaderCarrier(), executionContext))
+      val result: HttpResponse = await(connector.sendEmail(recipient, templateId, params)(HeaderCarrier(), executionContext))
 
       // then
       result.status shouldBe 202
@@ -49,14 +49,14 @@ class EmailConnectorSpec extends UnitSpec with ScalaFutures {
   }
 
   sealed trait Setup {
-    val hc = HeaderCarrier()
+    val hc: HeaderCarrier = HeaderCarrier()
     val executionContext: ExecutionContext = ExecutionContext.Implicits.global
-    val mockHttp = mock[HttpClient]
-    val params = Map("p1" -> "v1")
+    val mockHttp: HttpClient = mock[HttpClient]
+    val params: Map[String, String] = Map("p1" -> "v1")
     val templateId = "my-template"
     val recipient = "user@example.com"
-    val mockAppConfig = mock[AppConfig]
-    val mockServicesConfig = mock[ServicesConfig]
+    val mockAppConfig: AppConfig = mock[AppConfig]
+    val mockServicesConfig: ServicesConfig = mock[ServicesConfig]
 
     val connector = new EmailConnector(mockAppConfig, mockHttp, mockServicesConfig)
   }

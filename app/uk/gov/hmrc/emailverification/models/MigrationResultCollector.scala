@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.emailverification.models
 
-/**
- * Stores results of VerifiedEmailMongoRepository to VerifiedHashedEmailMongoRepository data migration
- */
+/** Stores results of VerifiedEmailMongoRepository to VerifiedHashedEmailMongoRepository data migration
+  */
 case class MigrationResultCollector(readCount: Int = 0, insertedCount: Int = 0, duplicateCount: Int = 0, expiredCount: Int = 0)

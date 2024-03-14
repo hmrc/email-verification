@@ -28,27 +28,30 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class VerificationTokenMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
-  extends PlayMongoRepository[VerificationDoc](
-    collectionName = "verificationToken",
-    mongoComponent = mongoComponent,
-    domainFormat   = VerificationDoc.format,
-    indexes        = Seq(
-      IndexModel(Indexes.ascending("token"), IndexOptions().name("tokenUnique").unique(true)),
-      IndexModel(Indexes.ascending("expireAt"), IndexOptions().name("expireAtIndex").expireAfter(0, TimeUnit.SECONDS)),
-      IndexModel(Indexes.ascending("email"), IndexOptions().name("email"))
-    ),
-    replaceIndexes = false
-  ) {
+    extends PlayMongoRepository[VerificationDoc](
+      collectionName = "verificationToken",
+      mongoComponent = mongoComponent,
+      domainFormat = VerificationDoc.format,
+      indexes = Seq(
+        IndexModel(Indexes.ascending("token"), IndexOptions().name("tokenUnique").unique(true)),
+        IndexModel(Indexes.ascending("expireAt"), IndexOptions().name("expireAtIndex").expireAfter(0, TimeUnit.SECONDS)),
+        IndexModel(Indexes.ascending("email"), IndexOptions().name("email"))
+      ),
+      replaceIndexes = false
+    ) {
 
   def upsert(token: String, email: String, validity: Duration, clock: Clock = Clock.systemUTC): Future[Unit] =
-    collection.findOneAndReplace(
-      filter      = Filters.equal("email", email),
-      replacement = VerificationDoc(email, token, Instant.now(clock).plus(validity)),
-      options     = FindOneAndReplaceOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
-    ).toFuture().map(_ => ())
+    collection
+      .findOneAndReplace(
+        filter = Filters.equal("email", email),
+        replacement = VerificationDoc(email, token, Instant.now(clock).plus(validity)),
+        options = FindOneAndReplaceOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
+      )
+      .toFuture()
+      .map(_ => ())
 
   def findToken(token: String): Future[Option[VerificationDoc]] =
-    collection.find(Filters.equal("token", token))
+    collection
+      .find(Filters.equal("token", token))
       .headOption()
 }
-
