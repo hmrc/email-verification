@@ -386,6 +386,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         result.status shouldBe OK
         result.json   shouldBe Json.obj("status" -> "passcodeResent")
       }
+
       "given 4 failed passcode resends to the same email, then a subsequent passcode resend, the next passcode resend submission should lock the user out" in new Setup {
         val journey: Journey = Journey(
           UUID.randomUUID().toString,
@@ -715,6 +716,39 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
             "emailAddress"              -> "aa@bb.cc"
           )
         )
+      }
+    }
+
+    "the journey ID is valid but the email is not provided" should {
+      "return 403 FORBIDDEN" in new Setup {
+        val journey: Journey = Journey(
+          UUID.randomUUID().toString,
+          "credId",
+          "/continueUrl",
+          "origin",
+          "/accessibility",
+          "serviceName",
+          English,
+          None,
+          Some("/enterEmailUrl"),
+          None,
+          None,
+          "passcode",
+          0,
+          4,
+          0
+        )
+
+        expectJourneyToExist(journey)
+        expectPasscodeEmailToBeSent(journey.passcode)
+
+        val result: WSResponse = await(
+          resourceRequest(s"/email-verification/journey/${journey.journeyId}/resend-passcode")
+            .post(Json.obj())
+        )
+
+        result.status shouldBe FORBIDDEN
+        result.json shouldBe Json.obj("status" -> "noEmailProvided")
       }
     }
 
