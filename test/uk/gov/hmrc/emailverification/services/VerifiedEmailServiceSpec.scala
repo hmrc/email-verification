@@ -42,7 +42,7 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
   "insert" should {
     "insert a document into both repos when verifiedEmailCheckCollection is Both" in {
       when(mockConfig.verifiedEmailUpdateCollection).thenReturn(WhichToUse.Both)
-      await(emailRepo.find(lowerCaseEmail)) shouldBe None
+      await(emailRepo.find(lowerCaseEmail))       shouldBe None
       await(hashedEmailRepo.find(lowerCaseEmail)) shouldBe None
 
       await(service.insert(lowerCaseEmail))
@@ -55,7 +55,7 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
 
     "insert a document into hashed emails repo only when verifiedEmailCheckCollection is New" in {
       when(mockConfig.verifiedEmailUpdateCollection).thenReturn(WhichToUse.New)
-      await(emailRepo.find(lowerCaseEmail)) shouldBe None
+      await(emailRepo.find(lowerCaseEmail))       shouldBe None
       await(hashedEmailRepo.find(lowerCaseEmail)) shouldBe None
 
       await(service.insert(lowerCaseEmail))
@@ -68,8 +68,8 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
 
     "blow up if the email already exists" in {
       when(mockConfig.verifiedEmailUpdateCollection).thenReturn(WhichToUse.Both)
-      await(emailRepo.ensureIndexes)
-      await(hashedEmailRepo.ensureIndexes)
+      await(emailRepo.ensureIndexes())
+      await(hashedEmailRepo.ensureIndexes())
       await(service.insert(lowerCaseEmail))
       val result = intercept[MongoException](await(service.insert(lowerCaseEmail)))
       result.getCode shouldBe 11000
@@ -77,16 +77,16 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
 
     "not blow up if a different email exists" in {
       when(mockConfig.verifiedEmailUpdateCollection).thenReturn(WhichToUse.Both)
-      await(emailRepo.ensureIndexes)
+      await(emailRepo.ensureIndexes())
 
       await(emailRepo.find(lowerCaseEmail)) shouldBe None
-      await(emailRepo.find(anotherEmail)) shouldBe None
+      await(emailRepo.find(anotherEmail))   shouldBe None
 
       await(service.insert(lowerCaseEmail))
       await(service.insert(anotherEmail))
 
       await(emailRepo.find(lowerCaseEmail)) shouldBe Some(VerifiedEmail(lowerCaseEmail))
-      await(emailRepo.find(anotherEmail)) shouldBe Some(VerifiedEmail(anotherEmail))
+      await(emailRepo.find(anotherEmail))   shouldBe Some(VerifiedEmail(anotherEmail))
     }
 
   }
@@ -137,7 +137,7 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
 
     "return true if email exists when checking the old plain text collection" in {
       when(mockConfig.verifiedEmailCheckCollection).thenReturn(WhichToUse.Old)
-      await(emailRepo.find(lowerCaseEmail)) shouldBe None
+      await(emailRepo.find(lowerCaseEmail))     shouldBe None
       await(service.isVerified(lowerCaseEmail)) shouldBe false
       await(emailRepo.insert(lowerCaseEmail))
       await(service.isVerified(lowerCaseEmail)) shouldBe true
@@ -151,16 +151,16 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
     "return true if email exists when checking the new hashed email collection" in {
       when(mockConfig.verifiedEmailCheckCollection).thenReturn(WhichToUse.New)
       await(hashedEmailRepo.find(lowerCaseEmail)) shouldBe None
-      await(service.isVerified(lowerCaseEmail)) shouldBe false
+      await(service.isVerified(lowerCaseEmail))   shouldBe false
       await(hashedEmailRepo.insert(lowerCaseEmail))
       await(service.isVerified(lowerCaseEmail)) shouldBe true
     }
 
     "return true if email only exists in the old plain text email collection when checking both collections" in {
       when(mockConfig.verifiedEmailCheckCollection).thenReturn(WhichToUse.Both)
-      await(emailRepo.find(lowerCaseEmail)) shouldBe None
+      await(emailRepo.find(lowerCaseEmail))       shouldBe None
       await(hashedEmailRepo.find(lowerCaseEmail)) shouldBe None
-      await(service.isVerified(lowerCaseEmail)) shouldBe false
+      await(service.isVerified(lowerCaseEmail))   shouldBe false
       await(emailRepo.insert(lowerCaseEmail))
       await(service.isVerified(lowerCaseEmail)) shouldBe true
     }
@@ -169,8 +169,8 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
 
   "migrateEmailAddresses" should {
     "copy records from emailRepo to hashedEmailRepo" in {
-      val emails = (0 to 999).map(emailWithNumber(_))
-      await(Future.sequence(emails.map(emailRepo.insert(_))))
+      val emails = (0 to 999).map(emailWithNumber)
+      await(Future.sequence(emails.map(emailRepo.insert)))
       await(hashedEmailRepo.isVerified(emailWithNumber(0))) shouldBe false
 
       when(mockConfig.emailMigrationBatchSize).thenReturn(50)
@@ -178,17 +178,17 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
       when(mockConfig.emailMigrationMaxDurationSeconds).thenReturn(60)
       when(mockConfig.verifiedEmailRepoTTLDays).thenReturn(365)
       val results = await(service.migrateEmailAddresses())
-      results.readCount shouldBe 1000
-      results.insertedCount shouldBe 1000
+      results.readCount      shouldBe 1000
+      results.insertedCount  shouldBe 1000
       results.duplicateCount shouldBe 0
-      results.expiredCount shouldBe 0
+      results.expiredCount   shouldBe 0
 
       emails.map(email => await(hashedEmailRepo.isVerified(email)) shouldBe true)
     }
 
     "copy records from emailRepo to hashedEmailRepo and finish part way through if max duration reached" in {
-      val emails = (0 to 999).map(emailWithNumber(_))
-      await(Future.sequence(emails.map(emailRepo.insert(_))))
+      val emails = (0 to 999).map(emailWithNumber)
+      await(Future.sequence(emails.map(emailRepo.insert)))
       await(hashedEmailRepo.isVerified(emailWithNumber(0))) shouldBe false
 
       when(mockConfig.emailMigrationBatchSize).thenReturn(50)
@@ -196,58 +196,58 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
       when(mockConfig.emailMigrationMaxDurationSeconds).thenReturn(1)
       when(mockConfig.verifiedEmailRepoTTLDays).thenReturn(365)
       val results = await(service.migrateEmailAddresses())
-      results.readCount should be < 300
-      results.insertedCount should be < 300
+      results.readCount        should be < 300
+      results.insertedCount    should be < 300
       results.duplicateCount shouldBe 0
-      results.expiredCount shouldBe 0
+      results.expiredCount   shouldBe 0
     }
 
     "copy records from emailRepo to hashedEmailRepo and not blow up adding duplicate entries" in {
-      await(hashedEmailRepo.ensureIndexes)
-      val emails = (0 to 999).map(emailWithNumber(_))
-      await(Future.sequence(emails.map(emailRepo.insert(_))))
+      await(hashedEmailRepo.ensureIndexes())
+      val emails = (0 to 999).map(emailWithNumber)
+      await(Future.sequence(emails.map(emailRepo.insert)))
       await(hashedEmailRepo.isVerified(emailWithNumber(0))) shouldBe false
 
-      await(hashedEmailRepo.insert(emailWithNumber(5))) //so a duplicate is already present
-      Thread.sleep(500) //allow time for index to also update
+      await(hashedEmailRepo.insert(emailWithNumber(5))) // so a duplicate is already present
+      Thread.sleep(500) // allow time for index to also update
       when(mockConfig.emailMigrationBatchSize).thenReturn(50)
       when(mockConfig.emailMigrationBatchDelayMillis).thenReturn(10)
       when(mockConfig.emailMigrationMaxDurationSeconds).thenReturn(60)
       when(mockConfig.verifiedEmailRepoTTLDays).thenReturn(365)
       val results = await(service.migrateEmailAddresses())
-      results.readCount shouldBe 1000
-      results.insertedCount shouldBe 999
+      results.readCount      shouldBe 1000
+      results.insertedCount  shouldBe 999
       results.duplicateCount shouldBe 1
-      results.expiredCount shouldBe 0
+      results.expiredCount   shouldBe 0
 
       emails.map(email => await(hashedEmailRepo.isVerified(email)) shouldBe true)
     }
 
     "copy records from emailRepo to hashedEmailRepo ignoring expired records" in {
-      await(hashedEmailRepo.ensureIndexes)
-      val emails = (0 to 999).map(emailWithNumber(_))
-      await(Future.sequence(emails.map(emailRepo.insert(_))))
+      await(hashedEmailRepo.ensureIndexes())
+      val emails = (0 to 999).map(emailWithNumber)
+      await(Future.sequence(emails.map(emailRepo.insert)))
       await(hashedEmailRepo.isVerified(emailWithNumber(0))) shouldBe false
 
-      Thread.sleep(500) //allow time for index to also update
+      Thread.sleep(500) // allow time for index to also update
       when(mockConfig.emailMigrationBatchSize).thenReturn(50)
       when(mockConfig.emailMigrationBatchDelayMillis).thenReturn(10)
       when(mockConfig.emailMigrationMaxDurationSeconds).thenReturn(60)
       when(mockConfig.verifiedEmailRepoTTLDays).thenReturn(0)
       val results = await(service.migrateEmailAddresses())
-      results.readCount shouldBe 1000
-      results.insertedCount shouldBe 0
+      results.readCount      shouldBe 1000
+      results.insertedCount  shouldBe 0
       results.duplicateCount shouldBe 0
-      results.expiredCount shouldBe 1000
+      results.expiredCount   shouldBe 1000
 
       emails.map(email => await(hashedEmailRepo.isVerified(email)) shouldBe false)
     }
 
   }
 
-  override def beforeEach() = {
+  override def beforeEach(): Unit = {
     super.beforeEach()
-    await(emailRepo.ensureIndexes)
-    await(hashedEmailRepo.ensureIndexes)
+    await(emailRepo.ensureIndexes())
+    await(hashedEmailRepo.ensureIndexes())
   }
 }

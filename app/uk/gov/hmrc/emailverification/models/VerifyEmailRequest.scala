@@ -19,16 +19,16 @@ package uk.gov.hmrc.emailverification.models
 import play.api.libs.json.{Format, Json, Reads}
 
 case class VerifyEmailRequest(
-    credId:                    String,
-    continueUrl:               String,
-    origin:                    String,
-    deskproServiceName:        Option[String],
-    accessibilityStatementUrl: String,
-    email:                     Option[Email],
-    lang:                      Option[Language],
-    backUrl:                   Option[String],
-    pageTitle:                 Option[String],
-    labels:                    Option[Labels]
+  credId: String,
+  continueUrl: String,
+  origin: String,
+  deskproServiceName: Option[String],
+  accessibilityStatementUrl: String,
+  email: Option[Email],
+  lang: Option[Language],
+  backUrl: Option[String],
+  pageTitle: Option[String],
+  labels: Option[Labels]
 )
 
 case class Email(address: String, enterUrl: String)
@@ -51,4 +51,3 @@ object Label {
 object Labels {
   implicit val reads: Reads[Labels] = Json.reads
 }
-

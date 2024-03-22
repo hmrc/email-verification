@@ -25,20 +25,15 @@ import uk.gov.hmrc.mongo.test.IndexedMongoQueriesSupport
 import java.time.{Clock, Instant, ZoneId}
 import scala.concurrent.ExecutionContext
 
-trait RepositoryBaseSpec
-  extends UnitSpec
-  with BeforeAndAfterEach
-  with ScalaFutures
-  with IndexedMongoQueriesSupport
-  with BeforeAndAfterAll {
+trait RepositoryBaseSpec extends UnitSpec with BeforeAndAfterEach with ScalaFutures with IndexedMongoQueriesSupport with BeforeAndAfterAll {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   // Increase timeout used by ScalaFutures when awaiting completion of futures
   implicit override val patienceConfig: PatienceConfig =
-    PatienceConfig(timeout  = Span(10, Seconds), interval = Span(1, Seconds))
+    PatienceConfig(timeout = Span(10, Seconds), interval = Span(1, Seconds))
 
-  val clock = Clock.fixed(Instant.now, ZoneId.systemDefault)
+  val clock: Clock = Clock.fixed(Instant.now, ZoneId.systemDefault)
 
   override def beforeEach(): Unit = {
     dropDatabase()

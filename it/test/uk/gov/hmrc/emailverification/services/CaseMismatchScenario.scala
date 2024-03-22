@@ -18,7 +18,7 @@ package uk.gov.hmrc.emailverification.services
 
 import org.scalacheck.Arbitrary
 
-final case class CaseMismatchScenario (email: String){
+final case class CaseMismatchScenario(email: String) {
   def oldRepoEmail: String = email.toUpperCase
   def newRepoEmail: String = email.toLowerCase
 }

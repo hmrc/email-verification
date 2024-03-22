@@ -31,8 +31,8 @@ class PasscodeMongoRepositorySpec extends RepositoryBaseSpec {
 
   val repository = new PasscodeMongoRepository(mongoComponent, config)
 
-  val clock2 = Clock.offset(clock, java.time.Duration.ofNanos(1.minute.toNanos))
-  val clock3 = Clock.offset(clock, java.time.Duration.ofNanos(2.minute.toNanos))
+  val clock2: Clock = Clock.offset(clock, java.time.Duration.ofNanos(1.minute.toNanos))
+  val clock3: Clock = Clock.offset(clock, java.time.Duration.ofNanos(2.minute.toNanos))
 
   val sessionId = "session123"
   val passcode1 = "pass123"
@@ -44,7 +44,7 @@ class PasscodeMongoRepositorySpec extends RepositoryBaseSpec {
       val doc = repository.upsertIncrementingEmailAttempts(SessionId(sessionId), passcode1, email, 1, clock).futureValue
       val doc2 = repository.upsertIncrementingEmailAttempts(SessionId(sessionId), passcode2, email, 1, clock2).futureValue
 
-      doc shouldBe PasscodeDoc(sessionId, email, passcode1.toUpperCase, Instant.now(clock2).truncatedTo(ChronoUnit.MILLIS), 0, 1)
+      doc  shouldBe PasscodeDoc(sessionId, email, passcode1.toUpperCase, Instant.now(clock2).truncatedTo(ChronoUnit.MILLIS), 0, 1)
       doc2 shouldBe PasscodeDoc(sessionId, email, passcode2.toUpperCase, Instant.now(clock3).truncatedTo(ChronoUnit.MILLIS), 0, 2)
     }
   }
@@ -84,8 +84,8 @@ class PasscodeMongoRepositorySpec extends RepositoryBaseSpec {
     }
   }
 
-  override def beforeEach() = {
+  override def beforeEach(): Unit = {
     super.beforeEach()
-    await(repository.ensureIndexes)
+    await(repository.ensureIndexes())
   }
 }

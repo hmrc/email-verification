@@ -26,7 +26,8 @@ class PasscodeGenerator {
       .filterNot(_.isDigit)
       .filterNot(_.isLower)
       .filterNot(Set('A', 'E', 'I', 'O', 'U'))
-      .take(codeSize).mkString
+      .take(codeSize)
+      .mkString
   }
 
 }

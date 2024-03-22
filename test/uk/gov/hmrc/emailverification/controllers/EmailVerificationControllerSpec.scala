@@ -20,7 +20,7 @@ import config.AppConfig
 import org.mockito.Mockito._
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Result
+import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.stubControllerComponents
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
@@ -60,7 +60,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
 
       val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
 
-      status(result) shouldBe Status.BAD_REQUEST
+      status(result)                              shouldBe Status.BAD_REQUEST
       (contentAsJson(result) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
       verify(mockEmailConnector).sendEmail(eqTo(emailMixedCase), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any, any)
       verify(mockAuditConnector).sendExtendedEvent(any)(any, any)
@@ -115,7 +115,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
     "return 200 with verified email in the body" in new Setup {
       when(mockVerifiedEmailService.find(eqTo(emailMixedCase))).thenReturn(Future.successful(Some(VerifiedEmail(emailMixedCase))))
       val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> emailMixedCase)))
-      status(response) shouldBe 200
+      status(response)                          shouldBe 200
       contentAsJson(response).as[VerifiedEmail] shouldBe VerifiedEmail(emailMixedCase)
       verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
@@ -125,7 +125,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
     "lower case email address" in new Setup {
       when(mockVerifiedEmailService.find(eqTo(emailMixedCase.toUpperCase))).thenReturn(Future.successful(Some(VerifiedEmail(emailMixedCase))))
       val response: Future[Result] = controller.verifiedEmail()(request.withBody(Json.obj("email" -> emailMixedCase.toUpperCase)))
-      status(response) shouldBe 200
+      status(response)                          shouldBe 200
       contentAsJson(response).as[VerifiedEmail] shouldBe VerifiedEmail(emailMixedCase)
       verify(mockVerifiedEmailService).find(eqTo(emailMixedCase.toUpperCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
@@ -143,15 +143,15 @@ class EmailVerificationControllerSpec extends UnitSpec {
   }
 
   trait Setup {
-    val mockEmailConnector = mock[EmailConnector]
-    val mockVerificationLinkService = mock[VerificationLinkService]
-    val mockTokenRepo = mock[VerificationTokenMongoRepository]
-    val mockVerifiedEmailService = mock[VerifiedEmailService]
+    val mockEmailConnector: EmailConnector = mock[EmailConnector]
+    val mockVerificationLinkService: VerificationLinkService = mock[VerificationLinkService]
+    val mockTokenRepo: VerificationTokenMongoRepository = mock[VerificationTokenMongoRepository]
+    val mockVerifiedEmailService: VerifiedEmailService = mock[VerifiedEmailService]
     val someToken = "some-token"
-    val request = FakeRequest()
-    val mockAppConfig = mock[AppConfig]
-    val mockAuditConnector = mock[AuditConnector]
-    val mockAuditService = mock[AuditService]
+    val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
+    val mockAppConfig: AppConfig = mock[AppConfig]
+    val mockAuditConnector: AuditConnector = mock[AuditConnector]
+    val mockAuditService: AuditService = mock[AuditService]
 
     val controller = new EmailVerificationController(
       mockEmailConnector,
@@ -165,8 +165,8 @@ class EmailVerificationControllerSpec extends UnitSpec {
     val templateId = "my-template"
     val emailMixedCase = "uSeR@eXamPle.com"
     val emailLowerCase = "user@example.com"
-    val params = Map("name" -> "Mr Joe Bloggs")
-    val paramsJsonStr = Json.toJson(params).toString()
+    val params: Map[String, String] = Map("name" -> "Mr Joe Bloggs")
+    val paramsJsonStr: String = Json.toJson(params).toString()
 
     val validRequest: JsValue = Json.parse(
       s"""{

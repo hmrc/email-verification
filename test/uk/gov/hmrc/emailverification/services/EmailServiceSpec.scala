@@ -21,12 +21,12 @@ import uk.gov.hmrc.emailverification.models.{English, Welsh}
 import uk.gov.hmrc.gg.test.UnitSpec
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
 class EmailServiceSpec extends UnitSpec {
 
   trait Setup extends TestData {
-    val mockEmailConnector = mock[EmailConnector]
+    val mockEmailConnector: EmailConnector = mock[EmailConnector]
     val emailService = new EmailService(mockEmailConnector)
   }
 
@@ -39,16 +39,17 @@ class EmailServiceSpec extends UnitSpec {
     val englishEmailTemplateId = "email_verification_passcode"
     val welshEmailTemplateId = "email_verification_passcode_welsh"
 
-    val hc = HeaderCarrier()
-    val ec = scala.concurrent.ExecutionContext.global
+    val hc: HeaderCarrier = HeaderCarrier()
+    val ec: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   }
 
   "sendPasscodeEmail" when {
     "given an English lang param" should {
       "add passcode and serviceName to template parameters and use the english template" in new Setup {
 
-        val templateParameters = Map("passcode" -> passcode, "team_name" -> serviceName)
-        when(mockEmailConnector.sendEmail(eqTo(emailAddress), eqTo(englishEmailTemplateId), eqTo(templateParameters))(any, any)).thenReturn(Future.successful(HttpResponse(200, "")))
+        val templateParameters: Map[String, String] = Map("passcode" -> passcode, "team_name" -> serviceName)
+        when(mockEmailConnector.sendEmail(eqTo(emailAddress), eqTo(englishEmailTemplateId), eqTo(templateParameters))(any, any))
+          .thenReturn(Future.successful(HttpResponse(200, "")))
 
         emailService.sendPasscodeEmail(emailAddress, passcode, serviceName, English)(hc, ec)
       }
@@ -57,7 +58,7 @@ class EmailServiceSpec extends UnitSpec {
     "given an Welsh lang param" should {
       "add passcode and serviceName to template parameters and use the english template" in new Setup {
 
-        val templateParameters = Map("passcode" -> passcode, "team_name" -> serviceName)
+        val templateParameters: Map[String, String] = Map("passcode" -> passcode, "team_name" -> serviceName)
         when(mockEmailConnector.sendEmail(eqTo(emailAddress), eqTo(welshEmailTemplateId), eqTo(templateParameters))(any, any)).thenReturn(Future.successful(HttpResponse(200, "")))
 
         emailService.sendPasscodeEmail(emailAddress, passcode, serviceName, Welsh)(hc, ec)

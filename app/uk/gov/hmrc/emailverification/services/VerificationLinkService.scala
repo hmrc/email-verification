@@ -39,8 +39,8 @@ class VerificationLinkService @Inject() (implicit appConfig: AppConfig, configur
   }
 
   private def encryptedVerificationToken(token: String, continueUrl: ForwardUrl): String = {
-      def encrypt(value: String) = new String(encodeToken(crypto.encrypt(PlainText(value)).value))
-      def tokenAsJson: JsValue = Json.toJson(VerificationToken(token, continueUrl))
+    def encrypt(value: String) = new String(encodeToken(crypto.encrypt(PlainText(value)).value))
+    def tokenAsJson: JsValue = Json.toJson(VerificationToken(token, continueUrl))
     encrypt(tokenAsJson.toString())
   }
 

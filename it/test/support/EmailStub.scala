@@ -29,11 +29,9 @@ import java.util.Base64
 import scala.jdk.CollectionConverters._
 
 object EmailStub extends Matchers {
-  private def crypto(implicit config:Config) = SymmetricCryptoFactory.aesCryptoFromConfig("queryParameter.encryption", config)
+  private def crypto(implicit config: Config) = SymmetricCryptoFactory.aesCryptoFromConfig("queryParameter.encryption", config)
 
-  def verificationRequest(emailToVerify: String = "test@example.com",
-                          templateId: String = "some-template-id",
-                          continueUrl: String = "http://example.com/continue"): JsValue =
+  def verificationRequest(emailToVerify: String = "test@example.com", templateId: String = "some-template-id", continueUrl: String = "http://example.com/continue"): JsValue =
     Json.parse(s"""{
                   |  "email": "$emailToVerify",
                   |  "templateId": "$templateId",
@@ -48,37 +46,41 @@ object EmailStub extends Matchers {
                   |  "lang": "$lang"
                   |}""".stripMargin)
 
-  def passcodeVerificationRequest(email: String, passcode: String ): JsValue =
+  def passcodeVerificationRequest(email: String, passcode: String): JsValue =
     Json.parse(s"""{"passcode": "$passcode", "email": "$email"}""".stripMargin)
 
   def expectEmailServiceToRespond(status: Int, body: String): Unit =
-    stubFor(post(urlEqualTo("/hmrc/email")).willReturn(aResponse()
-      .withStatus(status)
-      .withBody(body)))
+    stubFor(
+      post(urlEqualTo("/hmrc/email")).willReturn(
+        aResponse()
+          .withStatus(status)
+          .withBody(body)
+      )
+    )
 
   def expectEmailToBeSent(): Unit =
     stubFor(post(urlEqualTo("/hmrc/email")).willReturn(aResponse().withStatus(Status.ACCEPTED)))
 
-  def verifyEmailSentWithContinueUrl(to: String, continueUrl: String, templateId: String)(implicit config:Config): Assertion = {
+  def verifyEmailSentWithContinueUrl(to: String, continueUrl: String, templateId: String)(implicit config: Config): Assertion = {
     val emailSendRequestJson = lastVerificationEmail
 
-    (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
+    (emailSendRequestJson \ "to").as[Seq[String]]    shouldBe Seq(to)
     (emailSendRequestJson \ "templateId").as[String] shouldBe templateId
 
     val (token, decryptedContinueUrl) = decryptedToken(emailSendRequestJson)
 
     decryptedContinueUrl shouldBe continueUrl
-    token.isDefined shouldBe true
+    token.isDefined      shouldBe true
   }
 
   def verifyEmailSentWithPasscode(to: String, templateId: String = "email_verification_passcode"): Assertion = {
     val emailSendRequestJson = lastVerificationEmail
-    (emailSendRequestJson \ "to").as[Seq[String]] shouldBe Seq(to)
-    (emailSendRequestJson \ "templateId").as[String] shouldBe templateId
+    (emailSendRequestJson \ "to").as[Seq[String]]               shouldBe Seq(to)
+    (emailSendRequestJson \ "templateId").as[String]            shouldBe templateId
     (emailSendRequestJson \ "parameters" \ "passcode").as[String] should fullyMatch regex "[BCDFGHJKLMNPQRSTVWXYZ]{6}"
   }
 
-  def decryptedToken(emailSendRequestJson: JsValue) (implicit config:Config): (Option[String], String) = {
+  def decryptedToken(emailSendRequestJson: JsValue)(implicit config: Config): (Option[String], String) = {
     val verificationLink = (emailSendRequestJson \ "parameters" \ "verificationLink").as[String]
 
     val decryptedTokenJson = decryptToJson(verificationLink.split("token=")(1))

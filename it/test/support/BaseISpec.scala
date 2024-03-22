@@ -18,6 +18,7 @@ package support
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{noContent, post, stubFor}
+import com.typesafe.config.Config
 import config.AppConfig
 import org.scalatest.GivenWhenThen
 import org.scalatest.time.{Seconds, Span}
@@ -26,33 +27,36 @@ import support.EmailStub._
 import uk.gov.hmrc.emailverification.repositories._
 import uk.gov.hmrc.gg.test.WireMockSpec
 import uk.gov.hmrc.mongo.test.MongoSupport
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
 
   // Increase timeout used by ScalaFutures when awaiting completion of futures
   implicit override val patienceConfig: PatienceConfig =
-    PatienceConfig(timeout  = Span(4, Seconds), interval = Span(1, Seconds))
+    PatienceConfig(timeout = Span(4, Seconds), interval = Span(1, Seconds))
 
   override def extraConfig: Map[String, Any] = Map(
-    "play.http.router" -> "testOnlyDoNotUseInAppConf.Routes",
-    "queryParameter.encryption.key" -> "gvBoGdgzqG1AarzF1LY0zQ==",
-    "mongodb.uri" -> mongoUri,
-    "maxPasscodeAttempts" -> maxPasscodeAttempts,
+    "play.http.router"                -> "testOnlyDoNotUseInAppConf.Routes",
+    "queryParameter.encryption.key"   -> "gvBoGdgzqG1AarzF1LY0zQ==",
+    "mongodb.uri"                     -> mongoUri,
+    "maxPasscodeAttempts"             -> maxPasscodeAttempts,
     "verificationStatusRepositoryTtl" -> "24 hours",
-    "maxDifferentEmails" -> 5
+    "maxDifferentEmails"              -> 5
   )
 
   override def dropDatabase(): Unit =
-    await(mongoDatabase
-      .drop()
-      .toFuture())
+    await(
+      mongoDatabase
+        .drop()
+        .toFuture()
+    )
 
   def appClient(path: String): String = resource(s"/email-verification$path")
 
-  val config = Configuration.from(extraConfig)
+  val config: Configuration = Configuration.from(extraConfig)
   val appConfig: AppConfig = new AppConfig(config)
-  implicit val implicitConfig = config.underlying
+  implicit val implicitConfig: Config = config.underlying
 
   def tokenFor(email: String): String = {
     expectEmailToBeSent()

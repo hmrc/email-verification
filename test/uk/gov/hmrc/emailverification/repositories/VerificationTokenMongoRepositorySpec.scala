@@ -35,25 +35,25 @@ class VerificationTokenMongoRepositorySpec extends RepositoryBaseSpec with Event
   val email = "user@email.com"
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val tomorrowClock = Clock.offset(clock, java.time.Duration.ofNanos(1.day.toNanos))
+  val tomorrowClock: Clock = Clock.offset(clock, java.time.Duration.ofNanos(1.day.toNanos))
 
   "upsert" should {
     "always update the existing document for a given email address" in {
 
       val token1 = token + "1"
       repository.collection.find().toFuture().futureValue shouldBe Nil
-      await (repository.upsert(token1, email, Duration.ofDays(1), clock))
+      await(repository.upsert(token1, email, Duration.ofDays(1), clock))
       repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token1, Instant.now(tomorrowClock).truncatedTo(ChronoUnit.MILLIS)))
 
       val token2 = token + "2"
-      await (repository.upsert(token2, email, Duration.ofDays(1), clock))
+      await(repository.upsert(token2, email, Duration.ofDays(1), clock))
       repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token2, Instant.now(tomorrowClock).truncatedTo(ChronoUnit.MILLIS)))
     }
   }
 
   "find" should {
     "return the verification document" in {
-      await (repository.upsert(token, email, Duration.ofDays(1), clock))
+      await(repository.upsert(token, email, Duration.ofDays(1), clock))
       val doc = repository.findToken(token).futureValue
       doc shouldBe Some(VerificationDoc(email, token, Instant.now(tomorrowClock).truncatedTo(ChronoUnit.MILLIS)))
     }
@@ -65,12 +65,15 @@ class VerificationTokenMongoRepositorySpec extends RepositoryBaseSpec with Event
 
   "VerificationTokenMongoRepository" should {
     "delete record after TTL expires" in {
-      MongoUtils.ensureIndexes(repository.collection,
-                               Seq(
+      MongoUtils.ensureIndexes(
+        repository.collection,
+        Seq(
           IndexModel(Indexes.ascending("expireAt"), IndexOptions().name("expireAtIndex").expireAfter(1, TimeUnit.SECONDS))
-        ), true)
+        ),
+        replaceIndexes = true
+      )
 
-      await (repository.upsert(token, email, Duration.ofDays(0), clock))
+      await(repository.upsert(token, email, Duration.ofDays(0), clock))
       repository.collection.find().toFuture().futureValue shouldBe Seq(VerificationDoc(email, token, Instant.now(clock).truncatedTo(ChronoUnit.MILLIS)))
 
       eventually(timeout(Span(120, Seconds)))(
@@ -79,8 +82,8 @@ class VerificationTokenMongoRepositorySpec extends RepositoryBaseSpec with Event
     }
   }
 
-  override def beforeEach() = {
+  override def beforeEach(): Unit = {
     super.beforeEach()
-    await(repository.ensureIndexes)
+    await(repository.ensureIndexes())
   }
 }

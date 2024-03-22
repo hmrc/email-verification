@@ -33,10 +33,12 @@ import uk.gov.hmrc.play.bootstrap.config.HttpAuditEvent
 import scala.concurrent.{ExecutionContext, Future}
 
 class ErrorHandlerOverride @Inject() (
-    configuration:  Configuration,
-    auditConnector: AuditConnector,
-    httpAuditEvent: HttpAuditEvent
-)(implicit ec: ExecutionContext) extends JsonErrorHandler(auditConnector, httpAuditEvent, configuration) with Logging {
+  configuration: Configuration,
+  auditConnector: AuditConnector,
+  httpAuditEvent: HttpAuditEvent
+)(implicit ec: ExecutionContext)
+    extends JsonErrorHandler(auditConnector, httpAuditEvent, configuration)
+    with Logging {
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
 
@@ -64,8 +66,7 @@ class ErrorHandlerOverride @Inject() (
       case _                         => "ServerInternalError"
     }
 
-    auditConnector.sendEvent(
-      httpAuditEvent.dataEvent(code, "Unexpected error", request, Map("transactionFailureReason" -> ex.getMessage)))
+    auditConnector.sendEvent(httpAuditEvent.dataEvent(code, "Unexpected error", request, Map("transactionFailureReason" -> ex.getMessage)))
     Future.successful(resolveError(ex))
   }
 

@@ -23,4 +23,3 @@ case class ErrorResponse(code: String, message: String, details: Option[Map[Stri
 object ErrorResponse {
   implicit val writes: OWrites[ErrorResponse] = Json.writes[ErrorResponse]
 }
-

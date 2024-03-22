@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.emailverification.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OWrites}
 
 case class EmailPasscode(email: String, passcode: String)
 
 object EmailPasscode {
-  implicit val writes = Json.writes[EmailPasscode]
+  implicit val writes: OWrites[EmailPasscode] = Json.writes[EmailPasscode]
 }

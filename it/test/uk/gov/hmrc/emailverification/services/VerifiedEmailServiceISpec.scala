@@ -25,7 +25,14 @@ import uk.gov.hmrc.emailverification.repositories.{VerifiedEmailMongoRepository,
 import uk.gov.hmrc.gg.test.LogCapturing
 import uk.gov.hmrc.http.HeaderCarrier
 
-class VerifiedEmailServiceISpec extends AnyWordSpec with should.Matchers with GuiceOneAppPerSuite with FutureAwaits with DefaultAwaitTimeout with ScalaCheckPropertyChecks with LogCapturing {
+class VerifiedEmailServiceISpec
+    extends AnyWordSpec
+    with should.Matchers
+    with GuiceOneAppPerSuite
+    with FutureAwaits
+    with DefaultAwaitTimeout
+    with ScalaCheckPropertyChecks
+    with LogCapturing {
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
   private val oldRepo = app.injector.instanceOf[VerifiedEmailMongoRepository]

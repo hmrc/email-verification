@@ -42,7 +42,7 @@ class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
     }
 
     "blow up if the email already exists" in {
-      await(repository.ensureIndexes)
+      await(repository.ensureIndexes())
       await(repository.insert(email))
       val result = intercept[MongoException](await(repository.insert(email)))
       result.getCode shouldBe 11000
@@ -53,7 +53,7 @@ class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
       await(repository.insert(email))
       await(repository.insert(anotherEmail))
 
-      repository.find(email).futureValue shouldBe Some(VerifiedEmail(email))
+      repository.find(email).futureValue        shouldBe Some(VerifiedEmail(email))
       repository.find(anotherEmail).futureValue shouldBe Some(VerifiedEmail(anotherEmail))
     }
 
@@ -87,8 +87,11 @@ class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
 
   "ensureIndexes" should {
     "verify indexes exist" in {
-      await(repository.ensureIndexes)
-      val indexes = repository.collection.listIndexes().toFuture().futureValue
+      await(repository.ensureIndexes())
+      val indexes = repository.collection
+        .listIndexes()
+        .toFuture()
+        .futureValue
         .map(_.toBsonDocument)
         .filter(_.get("name") == BsonString("emailUnique"))
         .filter(_.get("key").toString.contains("email"))
@@ -100,22 +103,20 @@ class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
 
   "getBatch" should {
     "fetch correct list of records" in {
-      val emails = (0 to 24).map(emailWithNumber(_))
-      emails.map(email => await(repository.insert(email)))
+      val emails = (0 to 24).map(emailWithNumber)
+      emails.foreach(email => await(repository.insert(email)))
       val firstBatch = await(repository.getBatch(0, 5))
-      firstBatch.size shouldBe 5
+      firstBatch.size                                           shouldBe 5
       firstBatch.head._2.isAfter(Instant.now().minusSeconds(2)) shouldBe true
-      firstBatch.map(_._1) should contain(VerifiedEmail(emailWithNumber(1)))
+      firstBatch.map(_._1)                                        should contain(VerifiedEmail(emailWithNumber(1)))
       val lastBatch = await(repository.getBatch(20, 5))
       lastBatch.size shouldBe 5
-      (20 to 24).map { index =>
-        lastBatch.map(_._1) should contain(VerifiedEmail(emailWithNumber(index)))
-      }
+      (20 to 24).map(index => lastBatch.map(_._1) should contain(VerifiedEmail(emailWithNumber(index))))
     }
 
   }
-  override def beforeEach() = {
+  override def beforeEach(): Unit = {
     super.beforeEach()
-    await(repository.ensureIndexes)
+    await(repository.ensureIndexes())
   }
 }

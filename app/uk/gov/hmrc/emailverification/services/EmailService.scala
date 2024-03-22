@@ -27,7 +27,7 @@ class EmailService @Inject() (emailConnector: EmailConnector) {
 
   def sendPasscodeEmail(emailAddress: String, passcode: String, serviceName: String, lang: Language)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
     val params = Map(
-      "passcode" -> passcode,
+      "passcode"  -> passcode,
       "team_name" -> serviceName
     )
 

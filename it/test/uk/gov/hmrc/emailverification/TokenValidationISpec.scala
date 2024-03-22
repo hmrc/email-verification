@@ -25,10 +25,10 @@ import uk.gov.hmrc.http.HeaderCarrier
 class TokenValidationISpec extends BaseISpec {
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  override def extraConfig:Map[String,Any] = {
-    super.extraConfig ++ Map[String,Any](
-      "verifiedEmailCheckCollection"->"new",
-      "verifiedEmailUpdateCollection"->"new"
+  override def extraConfig: Map[String, Any] = {
+    super.extraConfig ++ Map[String, Any](
+      "verifiedEmailCheckCollection"  -> "new",
+      "verifiedEmailUpdateCollection" -> "new"
     )
   }
 
@@ -53,7 +53,7 @@ class TokenValidationISpec extends BaseISpec {
     "return 400 if the token is invalid or expired" in {
       When("an invalid token verification request is submitted")
       val response = await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> "invalid")))
-      response.status shouldBe 400
+      response.status                                 shouldBe 400
       (Json.parse(response.body) \ "code").as[String] shouldBe "TOKEN_NOT_FOUND_OR_EXPIRED"
     }
   }
@@ -84,7 +84,7 @@ class TokenValidationISpec extends BaseISpec {
       val response = await(wsClient.url(appClient("/verified-email-check")).post(Json.obj("email" -> "user@email.com")))
 
       Then("email resource is returned")
-      response.status shouldBe 200
+      response.status                               shouldBe 200
       VerifiedEmail.format.reads(response.json).get shouldBe VerifiedEmail(email)
     }
 
@@ -98,7 +98,7 @@ class TokenValidationISpec extends BaseISpec {
       val response = await(wsClient.url(appClient("/verified-email-check")).post(Json.obj("email" -> "user@email.com".toUpperCase)))
 
       Then("email resource is returned")
-      response.status shouldBe 200
+      response.status                               shouldBe 200
       VerifiedEmail.format.reads(response.json).get shouldBe VerifiedEmail(email)
     }
   }

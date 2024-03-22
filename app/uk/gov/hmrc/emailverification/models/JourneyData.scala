@@ -18,16 +18,15 @@ package uk.gov.hmrc.emailverification.models
 
 import play.api.libs.json.{Json, Writes}
 
-/**
- * Frontend view of the Journey, to avoid leaking implementation details
- */
+/** Frontend view of the Journey, to avoid leaking implementation details
+  */
 case class JourneyData(
-    accessibilityStatementUrl: String,
-    deskproServiceName:        String,
-    enterEmailUrl:             Option[String],
-    backUrl:                   Option[String],
-    serviceTitle:              Option[String],
-    emailAddress:              Option[String]
+  accessibilityStatementUrl: String,
+  deskproServiceName: String,
+  enterEmailUrl: Option[String],
+  backUrl: Option[String],
+  serviceTitle: Option[String],
+  emailAddress: Option[String]
 )
 
 object JourneyData {

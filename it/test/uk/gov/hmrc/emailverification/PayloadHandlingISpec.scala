@@ -17,6 +17,7 @@
 package uk.gov.hmrc.emailverification
 
 import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.libs.ws.WSResponse
 import support.BaseISpec
 import support.EmailStub._
 
@@ -27,7 +28,7 @@ class PayloadHandlingISpec extends BaseISpec {
     "return CREATED when given a valid payload" in new Setup {
       expectEmailToBeSent()
 
-      val response = await(wsClient.url(appClient("/verification-requests")).post(validPayload))
+      val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(validPayload))
 
       response.status shouldBe CREATED
     }
@@ -36,7 +37,7 @@ class PayloadHandlingISpec extends BaseISpec {
       expectEmailToBeSent()
       val validPayloadWithMissingTemplateParameter: JsObject = validPayload - "templateParameters"
 
-      val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithMissingTemplateParameter))
+      val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithMissingTemplateParameter))
 
       response.status shouldBe CREATED
     }
@@ -45,7 +46,7 @@ class PayloadHandlingISpec extends BaseISpec {
       expectEmailToBeSent()
       val validPayloadWithRelativeContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "/continue")
 
-      val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithRelativeContinueUrl))
+      val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithRelativeContinueUrl))
 
       response.status shouldBe CREATED
     }
@@ -53,7 +54,7 @@ class PayloadHandlingISpec extends BaseISpec {
     "return BAD_REQUEST with structured error when continueUrl is not a valid URL" in new Setup {
       val validPayloadWithInvalidContinueUrl: JsObject = validPayload ++ Json.obj("continueUrl" -> "not-a-valid-url-$#$#$")
 
-      val response = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithInvalidContinueUrl))
+      val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(validPayloadWithInvalidContinueUrl))
 
       response.status shouldBe BAD_REQUEST
       response.json shouldBe Json.parse(
@@ -70,7 +71,7 @@ class PayloadHandlingISpec extends BaseISpec {
     "return BAD_REQUEST with structured error when invalid payload is sent with a required field missing" in new Setup {
       val invalidPayloadWithMissingEmailField: JsObject = validPayload - "email"
 
-      val response = await(wsClient.url(appClient("/verification-requests")).post(invalidPayloadWithMissingEmailField))
+      val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(invalidPayloadWithMissingEmailField))
 
       response.status shouldBe BAD_REQUEST
       response.json shouldBe Json.parse(
@@ -87,7 +88,7 @@ class PayloadHandlingISpec extends BaseISpec {
     "return BAD_REQUEST with structured error containing all fields when invalid payload is sent with multiple fields missing" in new Setup {
       val invalidPayloadWithMissingEmailAndTemplateIdField: JsObject = (validPayload - "email") - "templateId"
 
-      val response = await(wsClient.url(appClient("/verification-requests")).post(invalidPayloadWithMissingEmailAndTemplateIdField))
+      val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(invalidPayloadWithMissingEmailAndTemplateIdField))
 
       response.status shouldBe BAD_REQUEST
       response.json shouldBe Json.parse(
@@ -105,9 +106,9 @@ class PayloadHandlingISpec extends BaseISpec {
     "return BAD_REQUEST with structured error when invalid payload is sent with invalid linkExpiryDuration" in new Setup {
       val invalidPayloadWithMissingEmailField: JsObject = validPayload ++ Json.obj("linkExpiryDuration" -> "XXX")
 
-      val response = await(wsClient.url(appClient("/verification-requests")).post(invalidPayloadWithMissingEmailField))
+      val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(invalidPayloadWithMissingEmailField))
 
-      response.status shouldBe BAD_REQUEST
+      response.status                shouldBe BAD_REQUEST
       (response.json \\ "code").head shouldBe JsString("VALIDATION_ERROR")
     }
 
@@ -159,11 +160,11 @@ class PayloadHandlingISpec extends BaseISpec {
 
   trait Setup {
     val validPayload: JsObject = Json.obj(
-      "templateId" -> "some-template-id",
-      "email" -> "abc@def.com",
+      "templateId"         -> "some-template-id",
+      "email"              -> "abc@def.com",
       "templateParameters" -> Json.obj(),
       "linkExpiryDuration" -> "P2D",
-      "continueUrl" -> "http://example.com/continue"
+      "continueUrl"        -> "http://example.com/continue"
     )
   }
 

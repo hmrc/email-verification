@@ -32,12 +32,14 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 class JourneyController @Inject() (
-    controllerComponents: ControllerComponents,
-    journeyService:       JourneyService,
-    val authConnector:    AuthConnector,
-    auditService:         AuditService
+  controllerComponents: ControllerComponents,
+  journeyService: JourneyService,
+  val authConnector: AuthConnector,
+  auditService: AuditService
 )(implicit ec: ExecutionContext)
-  extends BackendController(controllerComponents) with AuthorisedFunctions with Logging {
+    extends BackendController(controllerComponents)
+    with AuthorisedFunctions
+    with Logging {
 
   def getJourney(journeyId: String): Action[AnyContent] = Action.async {
     journeyService.getJourney(journeyId).map {
@@ -51,27 +53,31 @@ class JourneyController @Inject() (
   def verifyEmail(): Action[VerifyEmailRequest] = Action.async(parse.json[VerifyEmailRequest]) { implicit request =>
     val req = request.body
     val verifyEmailRequest = req.copy(email = req.email.map(e => e.copy(address = e.address.toLowerCase)))
-    journeyService.isLocked(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address)).flatMap{ locked =>
+    journeyService.isLocked(verifyEmailRequest.credId, verifyEmailRequest.email.map(_.address)).flatMap { locked =>
       if (locked) {
         auditService.sendEmailVerificationRequestLockedEvent(verifyEmailRequest, 401)
         Future.successful(Unauthorized)
       } else {
-        journeyService.checkIfEmailExceedsCount(
-          verifyEmailRequest.credId,
-          verifyEmailRequest.email.map(_.address).getOrElse("")
-        ).flatMap { emailExceedsCount =>
+        journeyService
+          .checkIfEmailExceedsCount(
+            verifyEmailRequest.credId,
+            verifyEmailRequest.email.map(_.address).getOrElse("")
+          )
+          .flatMap { emailExceedsCount =>
             if (emailExceedsCount) {
               auditService.sendEmailVerificationRequestLockedEvent(verifyEmailRequest, 401)
               Future.successful(Unauthorized)
             } else {
-              journeyService.initialise(verifyEmailRequest).map { redirectUrl =>
-                auditService.sendVerifyEmailSuccessEvent(verifyEmailRequest, 201)
-                Created(Json.toJson(VerifyEmailResponse(redirectUrl)))
-              }.recover {
-                case ex: UpstreamErrorResponse =>
+              journeyService
+                .initialise(verifyEmailRequest)
+                .map { redirectUrl =>
+                  auditService.sendVerifyEmailSuccessEvent(verifyEmailRequest, 201)
+                  Created(Json.toJson(VerifyEmailResponse(redirectUrl)))
+                }
+                .recover { case ex: UpstreamErrorResponse =>
                   auditService.sendEmailVerificationRequestFailed(verifyEmailRequest, ex.reportAs)
                   Status(ex.reportAs)(ex.getMessage())
-              }
+                }
             }
           }
       }
@@ -86,10 +92,12 @@ class JourneyController @Inject() (
           case EmailUpdateResult.Accepted =>
             Ok(Json.obj("status" -> "accepted"))
           case EmailUpdateResult.TooManyAttempts(continueUrl) =>
-            Forbidden(Json.obj(
-              "status" -> "tooManyAttempts",
-              "continueUrl" -> continueUrl
-            ))
+            Forbidden(
+              Json.obj(
+                "status"      -> "tooManyAttempts",
+                "continueUrl" -> continueUrl
+              )
+            )
           case EmailUpdateResult.JourneyNotFound =>
             NotFound(Json.obj("status" -> "journeyNotFound"))
         }
@@ -101,63 +109,80 @@ class JourneyController @Inject() (
   def resendPasscode(journeyId: String): Action[AnyContent] = Action.async { implicit request =>
     journeyService.resendPasscode(journeyId).map {
       case ResendPasscodeResult.PasscodeResent =>
-        Ok(Json.obj(
-          "status" -> "passcodeResent"
-        ))
+        Ok(
+          Json.obj(
+            "status" -> "passcodeResent"
+          )
+        )
       case ResendPasscodeResult.JourneyNotFound =>
-        NotFound(Json.obj(
-          "status" -> "journeyNotFound"
-        ))
+        NotFound(
+          Json.obj(
+            "status" -> "journeyNotFound"
+          )
+        )
       case ResendPasscodeResult.NoEmailProvided =>
-        Forbidden(Json.obj(
-          "status" -> "noEmailProvided"
-        ))
+        Forbidden(
+          Json.obj(
+            "status" -> "noEmailProvided"
+          )
+        )
       case ResendPasscodeResult.TooManyAttemptsForEmail(journey) =>
-        Forbidden(Json.obj(
-          "status" -> "tooManyAttemptsForEmail",
-          "journey" -> journey
-        ))
+        Forbidden(
+          Json.obj(
+            "status"  -> "tooManyAttemptsForEmail",
+            "journey" -> journey
+          )
+        )
       case ResendPasscodeResult.TooManyAttemptsInSession(continueUrl) =>
-        Forbidden(Json.obj(
-          "status" -> "tooManyAttemptsInSession",
-          "continueUrl" -> continueUrl
-        ))
+        Forbidden(
+          Json.obj(
+            "status"      -> "tooManyAttemptsInSession",
+            "continueUrl" -> continueUrl
+          )
+        )
     }
   }
 
   def submitPasscode(journeyId: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    authorised().retrieve(Retrievals.credentials) {
-      case Some(Credentials(credId, _)) =>
-        (request.body \ "passcode").asOpt[String] match {
-          case Some(passcode) =>
-            journeyService.validatePasscode(journeyId, credId, passcode).map {
-              case PasscodeValidationResult.Complete(redirectUri) =>
-                Ok(Json.obj(
-                  "status" -> "complete",
-                  "continueUrl" -> redirectUri
-                ))
-              case PasscodeValidationResult.IncorrectPasscode(journey) =>
-                BadRequest(Json.obj(
-                  "status" -> "incorrectPasscode",
-                  "journey" -> journey
-                ))
-              case PasscodeValidationResult.TooManyAttempts(continueUrl) =>
-                Forbidden(Json.obj(
-                  "status" -> "tooManyAttempts",
-                  "continueUrl" -> continueUrl
-                ))
-              case PasscodeValidationResult.JourneyNotFound =>
-                NotFound(Json.obj("status" -> "journeyNotFound"))
-            }
-          case None =>
-            Future.successful(BadRequest)
-        }
-      case None =>
-        Future.successful(Unauthorized)
-    }.recover {
-      case _: AuthorisationException =>
+    authorised()
+      .retrieve(Retrievals.credentials) {
+        case Some(Credentials(credId, _)) =>
+          (request.body \ "passcode").asOpt[String] match {
+            case Some(passcode) =>
+              journeyService.validatePasscode(journeyId, credId, passcode).map {
+                case PasscodeValidationResult.Complete(redirectUri) =>
+                  Ok(
+                    Json.obj(
+                      "status"      -> "complete",
+                      "continueUrl" -> redirectUri
+                    )
+                  )
+                case PasscodeValidationResult.IncorrectPasscode(journey) =>
+                  BadRequest(
+                    Json.obj(
+                      "status"  -> "incorrectPasscode",
+                      "journey" -> journey
+                    )
+                  )
+                case PasscodeValidationResult.TooManyAttempts(continueUrl) =>
+                  Forbidden(
+                    Json.obj(
+                      "status"      -> "tooManyAttempts",
+                      "continueUrl" -> continueUrl
+                    )
+                  )
+                case PasscodeValidationResult.JourneyNotFound =>
+                  NotFound(Json.obj("status" -> "journeyNotFound"))
+              }
+            case None =>
+              Future.successful(BadRequest)
+          }
+        case None =>
+          Future.successful(Unauthorized)
+      }
+      .recover { case _: AuthorisationException =>
         Unauthorized
-    }
+      }
   }
 
   def completedEmails(credId: String): Action[AnyContent] = Action.async(parse.anyContent) { implicit request =>

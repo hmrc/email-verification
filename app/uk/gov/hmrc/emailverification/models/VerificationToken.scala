@@ -23,4 +23,3 @@ case class VerificationToken(token: String, continueUrl: ForwardUrl)
 object VerificationToken {
   implicit def writes: OWrites[VerificationToken] = Json.writes[VerificationToken]
 }
-
