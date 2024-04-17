@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import com.mongodb.MongoException
 import config.{AppConfig, WhichToUse}
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import uk.gov.hmrc.emailverification.repositories.{RepositoryBaseSpec, VerifiedEmailMongoRepository, VerifiedHashedEmailMongoRepository}
@@ -66,13 +65,12 @@ class VerifiedEmailServiceSpec extends RepositoryBaseSpec {
       hashedEmailRepoDoc shouldBe Some(VerifiedEmail(lowerCaseEmail))
     }
 
-    "blow up if the email already exists" in {
+    "ignore duplicate key error if inserting an email that already exists" in {
       when(mockConfig.verifiedEmailUpdateCollection).thenReturn(WhichToUse.Both)
       await(emailRepo.ensureIndexes())
       await(hashedEmailRepo.ensureIndexes())
       await(service.insert(lowerCaseEmail))
-      val result = intercept[MongoException](await(service.insert(lowerCaseEmail)))
-      result.getCode shouldBe 11000
+      await(service.insert(lowerCaseEmail)) shouldBe ()
     }
 
     "not blow up if a different email exists" in {

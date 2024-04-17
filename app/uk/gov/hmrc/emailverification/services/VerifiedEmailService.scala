@@ -61,12 +61,21 @@ class VerifiedEmailService @Inject() (
   }
 
   /** Older plain text collection is stored mixed case; new hashed collection is stored lower cased. Therefore, if insertion into the old collection succeeds, we should
-    * ignore/consume any dupe key errors thrown by the new collection.
+    * ignore/consume any dupe key errors thrown by the new collection. A record older than 7 years in the old collection will not have been migrated to the new collection, so
+    * duplicate error in insert to old collection should also be ignored.
     */
   def insert(mixedCaseEmail: String)(implicit hc: HeaderCarrier): Future[Unit] = appConfig.verifiedEmailUpdateCollection match {
     case WhichToUse.Both =>
       for {
-        _ <- verifiedEmailRepo.insert(mixedCaseEmail)
+        _ <- verifiedEmailRepo
+               .insert(mixedCaseEmail)
+               .recover {
+                 case ex: MongoException if ex.getCode == 11000 =>
+                   val details = s"sessionID: ${hc.sessionId}; requestID: ${hc.requestId}"
+                   val msg = s"Older record already present in verified email collection, ignoring dup key error - $details"
+                   logger.warn(s"[GG-7749] $msg")
+                   ()
+               }
         _ <- verifiedHashedEmailRepo
                .insert(mixedCaseEmail.toLowerCase)
                .recover {
