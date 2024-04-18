@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.emailverification
 
+import com.mongodb.MongoException
+
 import javax.inject.Inject
 import play.api.http.Status._
 import play.api.libs.json.Json
@@ -73,6 +75,7 @@ class ErrorHandlerOverride @Inject() (
   private def resolveError(ex: Throwable): Result = {
     val (statusCode, code, message) = ex match {
       case UpstreamErrorResponse(message, _, _, _) => (BAD_GATEWAY, "UPSTREAM_ERROR", message)
+      case e: MongoException                       => (INTERNAL_SERVER_ERROR, "UNEXPECTED_ERROR", "Mongo database error")
       case e: Throwable                            => (INTERNAL_SERVER_ERROR, "UNEXPECTED_ERROR", e.getMessage)
     }
 
