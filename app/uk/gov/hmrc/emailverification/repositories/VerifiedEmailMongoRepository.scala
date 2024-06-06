@@ -17,14 +17,13 @@
 package uk.gov.hmrc.emailverification.repositories
 
 import org.mongodb.scala.bson.{BsonObjectId, BsonString}
-
-import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import org.mongodb.scala.model._
+import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import java.time.Instant
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -64,6 +63,7 @@ class VerifiedEmailMongoRepository @Inject() (mongoComponent: MongoComponent)(im
         val email = doc.get[BsonString]("email").getOrElse(throw new RuntimeException("verifiedEmail document should have 'email' field"))
         (VerifiedEmail(email.getValue), Instant.ofEpochSecond(id.getValue.getTimestamp))
       })
-
   }
+
+  def drop(): Future[Unit] = collection.drop().toFuture().map(_ => ())
 }

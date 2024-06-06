@@ -115,6 +115,14 @@ class VerifiedEmailMongoRepositorySpec extends RepositoryBaseSpec {
     }
 
   }
+
+  "drop" should {
+    "remove the collection" in {
+      repository.drop().futureValue
+      val collectionNames = mongoDatabase.listCollectionNames().toFuture().futureValue
+      collectionNames should not contain "verifiedEmail"
+    }
+  }
   override def beforeEach(): Unit = {
     super.beforeEach()
     await(repository.ensureIndexes())

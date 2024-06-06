@@ -19,27 +19,23 @@ package uk.gov.hmrc.emailverification.tasks
 import config.AppConfig
 import org.apache.pekko.actor.ActorSystem
 import play.api.Logging
-import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.emailverification.repositories.VerifiedEmailMongoRepository
 
 import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Success, Try}
 import scala.language.postfixOps
 
 /** A one-off task to remove the redundant verifiedEmail collection see GG-7817 This class and config should be removed as part of the code cleanup: GG-7818
   */
-class DropVerifiedEmailCollectionTask @Inject() (appConfig: AppConfig, mongoComponent: MongoComponent)(implicit
+class DropVerifiedEmailCollectionTask @Inject() (appConfig: AppConfig, verifiedEmailMongoRepository: VerifiedEmailMongoRepository)(implicit
   ec: ExecutionContext,
   actorSystem: ActorSystem
 ) extends Logging {
   if (appConfig.dropVerifiedEmailCollectionEnabled) {
-    actorSystem.scheduler.scheduleOnce(1 seconds) {
-      Try {
-        mongoComponent.database.getCollection("verifiedEmail").drop().toFuture()
-      } match {
-        case Failure(e) => logger.error(s"[GG-7817] Failed to drop the collection 'verifiedEmail'. Reason: ${e.getMessage}", e)
-        case Success(_) => logger.warn(s"[GG-7817] Successfully dropped the collection 'verifiedEmail'")
+    actorSystem.scheduler.scheduleOnce(appConfig.dropVerifiedEmailCollectionDelaySecs seconds) {
+      verifiedEmailMongoRepository.drop().map(_ => logger.warn(s"[GG-7817] Successfully dropped the collection 'verifiedEmail'")).recover { case e =>
+        logger.error(s"[GG-7817] Failed to drop the collection 'verifiedEmail'. Reason: ${e.getMessage}", e)
       }
     }
   } else {
