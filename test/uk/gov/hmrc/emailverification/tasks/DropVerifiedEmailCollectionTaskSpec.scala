@@ -18,18 +18,18 @@ package uk.gov.hmrc.emailverification.tasks
 
 import config.AppConfig
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.testkit.TestKit
 import org.mockito.scalatest.MockitoSugar
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.emailverification.repositories.VerifiedEmailMongoRepository
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-class DropVerifiedEmailCollectionTaskSpec extends TestKit(ActorSystem("DropEmailVerification")) with AnyWordSpecLike with MockitoSugar with Eventually {
+class DropVerifiedEmailCollectionTaskSpec extends AnyWordSpec with MockitoSugar with Eventually {
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(500, Millis))
   trait Setup {
+    implicit val as: ActorSystem = ActorSystem()
     val appConfigMock = mock[AppConfig]
     val mockRepo = mock[VerifiedEmailMongoRepository]
   }
