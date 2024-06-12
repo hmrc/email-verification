@@ -49,6 +49,9 @@ class AppConfig @Inject() (val config: Configuration) {
   lazy val emailMigrationBatchDelayMillis: Int = config.get[Int]("emailMigration.batchDelayMillis")
   lazy val emailMigrationMaxDurationSeconds: Int = config.get[Int]("emailMigration.maxDurationSeconds")
 
+  lazy val dropVerifiedEmailCollectionEnabled: Boolean = config.get[Boolean]("verifiedEmailCollection.drop.enabled")
+  lazy val dropVerifiedEmailCollectionDelaySecs: Int = config.get[Int]("verifiedEmailCollection.drop.delaySeconds")
+
   lazy val verifiedEmailCheckCollection: WhichToUse = WhichToUse.forCollectionToCheck(config.get[String]("verifiedEmailCheckCollection"))
 
   lazy val verifiedEmailUpdateCollection: WhichToUse = WhichToUse.forCollectionToUpdate(config.get[String]("verifiedEmailUpdateCollection"))

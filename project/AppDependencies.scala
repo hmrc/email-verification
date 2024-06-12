@@ -17,7 +17,6 @@ object AppDependencies {
     "org.scalatestplus"            %% "scalacheck-1-17"                 % "3.2.17.0",
     "com.vladsch.flexmark"          % "flexmark-all"                    % "0.64.8",
     "org.mockito"                  %% "mockito-scala-scalatest"         % "1.17.30",
-
   ).map(_ % Test)
 
   def apply(): Seq[ModuleID] = compile ++ test

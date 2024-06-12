@@ -21,5 +21,6 @@ import com.google.inject.AbstractModule
 class StartupModule extends AbstractModule {
   override def configure(): Unit = {
     bind(classOf[VerifiedEmailMigrationTask]).asEagerSingleton()
+    bind(classOf[DropVerifiedEmailCollectionTask]).asEagerSingleton()
   }
 }
