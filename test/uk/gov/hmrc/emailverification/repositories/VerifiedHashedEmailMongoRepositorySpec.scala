@@ -22,8 +22,6 @@ import org.mongodb.scala.bson.{BsonBoolean, BsonString}
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import uk.gov.hmrc.http.HeaderCarrier
 
-import java.time.Instant
-
 class VerifiedHashedEmailMongoRepositorySpec extends RepositoryBaseSpec {
 
   val email = "user@email.com"
@@ -104,31 +102,6 @@ class VerifiedHashedEmailMongoRepositorySpec extends RepositoryBaseSpec {
     }
   }
 
-  "insertBatch" should {
-    "Add a number of hashed verified email records" in {
-      val emails = (0 to 9).map(emailWithNumber)
-      emails.map(email => await(repository.find(email)) shouldBe None)
-      val verifiedEmails = emails.map(email => (VerifiedEmail(email), Instant.now()))
-      val insertedCount = await(repository.insertBatch(verifiedEmails))
-      insertedCount shouldBe 10
-      emails.map(email => await(repository.find(email)) shouldBe Some(VerifiedEmail(email)))
-    }
-
-    "Add a number of hashed verified email records, where one already exists" in {
-      await(repository.ensureIndexes())
-      val emails = (0 to 9).map(emailWithNumber)
-      emails.map(email => await(repository.find(email)) shouldBe None)
-
-      await(repository.insert(emailWithNumber(5)))
-      await(repository.find(emailWithNumber(5))) shouldBe defined
-      Thread.sleep(500) // allow time for index update
-
-      val verifiedEmails = emails.map(email => (VerifiedEmail(email), Instant.now()))
-      val insertedCount = await(repository.insertBatch(verifiedEmails))
-      insertedCount shouldBe 9
-      emails.map(email => await(repository.find(email)) shouldBe Some(VerifiedEmail(email)))
-    }
-  }
   override def beforeEach(): Unit = {
     super.beforeEach()
     await(repository.ensureIndexes())

@@ -16,133 +16,25 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import config.{AppConfig, WhichToUse}
-import org.mongodb.scala.MongoException
 import play.api.Logging
-import uk.gov.hmrc.emailverification.models.{MigrationResultCollector, VerifiedEmail}
-import uk.gov.hmrc.emailverification.repositories.{VerifiedEmailMongoRepository, VerifiedHashedEmailMongoRepository}
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.emailverification.models.VerifiedEmail
+import uk.gov.hmrc.emailverification.repositories.VerifiedHashedEmailMongoRepository
 
-import java.time.temporal.ChronoUnit
-import java.time.{Duration, Instant}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class VerifiedEmailService @Inject() (
-  verifiedEmailRepo: VerifiedEmailMongoRepository,
-  verifiedHashedEmailRepo: VerifiedHashedEmailMongoRepository,
-  appConfig: AppConfig
-)(implicit ec: ExecutionContext)
-    extends Logging {
+class VerifiedEmailService @Inject() (verifiedHashedEmailRepo: VerifiedHashedEmailMongoRepository)(implicit ec: ExecutionContext) extends Logging {
 
-  /** The older plain text emails collection was stored mixed case so there could be multiple entries of same email but different case. The newer hashed email collection lower
-    * cases emails before persisting.
-    */
   def isVerified(mixedCaseEmail: String): Future[Boolean] = find(mixedCaseEmail).map(_.isDefined)
 
-  /** The older plain text emails collection was stored mixed case so there could be multiple entries of same email but different case. The newer hashed email collection lower
-    * cases emails before persisting.
+  /** Note: The hashed email collection lower cases emails before persisting.
     */
-  def find(mixedCaseEmail: String): Future[Option[VerifiedEmail]] = appConfig.verifiedEmailCheckCollection match {
-    case WhichToUse.Old => verifiedEmailRepo.find(mixedCaseEmail)
-    case WhichToUse.Both =>
-      for {
-        oldVerifiedEmail <- verifiedEmailRepo.find(mixedCaseEmail)
-        newVerifiedEmail <- verifiedHashedEmailRepo.find(mixedCaseEmail.toLowerCase)
-      } yield {
-        if (oldVerifiedEmail.isDefined != newVerifiedEmail.isDefined) {
-          logger.warn(
-            s"Email ${mixedCaseEmail.take(3)}***${mixedCaseEmail.takeRight(3)} only found in ${if (oldVerifiedEmail.isDefined) "old collection"}${if (newVerifiedEmail.isDefined) "new collection"} but expected in both."
-          )
-        }
-        oldVerifiedEmail
-      }
-    case WhichToUse.New => verifiedHashedEmailRepo.find(mixedCaseEmail.toLowerCase)
-  }
+  def find(mixedCaseEmail: String): Future[Option[VerifiedEmail]] =
+    verifiedHashedEmailRepo.find(mixedCaseEmail.toLowerCase)
 
-  /** Older plain text collection is stored mixed case; new hashed collection is stored lower cased. Therefore, if insertion into the old collection succeeds, we should
-    * ignore/consume any dupe key errors thrown by the new collection. A record older than 7 years in the old collection will not have been migrated to the new collection, so
-    * duplicate error in insert to old collection should also be ignored.
+  /** Note: The hashed email collection lower cases emails before persisting.
     */
-  def insert(mixedCaseEmail: String)(implicit hc: HeaderCarrier): Future[Unit] = appConfig.verifiedEmailUpdateCollection match {
-    case WhichToUse.Both =>
-      for {
-        _ <- verifiedEmailRepo
-               .insert(mixedCaseEmail)
-               .recover {
-                 case ex: MongoException if ex.getCode == 11000 =>
-                   val details = s"sessionID: ${hc.sessionId}; requestID: ${hc.requestId}"
-                   val msg = s"Older record already present in verified email collection, ignoring dup key error - $details"
-                   logger.warn(s"[GG-7749] $msg")
-                   ()
-               }
-        _ <- verifiedHashedEmailRepo
-               .insert(mixedCaseEmail.toLowerCase)
-               .recover {
-                 case ex: MongoException if ex.getCode == 11000 =>
-                   val details = s"sessionID: ${hc.sessionId}; requestID: ${hc.requestId}"
-                   val msg = s"Case clash - ignoring dup key error in new collection - $details"
-                   logger.warn(s"[GG-7278] $msg")
-                   ()
-               }
-      } yield ()
-    case WhichToUse.New => verifiedHashedEmailRepo.insert(mixedCaseEmail.toLowerCase)
-    case WhichToUse.Old => throw new RuntimeException("Post migration the hashed repo should always be used, so only 'both' or 'new' supported in config")
-  }
-
-  def migrateEmailAddresses(): Future[MigrationResultCollector] = {
-    val batchSize = appConfig.emailMigrationBatchSize
-    val batchDelayMS = appConfig.emailMigrationBatchDelayMillis
-    val startTime = Instant.now
-    val maxDuration = Duration.ofSeconds(appConfig.emailMigrationMaxDurationSeconds)
-
-    def migrateNext(fromIndex: Int, resultCollector: MigrationResultCollector): Future[MigrationResultCollector] = {
-      verifiedEmailRepo.getBatch(fromIndex, batchSize).flatMap { recordsFound =>
-        val totalReadCount = fromIndex + recordsFound.size
-        val toIndex = totalReadCount - 1
-        val ttlDaysBeforeNow = Instant.now().minus(appConfig.verifiedEmailRepoTTLDays, ChronoUnit.DAYS)
-        val recordsNotExpired = recordsFound.filter(_._2.isAfter(ttlDaysBeforeNow))
-        val expiredCount = recordsFound.size - recordsNotExpired.size
-        for {
-          batchInsertCount <- if (recordsNotExpired.nonEmpty) {
-                                val fromTimestamp = recordsFound.headOption.fold("n/a")(_._2.toString)
-                                val toTimestamp = recordsFound.takeRight(1).headOption.fold("n/a")(_._2.toString)
-                                val ignoringExpiredRecords = if (expiredCount > 0) s" Ignoring $expiredCount expired records." else ""
-                                logger.info(
-                                  s"[GG-6759] Migrating records $fromIndex to $toIndex ($fromTimestamp to $toTimestamp) from verifiedEmail to verifiedHashedEmail collection.$ignoringExpiredRecords"
-                                )
-                                verifiedHashedEmailRepo.insertBatch(recordsNotExpired)
-                              } else Future.successful(0)
-
-          newTotalInsertedCount = resultCollector.insertedCount + batchInsertCount
-          newTotalDuplicatesIgnored = resultCollector.duplicateCount + (recordsNotExpired.size - batchInsertCount)
-          newTotalExpiredCount = resultCollector.expiredCount + expiredCount
-          newResultCollector = MigrationResultCollector(
-                                 readCount = totalReadCount,
-                                 insertedCount = newTotalInsertedCount,
-                                 duplicateCount = newTotalDuplicatesIgnored,
-                                 expiredCount = newTotalExpiredCount
-                               )
-          migratedCount <- if (maxDuration.minus(Duration.between(startTime, Instant.now)).isNegative) {
-                             logger.warn(
-                               s"[GG-6759] Max duration of in ${maxDuration.getSeconds} seconds reached. $totalReadCount records read from verifiedEmail, $newTotalInsertedCount added to verifiedHashedEmail, $newTotalDuplicatesIgnored duplicates ignored and $newTotalExpiredCount were expired."
-                             )
-                             Future.successful(newResultCollector)
-                           } else if (recordsFound.size == batchSize) {
-                             logger.warn(s"[GG-6759] sleeping for $batchDelayMS ms")
-                             Thread.sleep(batchDelayMS)
-                             migrateNext(fromIndex + batchSize, newResultCollector)
-                           } else {
-                             val duration = Duration.between(startTime, Instant.now)
-                             logger.warn(
-                               s"[GG-6759] Finished migration in ${duration.toMinutes} minutes. $totalReadCount records read from verifiedEmail, $newTotalInsertedCount added to verifiedHashedEmail, $newTotalDuplicatesIgnored duplicates ignored and $newTotalExpiredCount were expired."
-                             )
-                             Future.successful(newResultCollector)
-                           }
-        } yield migratedCount
-      }
-    }
-    migrateNext(fromIndex = 0, MigrationResultCollector())
-  }
+  def insert(mixedCaseEmail: String): Future[Unit] =
+    verifiedHashedEmailRepo.insert(mixedCaseEmail.toLowerCase)
 
 }

@@ -20,7 +20,8 @@ import config.AppConfig
 import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.emailverification.models.SendEmailRequest
 import uk.gov.hmrc.gg.test.UnitSpec
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -51,7 +52,7 @@ class EmailConnectorSpec extends UnitSpec with ScalaFutures {
   sealed trait Setup {
     val hc: HeaderCarrier = HeaderCarrier()
     val executionContext: ExecutionContext = ExecutionContext.Implicits.global
-    val mockHttp: HttpClient = mock[HttpClient]
+    val mockHttp: HttpClientV2 = mock[HttpClientV2]
     val params: Map[String, String] = Map("p1" -> "v1")
     val templateId = "my-template"
     val recipient = "user@example.com"

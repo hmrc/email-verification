@@ -28,7 +28,7 @@ import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository
 import uk.gov.hmrc.emailverification.services.{AuditService, VerificationLinkService, VerifiedEmailService}
 import uk.gov.hmrc.gg.test.UnitSpec
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.{Duration, Instant}
@@ -80,13 +80,13 @@ class EmailVerificationControllerSpec extends UnitSpec {
       when {
         mockTokenRepo.findToken(eqTo(someToken))
       } thenReturn Future.successful(Some(VerificationDoc(emailMixedCase, someToken, Instant.now)))
-      when(mockVerifiedEmailService.insert(eqTo(emailMixedCase))(any[HeaderCarrier])) thenReturn Future.unit
+      when(mockVerifiedEmailService.insert(eqTo(emailMixedCase))) thenReturn Future.unit
       when(mockVerifiedEmailService.find(eqTo(emailMixedCase))) thenReturn Future.successful(None)
 
       val result: Future[Result] = controller.validateToken()(request.withBody(Json.obj("token" -> someToken)))
 
       status(result) shouldBe Status.CREATED
-      verify(mockVerifiedEmailService).insert(eqTo(emailMixedCase))(any[HeaderCarrier])
+      verify(mockVerifiedEmailService).insert(eqTo(emailMixedCase))
       verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
     }
 

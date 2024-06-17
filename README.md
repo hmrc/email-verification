@@ -34,9 +34,9 @@ This is a fire-n-forget email service.  It has no means to confirm that the emai
 ## <a id="how-to-build-and-test">How to build and test</a>
 
 Preconditions:
-```mongod``` needs to be running for ```it:test```
+```mongod``` needs to be running for ```it/test```
 
-```sbt clean compile coverage test it:test coverageReport```
+```sbt clean compile coverage test it/test coverageReport```
 
 Testing: there is an [email-verification-stubs](https://github.com/hmrc/email-verification-stubs) service that may assist locally or in other test environments.  This mimics the targetted email-sending service POST /hmrc/email and the stub can be used when the sending of an email for real is not desirable.
 

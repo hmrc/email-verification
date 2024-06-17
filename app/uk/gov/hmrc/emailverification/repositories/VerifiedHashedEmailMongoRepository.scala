@@ -16,21 +16,19 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import com.mongodb.MongoBulkWriteException
 import config.AppConfig
-import org.mongodb.scala.model.{IndexModel, _}
+import org.mongodb.scala.model._
 import play.api.Logging
 import play.api.libs.json.{Format, Json, OFormat}
+import uk.gov.hmrc.crypto.{OnewayCryptoFactory, PlainText, Sha512Crypto}
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.crypto.{OnewayCryptoFactory, PlainText, Sha512Crypto}
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
-import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -64,22 +62,6 @@ class VerifiedHashedEmailMongoRepository @Inject() (mongoComponent: MongoCompone
       .insertOne(VerifiedHashedEmail(hashEmail(email)))
       .headOption()
       .map(_ => ())
-
-  // GG-6759 - remove after emails migrated
-  def insertBatch(emailsWithCreatedAt: Seq[(VerifiedEmail, Instant)]): Future[Int] = {
-    val hashedEmails = emailsWithCreatedAt.map { case (verifiedEmail, createdAt) => VerifiedHashedEmail(hashEmail(verifiedEmail.email.toLowerCase), createdAt) }
-    collection
-      .bulkWrite(hashedEmails.map(InsertOneModel(_)), BulkWriteOptions().ordered(false))
-      .toFuture()
-      .map(_.getInsertedCount)
-      .recover {
-        case e: MongoBulkWriteException if e.getWriteErrors.asScala.forall(_.getCode == 11000) =>
-          val successfulWrites = emailsWithCreatedAt.size - e.getWriteErrors.size()
-          logger.warn(s"[GG-6759] Ignoring ${e.getWriteErrors.size()} duplicate key errors on insertMany")
-          successfulWrites
-      }
-  }
-
 }
 
 case class VerifiedHashedEmail(hashedEmail: String, createdAt: Instant = Instant.now())

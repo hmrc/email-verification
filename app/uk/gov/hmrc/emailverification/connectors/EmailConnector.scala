@@ -17,17 +17,21 @@
 package uk.gov.hmrc.emailverification.connectors
 
 import config.AppConfig
+import play.api.libs.json.Json
+
 import javax.inject.Inject
 import uk.gov.hmrc.emailverification.models.SendEmailRequest
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.client.HttpClientV2
 
+import java.net.URL
 import scala.concurrent.{ExecutionContext, Future}
 
 class EmailConnector @Inject() (
   appConfig: AppConfig,
-  httpClient: HttpClient,
+  httpClient: HttpClientV2,
   servicesConfig: ServicesConfig
 ) {
   private lazy val servicePath: String = appConfig.emailServicePath
@@ -35,12 +39,14 @@ class EmailConnector @Inject() (
   private lazy val baseServiceUrl: String = servicesConfig.baseUrl("email")
 
   def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+    val body = Json.toJson(SendEmailRequest(Seq(to), templateId, params))
     httpClient
-      .POST[SendEmailRequest, Either[UpstreamErrorResponse, HttpResponse]](s"$baseServiceUrl$servicePath/hmrc/email", SendEmailRequest(Seq(to), templateId, params))
+      .post(new URL(s"$baseServiceUrl$servicePath/hmrc/email"))
+      .withBody(body)
+      .execute[Either[UpstreamErrorResponse, HttpResponse]]
       .map {
         case Left(err)    => throw err
         case Right(value) => value
       }
   }
-
 }

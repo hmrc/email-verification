@@ -88,7 +88,7 @@ class TokenValidationISpec extends BaseISpec {
       VerifiedEmail.format.reads(response.json).get shouldBe VerifiedEmail(email)
     }
 
-    "lower case email addresses in hashed verified email reopsitory" in {
+    "lower case email addresses in hashed verified email repository" in {
       Given("a verified email already exist")
       val email = "user@email.com"
       val token = tokenFor(email)
