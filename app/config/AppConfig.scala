@@ -23,15 +23,14 @@ import scala.concurrent.duration.Duration
 
 class AppConfig @Inject() (val config: Configuration) {
 
-  lazy val platformFrontendHost: String = getString("platform.frontend.host")
-  lazy val emailServicePath: String = getString("microservice.services.email.path")
+  lazy val platformFrontendHost: String = config.get[String]("platform.frontend.host")
+  lazy val emailServicePath: String = config.get[String]("microservice.services.email.path")
   lazy val passcodeEmailTemplateParameters: Map[String, String] = config
     .getOptional[Map[String, String]]("passcodeEmailTemplateParameters")
     .getOrElse(Map.empty)
 
   lazy val passcodeExpiryMinutes: Int = config.get[Int]("passcodeExpiryMinutes")
-
-  private def getString(key: String) = config.get[String](key)
+  lazy val verificationCodeExpiryMinutes: Long = config.get[Long]("verificationCodeExpiryMinutes")
 
   lazy val maxPasscodeAttempts: Int = config.get[Int]("maxPasscodeAttempts") // passcode guess attempts
   lazy val maxAttemptsPerEmail: Int = config.get[Int]("maxEmailAttempts") // passcodes emailed to same address
@@ -41,4 +40,7 @@ class AppConfig @Inject() (val config: Configuration) {
   lazy val verifiedEmailRepoHashKey: String = config.get[String]("verifiedEmailRepo.hashKey")
   lazy val verifiedEmailRepoReplaceIndex: Boolean = config.get[Boolean]("verifiedEmailRepo.replaceIndex")
   lazy val verifiedEmailRepoTTLDays: Int = config.get[Int]("verifiedEmailRepo.ttlDays")
+
+  // V2
+  val appName: String = config.get[String]("appName")
 }

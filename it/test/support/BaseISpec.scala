@@ -37,6 +37,7 @@ trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
     PatienceConfig(timeout = Span(4, Seconds), interval = Span(1, Seconds))
 
   override def extraConfig: Map[String, Any] = Map(
+    "appName"                         -> "test-app",
     "play.http.router"                -> "testOnlyDoNotUseInAppConf.Routes",
     "queryParameter.encryption.key"   -> "gvBoGdgzqG1AarzF1LY0zQ==",
     "mongodb.uri"                     -> mongoUri,

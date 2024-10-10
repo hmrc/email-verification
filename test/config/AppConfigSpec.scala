@@ -26,6 +26,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
 
     "be available when configuration is defined" in new Setup(
       Map(
+        "appName"                          -> "the-app-name",
         "platform.frontend.host"           -> "some-host",
         "microservice.services.email.path" -> "some-path"
       )
@@ -34,7 +35,11 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
       appConfig.emailServicePath     shouldBe "some-path"
     }
 
-    "throw exceptions when configuration not defined" in new Setup() {
+    "throw exceptions when configuration not defined" in new Setup(
+      Map(
+        "appName" -> "the-app-name"
+      )
+    ) {
       val exception1: RuntimeException = intercept[RuntimeException](appConfig.platformFrontendHost)
       exception1.getMessage shouldBe s"hardcoded value: No configuration setting found for key 'platform'"
 
