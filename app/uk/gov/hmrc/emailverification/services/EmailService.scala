@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import javax.inject.Inject
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
-import uk.gov.hmrc.emailverification.models.{English, Language, Welsh}
+import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.http.HeaderCarrier
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class EmailService @Inject() (emailConnector: EmailConnector) {
@@ -39,4 +39,20 @@ class EmailService @Inject() (emailConnector: EmailConnector) {
     emailConnector.sendEmail(emailAddress, templateId, params).map(_ => ())
   }
 
+  def sendCode(email: String, verificationCode: String, serviceName: String, lang: Language)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[SendCodeResult] = {
+    val params = Map(
+      "passcode"  -> verificationCode,
+      "team_name" -> serviceName
+    )
+
+    val templateId = lang match {
+      case English => "email_verification_passcode"
+      case Welsh   => "email_verification_passcode_welsh"
+    }
+
+    emailConnector.sendEmail(email, templateId, params).map {
+      case httpResponse if httpResponse.status == 202 => SendCodeResult.codeSent()
+      case httpResponse                               => SendCodeResult.codeNotSent(httpResponse.body)
+    }
+  }
 }

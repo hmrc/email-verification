@@ -45,8 +45,10 @@ class EmailConnector @Inject() (
       .withBody(body)
       .execute[Either[UpstreamErrorResponse, HttpResponse]]
       .map {
-        case Left(err)    => throw err
-        case Right(value) => value
+        case Left(err) =>
+          throw err
+        case Right(value) =>
+          value
       }
   }
 }

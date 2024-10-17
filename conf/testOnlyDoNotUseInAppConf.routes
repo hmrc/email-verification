@@ -10,6 +10,8 @@
 # Failing to follow this rule may result in test routes deployed in production.
 
 # Add all the application routes to the prod.routes file
-->         /                          prod.Routes
+->          /                                            prod.Routes
 
-GET        /test-only/passcodes        uk.gov.hmrc.emailverification.controllers.EmailPasscodeController.testOnlyGetPasscodes()
+GET         /test-only/passcodes                         uk.gov.hmrc.emailverification.controllers.EmailPasscodeController.testOnlyGetPasscodes()
+
+POST        /test-only/retrieve/verification-code        uk.gov.hmrc.emailverification.controllers.TestOnlyEmailVerificationV2Controller.getVerificationCode

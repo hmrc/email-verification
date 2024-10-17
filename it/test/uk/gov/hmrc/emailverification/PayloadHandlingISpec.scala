@@ -160,6 +160,7 @@ class PayloadHandlingISpec extends BaseISpec {
 
   trait Setup {
     val validPayload: JsObject = Json.obj(
+      "appName" -> "test-app",
       "templateId"         -> "some-template-id",
       "email"              -> "abc@def.com",
       "templateParameters" -> Json.obj(),

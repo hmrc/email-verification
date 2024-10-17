@@ -27,6 +27,7 @@ class TokenValidationISpec extends BaseISpec {
 
   override def extraConfig: Map[String, Any] = {
     super.extraConfig ++ Map[String, Any](
+      "appName"                       -> "test-app",
       "verifiedEmailCheckCollection"  -> "new",
       "verifiedEmailUpdateCollection" -> "new"
     )
