@@ -51,8 +51,8 @@ class EmailService @Inject() (emailConnector: EmailConnector) {
     }
 
     emailConnector.sendEmail(email, templateId, params).map {
-      case httpResponse if httpResponse.status == 202 => SendCodeResult.codeSent()
-      case httpResponse                               => SendCodeResult.codeNotSent(httpResponse.body)
+      case httpResponse if httpResponse.status / 200 == 1 => SendCodeResult.codeSent()
+      case httpResponse                                   => SendCodeResult.codeNotSent(httpResponse.body)
     }
   }
 }

@@ -37,6 +37,6 @@ class TestOnlyEmailVerificationV2Controller @Inject() (
       val retrieveCodeRequest = request.body
       emailVerificationService
         .getVerificationCode(retrieveCodeRequest)
-        .map(vc => Ok(s"""{"code": "${vc.getOrElse("not " + "found")}"}"""))
+        .map(vc => Ok(s"""{"verificationCode": "${vc.getOrElse("not " + "found")}"}"""))
   }
 }
