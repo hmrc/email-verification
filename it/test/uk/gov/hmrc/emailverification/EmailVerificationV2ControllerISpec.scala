@@ -80,7 +80,7 @@ class EmailVerificationV2ControllerISpec extends AnyWordSpec with OptionValues w
           .post(Json.parse("""{"email":"joe@bloggs.com"}"""))
           .futureValue
         retrieveVerificationCodeResponse.status shouldBe Status.OK
-        val verificationCode = (retrieveVerificationCodeResponse.json \ "code").as[String]
+        val verificationCode = (retrieveVerificationCodeResponse.json \ "verificationCode").as[String]
 
         val response = resourceRequest(s"/email-verification/v2/verify-code")
           .post(Json.parse(s"""{"email":"joe@bloggs.com", "verificationCode":"$verificationCode"}"""))
