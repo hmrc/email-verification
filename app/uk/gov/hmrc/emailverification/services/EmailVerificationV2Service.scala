@@ -32,7 +32,7 @@ class EmailVerificationV2Service @Inject() (
   auditService: AuditV2Service
 )(implicit ec: ExecutionContext, appConfig: AppConfig)
     extends Logging {
-  def doSendCode(sendCodeRequest: SendCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[SendCodeResult] = {
+  def doSendCode(sendCodeRequest: SendCodeV2Request)(implicit headerCarrier: HeaderCarrier, userAgent: UserAgent): Future[SendCodeResult] = {
     if (!sendCodeRequest.isEmailValid)
       Future.successful(SendCodeResult.codeNotSent("Invalid email"))
     else
@@ -43,18 +43,19 @@ class EmailVerificationV2Service @Inject() (
                VerificationCodeV2MongoRepository.emailVerificationCodeDataDataKey,
                VerificationCodeMongoDoc(sendCodeRequest.email, verificationCode)
              )
-        _ <- auditService.sendVerificationCodeViaEmail(sendCodeRequest.email, verificationCode, appConfig.appName, status)
+        _ <- auditService.sendVerificationCode(sendCodeRequest.email, verificationCode, appConfig.appName, status)
       } yield status
   }
 
-  def doVerifyCode(verifyCodeRequest: VerifyCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[VerifyCodeResult] = {
+  def doVerifyCode(verifyCodeRequest: VerifyCodeV2Request)(implicit headerCarrier: HeaderCarrier, userAgent: UserAgent): Future[VerifyCodeResult] = {
     if (!verifyCodeRequest.isEmailValid)
       Future.successful(VerifyCodeResult.codeNotVerified("Invalid email"))
     else
       for {
         doc <- verificationCodeRepository.get(verifyCodeRequest.email)(VerificationCodeV2MongoRepository.emailVerificationCodeDataDataKey)
         verified = doc.map(_.verificationCode == verifyCodeRequest.verificationCode)
-        verifiedStatus = if (verified.getOrElse(false)) VerifyCodeResult.codeVerified()
+        verifiedStatus = if (verified.isEmpty) VerifyCodeResult.codeNotFound("Verification code not found")
+                         else if (verified.getOrElse(false)) VerifyCodeResult.codeVerified()
                          else
                            VerifyCodeResult
                              .codeNotVerified("Invalid verification code")

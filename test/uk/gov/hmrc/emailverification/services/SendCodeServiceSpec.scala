@@ -26,7 +26,7 @@ import play.api.http.HeaderNames
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.mvc.{Headers, Request}
 import play.api.test.FakeRequest
-import uk.gov.hmrc.emailverification.models.{English, SendCodeResult, SendCodeV2Request}
+import uk.gov.hmrc.emailverification.models.{English, SendCodeResult, SendCodeV2Request, UserAgent}
 import uk.gov.hmrc.emailverification.repositories.VerificationCodeV2MongoRepository
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.CurrentTimestampSupport
@@ -41,7 +41,7 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
   "sendCode" should {
     "return OK indicating email has been sent" in new SetUp {
       val emailForTest = "joe@bloggs.com"
-      when(mockAuditService.sendVerificationCodeViaEmail(meq(emailForTest), meq(expectedVerificationCode), meq("test-application"), meq(SendCodeResult.codeSent()))(any()))
+      when(mockAuditService.sendVerificationCode(meq(emailForTest), meq(expectedVerificationCode), meq("test-application"), meq(SendCodeResult.codeSent()))(any(), any()))
         .thenReturn(Future.successful(()))
 
       when(emailServiceMock.sendCode(meq(emailForTest), meq(expectedVerificationCode), meq("test-application"), meq(English))(meq(hc), meq(global)))
@@ -50,7 +50,7 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
       val sendCodeRequest: SendCodeV2Request = SendCodeV2Request(emailForTest)
       val result: SendCodeResult = Await.result(verifyService.doSendCode(sendCodeRequest), 5.seconds)
 
-      result.code shouldBe "CODE_SENT"
+      result.status shouldBe "CODE_SENT"
       verify(emailServiceMock, atMostOnce()).sendCode(meq(emailForTest), meq(expectedVerificationCode), meq("test-application"), any())(meq(hc), meq(global))
     }
 
@@ -60,7 +60,7 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
       val sendCodeRequest: SendCodeV2Request = SendCodeV2Request(badEmailForTest)
       val result: SendCodeResult = Await.result(verifyService.doSendCode(sendCodeRequest), 5.seconds)
 
-      result.code    shouldBe "CODE_NOT_SENT"
+      result.status  shouldBe "CODE_NOT_SENT"
       result.message shouldBe Some("Invalid email")
     }
 
@@ -70,7 +70,7 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
       val sendCodeRequest: SendCodeV2Request = SendCodeV2Request(badEmailForTest)
       val result: SendCodeResult = Await.result(verifyService.doSendCode(sendCodeRequest), 5.seconds)
 
-      result.code    shouldBe "CODE_NOT_SENT"
+      result.status  shouldBe "CODE_NOT_SENT"
       result.message shouldBe Some("Invalid email")
     }
 
@@ -80,7 +80,7 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
       val sendCodeRequest: SendCodeV2Request = SendCodeV2Request(badEmailForTest)
       val result: SendCodeResult = Await.result(verifyService.doSendCode(sendCodeRequest), 5.seconds)
 
-      result.code    shouldBe "CODE_NOT_SENT"
+      result.status  shouldBe "CODE_NOT_SENT"
       result.message shouldBe Some("Invalid email")
     }
 
@@ -90,7 +90,7 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
       val sendCodeRequest: SendCodeV2Request = SendCodeV2Request(badEmailForTest)
       val result: SendCodeResult = Await.result(verifyService.doSendCode(sendCodeRequest), 5.seconds)
 
-      result.code    shouldBe "CODE_NOT_SENT"
+      result.status  shouldBe "CODE_NOT_SENT"
       result.message shouldBe Some("Invalid email")
     }
 
@@ -100,7 +100,7 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
       val sendCodeRequest: SendCodeV2Request = SendCodeV2Request(badEmailForTest)
       val result: SendCodeResult = Await.result(verifyService.doSendCode(sendCodeRequest), 5.seconds)
 
-      result.code    shouldBe "CODE_NOT_SENT"
+      result.status  shouldBe "CODE_NOT_SENT"
       result.message shouldBe Some("Invalid email")
     }
 
@@ -110,7 +110,7 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
       val sendCodeRequest: SendCodeV2Request = SendCodeV2Request(badEmailForTest)
       val result: SendCodeResult = Await.result(verifyService.doSendCode(sendCodeRequest), 5.seconds)
 
-      result.code    shouldBe "CODE_NOT_SENT"
+      result.status  shouldBe "CODE_NOT_SENT"
       result.message shouldBe Some("Invalid email")
     }
   }
@@ -124,6 +124,8 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
       headers = Headers(HeaderNames.USER_AGENT -> "user-agent"),
       body = JsObject.empty
     )
+
+    implicit val userAgent: UserAgent = UserAgent(request)
 
     implicit val appConfigMock: AppConfig = mock[AppConfig]
     when(appConfigMock.appName).thenReturn("test-application")

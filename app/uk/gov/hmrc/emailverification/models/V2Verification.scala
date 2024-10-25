@@ -16,10 +16,13 @@
 
 package uk.gov.hmrc.emailverification.models
 
+import play.api.http.HeaderNames
 import play.api.libs.json.{Format, Json}
+import play.api.mvc.Request
 
 sealed trait EmailValidation {
-  private val emailValidationRegex = """^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]{0,63}+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
+  private val emailValidationRegex =
+    """^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]{0,63}+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
 
   def validate(email: String): Boolean =
     emailValidationRegex.matches(email)
@@ -35,8 +38,8 @@ object SendCodeV2Request extends EmailValidation {
   }
 }
 
-case class SendCodeResult(code: String, message: Option[String]) {
-  def isSent: Boolean = SendCodeResult.code.CODE_SENT == code
+case class SendCodeResult(status: String, message: Option[String]) {
+  def isSent: Boolean = SendCodeResult.code.CODE_SENT == status
 }
 
 object SendCodeResult {
@@ -62,8 +65,9 @@ object VerifyCodeV2Request extends EmailValidation {
   }
 }
 
-case class VerifyCodeResult(code: String, message: Option[String]) {
-  def isVerified: Boolean = VerifyCodeResult.code.CODE_VERIFIED == code
+case class VerifyCodeResult(status: String, message: Option[String]) {
+  def isVerified: Boolean = VerifyCodeResult.code.CODE_VERIFIED == status
+  def codeNotFound: Boolean = VerifyCodeResult.code.CODE_NOT_FOUND == status
 }
 
 object VerifyCodeResult {
@@ -71,9 +75,16 @@ object VerifyCodeResult {
 
   def codeVerified(message: Option[String] = Some("The verification code for the email verified successfully")): VerifyCodeResult = VerifyCodeResult(code.CODE_VERIFIED, message)
   def codeNotVerified(message: String): VerifyCodeResult = VerifyCodeResult(code.CODE_NOT_VERIFIED, Some(message))
+  def codeNotFound(message: String): VerifyCodeResult = VerifyCodeResult(code.CODE_NOT_FOUND, Some(message))
 
   private object code {
     val CODE_VERIFIED: String = "CODE_VERIFIED"
     val CODE_NOT_VERIFIED: String = "CODE_NOT_VERIFIED"
+    val CODE_NOT_FOUND: String = "CODE_NOT_FOUND"
   }
+}
+
+case class UserAgent(unwrap: Option[String])
+object UserAgent {
+  def apply(request: Request[_]): UserAgent = UserAgent(request.headers.get(HeaderNames.USER_AGENT))
 }

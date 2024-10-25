@@ -19,7 +19,7 @@ package uk.gov.hmrc.emailverification.services
 import config.AppConfig
 import org.mockito.{ArgumentMatchers => AM}
 import play.api.libs.json.JsObject
-import uk.gov.hmrc.emailverification.models.{English, SendCodeResult, SendCodeV2Request, VerifyCodeResult, VerifyCodeV2Request}
+import uk.gov.hmrc.emailverification.models.{English, SendCodeResult, SendCodeV2Request, UserAgent, VerifyCodeResult, VerifyCodeV2Request}
 import uk.gov.hmrc.emailverification.repositories.{RepositoryBaseSpec, VerificationCodeV2MongoRepository}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.CurrentTimestampSupport
@@ -46,8 +46,10 @@ class EmailVerificationV2ServiceSpec extends RepositoryBaseSpec {
 
     val codeVerifiedResult: VerifyCodeResult = VerifyCodeResult.codeVerified()
     val codeNotVerifiedResult: VerifyCodeResult = VerifyCodeResult.codeNotVerified("Invalid verification code")
+    val codeNotFoundResult: VerifyCodeResult = VerifyCodeResult.codeNotFound("Verification code not found")
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
+    implicit val userAgent: UserAgent = UserAgent(Some("test-user-agent"))
 
     implicit val mockAppConfig: AppConfig = mock[AppConfig]
     when(mockAppConfig.appName).thenReturn("test-application")
@@ -67,30 +69,30 @@ class EmailVerificationV2ServiceSpec extends RepositoryBaseSpec {
 
   "doSendCode" should {
     "create a verificationCode, send it in an email, handle the successful response and write an audit event" in new Setup {
-      when(mockAuditService.sendVerificationCodeViaEmail(testEmail, testVerificationCode, "test-application", codeSentResult))
+      when(mockAuditService.sendVerificationCode(testEmail, testVerificationCode, "test-application", codeSentResult))
         .thenReturn(Future.successful(()))
       when(mockEmailService.sendCode(AM.eq(testEmail), AM.eq(testVerificationCode), AM.eq("test-application"), AM.eq(English))(AM.any(), AM.any()))
         .thenReturn(Future.successful(codeSentResult))
       val sendCodeResult: SendCodeResult = Await.result(emailVerificationService.doSendCode(sendCodeV2Request), 5.seconds)
 
-      sendCodeResult.code shouldBe "CODE_SENT"
+      sendCodeResult.status shouldBe "CODE_SENT"
     }
 
     "create a verificationCode, send it in an email, handle the failure response and write an audit event" in
       new Setup {
-        when(mockAuditService.sendVerificationCodeViaEmail(testEmail, testVerificationCode, "test-application", codeNotSentResult))
+        when(mockAuditService.sendVerificationCode(testEmail, testVerificationCode, "test-application", codeNotSentResult))
           .thenReturn(Future.successful(()))
         when(mockEmailService.sendCode(AM.eq(testEmail), AM.eq(testVerificationCode), AM.eq("test-application"), AM.eq(English))(AM.any(), AM.any()))
           .thenReturn(Future.successful(codeNotSentResult))
         val sendCodeResult: SendCodeResult = Await.result(emailVerificationService.doSendCode(sendCodeV2Request), 5.seconds)
 
-        sendCodeResult.code shouldBe "CODE_NOT_SENT"
+        sendCodeResult.status shouldBe "CODE_NOT_SENT"
       }
   }
 
   "verifyCode" should {
     "verify given a valid code and email" in new Setup {
-      when(mockAuditService.sendVerificationCodeViaEmail(testEmail, testVerificationCode, "test-application", codeSentResult))
+      when(mockAuditService.sendVerificationCode(testEmail, testVerificationCode, "test-application", codeSentResult))
         .thenReturn(Future.successful(()))
       when(mockAuditService.verifyVerificationCode(testEmail, testVerificationCode, "test-application", codeVerifiedResult))
         .thenReturn(Future.successful(()))
@@ -99,22 +101,23 @@ class EmailVerificationV2ServiceSpec extends RepositoryBaseSpec {
       val sendCodeResult: SendCodeResult = Await.result(emailVerificationService.doSendCode(sendCodeV2Request), 5.seconds)
       val verifyCodeResult: VerifyCodeResult = Await.result(emailVerificationService.doVerifyCode(verifyCodeV2Request), 5.seconds)
 
-      sendCodeResult.code         shouldBe "CODE_SENT"
+      sendCodeResult.status       shouldBe "CODE_SENT"
       verifyCodeResult.isVerified shouldBe true
     }
 
     "not verify given an invalid code or email" in new Setup {
-      when(mockAuditService.sendVerificationCodeViaEmail(testEmail, testVerificationCode, "test-application", codeSentResult))
+      when(mockAuditService.sendVerificationCode(testEmail, testVerificationCode, "test-application", codeSentResult))
         .thenReturn(Future.successful(()))
-      when(mockAuditService.verifyVerificationCode(badVerifyCodeV2Request.email, testVerificationCode, "test-application", codeNotVerifiedResult))
+      when(mockAuditService.verifyVerificationCode(badVerifyCodeV2Request.email, testVerificationCode, "test-application", codeNotFoundResult))
         .thenReturn(Future.successful(()))
       when(mockEmailService.sendCode(AM.eq(testEmail), AM.eq(testVerificationCode), AM.eq("test-application"), AM.eq(English))(AM.any(), AM.any()))
         .thenReturn(Future.successful(codeSentResult))
       val sendCodeResult: SendCodeResult = Await.result(emailVerificationService.doSendCode(sendCodeV2Request), 5.seconds)
       val verifyCodeResult: VerifyCodeResult = Await.result(emailVerificationService.doVerifyCode(badVerifyCodeV2Request), 5.seconds)
 
-      sendCodeResult.code         shouldBe "CODE_SENT"
-      verifyCodeResult.isVerified shouldBe false
+      sendCodeResult.status         shouldBe "CODE_SENT"
+      verifyCodeResult.isVerified   shouldBe false
+      verifyCodeResult.codeNotFound shouldBe true
     }
   }
 }

@@ -187,6 +187,14 @@ English
 Welsh
 ![](doc-images/Locked_MaxEmailAttempts_Welsh.png)
 
+# <a id="api-endpoints">API - V2</a>
+
+| Method | Path                                 | Description                                         |
+|--------|--------------------------------------|-----------------------------------------------------|
+| POST   | [/v2/send-code](#post-send-code)     | Send a verification code to the email to be verified |
+| POST   | [/v2/verify-code](#post-verify-code) | Verify the verification code is correct and for the email to be <br/><br/><br/><br/>verified |
+
+
 # <a id="api-endpoints">API</a>
 
 | Method | Path                                                     | Description                                                             |
@@ -199,6 +207,14 @@ Welsh
 | Method | Path                                             | Description                                                                                                                                                                                                                                                                                                                     |
 |--------|--------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | GET    | [/test-only/passcodes](#get-test-only-passcodes)  | Uses the session Id to return the email address(es) and passcode(s) associated with that 4hr session. Both the old link based POST /verify-email and newer POST /verify-email endpoints are supported, and the output will be additive for that session, so either POST endpoint will be operative with this test only endpoint | 
+
+## <a id="post-send-code">POST /v2/send-code</a>
+
+Send a verification code to the email provided
+
+## <a id="post-verify-code">POST /v2/verify-code</a>
+
+Verify that the code matches the code generated for the email provided
 
 ## <a id="post-verify-email">POST /verify-email</a>
 

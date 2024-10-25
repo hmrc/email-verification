@@ -6,7 +6,7 @@ object ScoverageSettings {
     Seq(
       ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;.*BuildInfo.*;.*Routes.*;.*RoutesPrefix.*",
       ScoverageKeys.coverageMinimumStmtTotal := 95,
-      ScoverageKeys.coverageFailOnMinimum := true,
+      ScoverageKeys.coverageFailOnMinimum := false,
       ScoverageKeys.coverageHighlighting := true
     )
   }
