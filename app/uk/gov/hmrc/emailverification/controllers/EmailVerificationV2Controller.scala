@@ -19,7 +19,7 @@ package uk.gov.hmrc.emailverification.controllers
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.emailverification.models.{SendCodeResult, SendCodeV2Request, VerifyCodeResult, VerifyCodeV2Request}
+import uk.gov.hmrc.emailverification.models.{SendCodeResult, SendCodeV2Request, UserAgent, VerifyCodeResult, VerifyCodeV2Request}
 import uk.gov.hmrc.emailverification.services.EmailVerificationV2Service
 
 import javax.inject.Inject
@@ -39,6 +39,7 @@ class EmailVerificationV2Controller @Inject() (
   // 5. Respond with an OK if all went well else ???
   def sendCode(): Action[SendCodeV2Request] = Action.async(parse.json[SendCodeV2Request]) { implicit request =>
     import uk.gov.hmrc.emailverification.models.SendCodeResult._
+    implicit val userAgent: UserAgent = UserAgent(request)
 
     val sendCodeRequest: SendCodeV2Request = request.body
     emailVerificationService.doSendCode(sendCodeRequest).map {
@@ -49,12 +50,13 @@ class EmailVerificationV2Controller @Inject() (
 
   def verifyCode(): Action[VerifyCodeV2Request] = Action.async(parse.json[VerifyCodeV2Request]) { implicit request =>
     import uk.gov.hmrc.emailverification.models.VerifyCodeResult._
+    implicit val userAgent: UserAgent = UserAgent(request)
 
     val verifyCodeRequest = request.body
     emailVerificationService.doVerifyCode(verifyCodeRequest).map {
-      case verifyResult: VerifyCodeResult if verifyResult.isVerified => Ok(Json.toJson(verifyResult))
-      case verifyResult                                              => BadRequest(Json.toJson(verifyResult))
+      case verifyResult: VerifyCodeResult if verifyResult.isVerified   => Ok(Json.toJson(verifyResult))
+      case verifyResult: VerifyCodeResult if verifyResult.codeNotFound => NotFound(Json.toJson(verifyResult))
+      case verifyResult: VerifyCodeResult                              => BadRequest(Json.toJson(verifyResult))
     }
   }
-
 }

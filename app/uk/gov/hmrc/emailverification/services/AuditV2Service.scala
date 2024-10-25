@@ -17,7 +17,7 @@
 package uk.gov.hmrc.emailverification.services
 
 import play.api.Logging
-import uk.gov.hmrc.emailverification.models.{SendCodeResult, VerifyCodeResult}
+import uk.gov.hmrc.emailverification.models.{SendCodeResult, UserAgent, VerifyCodeResult}
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -31,47 +31,48 @@ class AuditV2Service @Inject() (
 )(implicit ec: ExecutionContext)
     extends Logging {
 
-  def sendVerificationCodeViaEmail(emailAddress: String, verificationCode: String, serviceName: String, responseCode: SendCodeResult)(implicit
-    hc: HeaderCarrier
+  def sendVerificationCode(emailAddress: String, verificationCode: String, serviceName: String, responseCode: SendCodeResult)(implicit
+    hc: HeaderCarrier,
+    userAgent: UserAgent
   ): Future[Unit] = {
-    val details = Map(
+    val userAgentMap: Map[String, String] = userAgent.unwrap.fold(Map.empty[String, String])(ua => Map("userAgent" -> ua))
+    val details = Map[String, String](
       "emailAddress"     -> emailAddress,
       "verificationCode" -> verificationCode,
       "serviceName"      -> serviceName,
       "bearerToken"      -> hc.authorization.getOrElse(Authorization("-")).value,
-      "responseCode"     -> responseCode.toString
-    )
+      "responseCode"     -> responseCode.status
+    ) ++ userAgentMap
 
-    sendEvent("SendVerificationCode", details, "HMRC Gateway - Email Verification - Send out verification code via Email")
+    sendEvent("SendVerificationCodeRequest", details, "/email-verification/v2/send-code")
   }
 
   def verifyVerificationCode(emailAddress: String, verificationCode: String, serviceName: String, verified: VerifyCodeResult)(implicit
-    hc: HeaderCarrier
+    hc: HeaderCarrier,
+    userAgent: UserAgent
   ): Future[Unit] = {
-    val details = Map(
+    val userAgentMap: Map[String, String] = userAgent.unwrap.fold(Map.empty[String, String])(ua =>
+      Map(
+        "userAgent" ->
+          ua
+      )
+    )
+    val details = Map[String, String](
       "emailAddress"     -> emailAddress,
       "verificationCode" -> verificationCode,
       "serviceName"      -> serviceName,
       "bearerToken"      -> hc.authorization.getOrElse(Authorization("-")).value,
-      "verified"         -> verified.toString
-    )
+      "verified"         -> verified.status
+    ) ++ userAgentMap
 
-    sendEvent("VerifyVerificationCode", details, "HMRC Gateway - Email Verification - Verify Verification Code")
+    sendEvent("VerifyVerificationCodeRequest", details, "/email-verification/v2/verify-code")
   }
 
-  private def sendEvent(auditType: String, details: Map[String, String], transactionName: String)(implicit hc: HeaderCarrier) = {
-    logger.info(s"""sendEvent(auditType: "$auditType", details: "${details.mkString(",")}", transactionName: "$transactionName")""")
+  private def sendEvent(auditType: String, details: Map[String, String], path: String)(implicit hc: HeaderCarrier) = {
+    logger.info(s"""sendEvent(auditType: "$auditType", details: "${details.mkString(",")}", transactionName: "$path")""")
     val hcDetails = hc.toAuditDetails() ++ details
 
-    val event = DataEvent(auditType = auditType, tags = hc.toAuditTags(transactionName), detail = hcDetails, auditSource = "email-verification")
+    val event = DataEvent(auditType = auditType, tags = hc.toAuditTags(path), detail = hcDetails, auditSource = "email-verification")
     auditConnector.sendEvent(event).map(_ => ())
   }
-
-//  private def sendEventWithJsonDetails(auditType: String, details: JsObject, transactionName: String)(implicit hc: HeaderCarrier) = {
-//    val hcDetails = JsObject(hc.toAuditDetails().map(tuple => tuple._1 -> JsString(tuple._2))) ++ details
-//
-//    val event = ExtendedDataEvent(auditType = auditType, tags = hc.toAuditTags(transactionName), detail = hcDetails.as[JsValue], auditSource = "email-verification")
-//    auditConnector.sendExtendedEvent(event).map(_ => ())
-//  }
-
 }

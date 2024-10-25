@@ -72,7 +72,7 @@ class EmailVerificationV2ControllerISpec extends AnyWordSpec with OptionValues w
           .futureValue
 
         response.status                     shouldBe Status.OK
-        (response.json \ "code").as[String] shouldBe "CODE_SENT"
+        (response.json \ "status").as[String] shouldBe "CODE_SENT"
       }
 
       "verify code successfully when provided the correct verification code" in {
@@ -86,7 +86,7 @@ class EmailVerificationV2ControllerISpec extends AnyWordSpec with OptionValues w
           .post(Json.parse(s"""{"email":"joe@bloggs.com", "verificationCode":"$verificationCode"}"""))
           .futureValue
         response.status                     shouldBe Status.OK
-        (response.json \ "code").as[String] shouldBe "CODE_VERIFIED"
+        (response.json \ "status").as[String] shouldBe "CODE_VERIFIED"
       }
     }
 
