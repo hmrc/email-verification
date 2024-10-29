@@ -26,13 +26,19 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
 
     "be available when configuration is defined" in new Setup(
       Map(
-        "appName"                          -> "the-app-name",
-        "platform.frontend.host"           -> "some-host",
-        "microservice.services.email.path" -> "some-path"
+        "appName"                                              -> "the-app-name",
+        "platform.frontend.host"                               -> "some-host",
+        "microservice.services.email.path"                     -> "some-path",
+        "microservice.services.access-control.request.formUrl" -> "access-request-form-url",
+        "microservice.services.access-control.enabled"         -> "false",
+        "microservice.services.access-control.allow-list"      -> List()
       )
     ) {
-      appConfig.platformFrontendHost shouldBe "some-host"
-      appConfig.emailServicePath     shouldBe "some-path"
+      appConfig.platformFrontendHost   shouldBe "some-host"
+      appConfig.emailServicePath       shouldBe "some-path"
+      appConfig.accessRequestFormUrl   shouldBe "access-request-form-url"
+      appConfig.accessControlEnabled   shouldBe false
+      appConfig.accessControlAllowList shouldBe empty
     }
 
     "throw exceptions when configuration not defined" in new Setup(
@@ -45,6 +51,15 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
 
       val exception2: RuntimeException = intercept[RuntimeException](appConfig.emailServicePath)
       exception2.getMessage shouldBe s"hardcoded value: No configuration setting found for key 'microservice'"
+
+      val exception3: RuntimeException = intercept[RuntimeException](appConfig.accessRequestFormUrl)
+      exception3.getMessage shouldBe s"hardcoded value: No configuration setting found for key 'microservice'"
+
+      val exception4: RuntimeException = intercept[RuntimeException](appConfig.accessControlEnabled)
+      exception4.getMessage shouldBe s"hardcoded value: No configuration setting found for key 'microservice'"
+
+      val exception5: RuntimeException = intercept[RuntimeException](appConfig.accessControlAllowList)
+      exception5.getMessage shouldBe s"hardcoded value: No configuration setting found for key 'microservice'"
     }
   }
 

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
+import config.AppConfig
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, ControllerComponents}
@@ -27,9 +28,11 @@ import scala.concurrent.ExecutionContext
 
 class EmailVerificationV2Controller @Inject() (
   emailVerificationService: EmailVerificationV2Service,
-  controllerComponents: ControllerComponents
+  controllerComponents: ControllerComponents,
+  override val config: AppConfig
 )(implicit ec: ExecutionContext)
     extends BaseControllerWithJsonErrorHandling(controllerComponents)
+    with AccessChecker
     with Logging {
 
   // 1. Validate the email - check that it looks correct-ish
@@ -37,7 +40,7 @@ class EmailVerificationV2Controller @Inject() (
   // 3. Send the verification code email to provided email address
   // 4. If successful, persist the verification code
   // 5. Respond with an OK if all went well else ???
-  def sendCode(): Action[SendCodeV2Request] = Action.async(parse.json[SendCodeV2Request]) { implicit request =>
+  def sendCode(): Action[SendCodeV2Request] = accessCheckedAction(parse.json[SendCodeV2Request]) { implicit request =>
     import uk.gov.hmrc.emailverification.models.SendCodeResult._
     implicit val userAgent: UserAgent = UserAgent(request)
 
@@ -48,7 +51,7 @@ class EmailVerificationV2Controller @Inject() (
     }
   }
 
-  def verifyCode(): Action[VerifyCodeV2Request] = Action.async(parse.json[VerifyCodeV2Request]) { implicit request =>
+  def verifyCode(): Action[VerifyCodeV2Request] = accessCheckedAction(parse.json[VerifyCodeV2Request]) { implicit request =>
     import uk.gov.hmrc.emailverification.models.VerifyCodeResult._
     implicit val userAgent: UserAgent = UserAgent(request)
 

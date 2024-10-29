@@ -37,13 +37,16 @@ trait BaseISpec extends WireMockSpec with MongoSupport with GivenWhenThen {
     PatienceConfig(timeout = Span(4, Seconds), interval = Span(1, Seconds))
 
   override def extraConfig: Map[String, Any] = Map(
-    "appName"                         -> "test-app",
-    "play.http.router"                -> "testOnlyDoNotUseInAppConf.Routes",
-    "queryParameter.encryption.key"   -> "gvBoGdgzqG1AarzF1LY0zQ==",
-    "mongodb.uri"                     -> mongoUri,
-    "maxPasscodeAttempts"             -> maxPasscodeAttempts,
-    "verificationStatusRepositoryTtl" -> "24 hours",
-    "maxDifferentEmails"              -> 5
+    "appName"                                              -> "test-app",
+    "play.http.router"                                     -> "testOnlyDoNotUseInAppConf.Routes",
+    "queryParameter.encryption.key"                        -> "gvBoGdgzqG1AarzF1LY0zQ==",
+    "mongodb.uri"                                          -> mongoUri,
+    "maxPasscodeAttempts"                                  -> maxPasscodeAttempts,
+    "verificationStatusRepositoryTtl"                      -> "24 hours",
+    "maxDifferentEmails"                                   -> 5,
+    "microservice.services.access-control.request.formUrl" -> "access-request-form-url",
+    "microservice.services.access-control.enabled"         -> "false",
+    "microservice.services.access-control.allow-list"      -> List()
   )
 
   override def dropDatabase(): Unit =
