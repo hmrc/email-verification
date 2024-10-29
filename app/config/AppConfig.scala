@@ -18,6 +18,7 @@ package config
 
 import javax.inject.Inject
 import play.api.Configuration
+import play.api.ConfigLoader._
 
 import scala.concurrent.duration.Duration
 
@@ -43,4 +44,8 @@ class AppConfig @Inject() (val config: Configuration) {
 
   // V2
   val appName: String = config.get[String]("appName")
+
+  lazy val accessRequestFormUrl = config.get[String]("microservice.services.access-control.request.formUrl")
+  lazy val accessControlEnabled = config.get[Boolean]("microservice.services.access-control.enabled")
+  lazy val accessControlAllowList = config.get[Seq[String]]("microservice.services.access-control.allow-list").toSet
 }

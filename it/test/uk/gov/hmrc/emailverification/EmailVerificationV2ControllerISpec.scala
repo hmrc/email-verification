@@ -24,7 +24,7 @@ import org.scalatest.time.{Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.http.Status
+import play.api.http.{HeaderNames, Status}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import uk.gov.hmrc.gg.test.WireMockSpec
@@ -34,9 +34,12 @@ class EmailVerificationV2ControllerISpec extends AnyWordSpec with OptionValues w
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .configure(
-        "appName"                          -> "test-app",
-        "application.router"               -> "testOnlyDoNotUseInAppConf.Routes",
-        "microservice.services.email.port" -> wiremockPort
+        "appName"                                              -> "test-app",
+        "application.router"                                   -> "testOnlyDoNotUseInAppConf.Routes",
+        "microservice.services.email.port"                     -> wiremockPort,
+        "microservice.services.access-control.request.formUrl" -> "access-request-form-url",
+        "microservice.services.access-control.enabled"         -> "true",
+        "microservice.services.access-control.allow-list"      -> List("test-user")
       )
       .build()
 
@@ -68,35 +71,50 @@ class EmailVerificationV2ControllerISpec extends AnyWordSpec with OptionValues w
     "given a valid email" should {
       "sendCode when a valid email is provided" in {
         val response = resourceRequest(s"/email-verification/v2/send-code")
+          .withHttpHeaders(HeaderNames.USER_AGENT -> "test-user")
           .post(Json.parse(s"""{"email":"joe@bloggs.com"}"""))
           .futureValue
 
-        response.status                     shouldBe Status.OK
+        response.status                       shouldBe Status.OK
         (response.json \ "status").as[String] shouldBe "CODE_SENT"
       }
 
       "verify code successfully when provided the correct verification code" in {
         val retrieveVerificationCodeResponse = resourceRequest(s"/test-only/retrieve/verification-code")
+          .withHttpHeaders(HeaderNames.USER_AGENT -> "test-user")
           .post(Json.parse("""{"email":"joe@bloggs.com"}"""))
           .futureValue
         retrieveVerificationCodeResponse.status shouldBe Status.OK
         val verificationCode = (retrieveVerificationCodeResponse.json \ "verificationCode").as[String]
 
         val response = resourceRequest(s"/email-verification/v2/verify-code")
+          .withHttpHeaders(HeaderNames.USER_AGENT -> "test-user")
           .post(Json.parse(s"""{"email":"joe@bloggs.com", "verificationCode":"$verificationCode"}"""))
           .futureValue
-        response.status                     shouldBe Status.OK
+        response.status                       shouldBe Status.OK
         (response.json \ "status").as[String] shouldBe "CODE_VERIFIED"
       }
     }
 
     "given an invalid email" should {
-      "sendCode when an valid email is provided" in {
+      "respond with a BadRequest" in {
         val response = resourceRequest(s"/email-verification/v2/send-code")
+          .withHttpHeaders(HeaderNames.USER_AGENT -> "test-user")
           .post(Json.parse(s"""{"email":"invalid-email"}"""))
           .futureValue
 
         response.status shouldBe Status.BAD_REQUEST
+      }
+    }
+
+    "given a user-agent that is not on the allow list" should {
+      "respond with Forbidden" in {
+        val response = resourceRequest(s"/email-verification/v2/send-code")
+          .withHttpHeaders(HeaderNames.USER_AGENT -> "bad-test-user")
+          .post(Json.parse(s"""{"email":"good@email.com"}"""))
+          .futureValue
+
+        response.status shouldBe Status.FORBIDDEN
       }
     }
   }
