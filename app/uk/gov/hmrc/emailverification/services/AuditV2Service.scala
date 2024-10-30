@@ -44,7 +44,7 @@ class AuditV2Service @Inject() (
       "responseCode"     -> responseCode.status
     ) ++ userAgentMap
 
-    sendEvent("SendVerificationCodeRequest", details, "/email-verification/v2/send-code")
+    sendEvent("CodeSendResult", details, "/email-verification/v2/send-code")
   }
 
   def verifyVerificationCode(emailAddress: String, verificationCode: String, serviceName: String, verified: VerifyCodeResult)(implicit
@@ -65,7 +65,7 @@ class AuditV2Service @Inject() (
       "verified"         -> verified.status
     ) ++ userAgentMap
 
-    sendEvent("VerifyVerificationCodeRequest", details, "/email-verification/v2/verify-code")
+    sendEvent("CodeVerificationResult", details, "/email-verification/v2/verify-code")
   }
 
   private def sendEvent(auditType: String, details: Map[String, String], path: String)(implicit hc: HeaderCarrier) = {

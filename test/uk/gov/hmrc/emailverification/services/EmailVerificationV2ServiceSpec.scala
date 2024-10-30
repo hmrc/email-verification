@@ -34,12 +34,16 @@ class EmailVerificationV2ServiceSpec extends RepositoryBaseSpec {
   trait Setup {
     val testClock: Clock = Clock.fixed(Instant.now(), ZoneId.from(ZoneOffset.UTC))
     val testEmail: String = "joe@bloggs.com"
+    val testBadEmail: String = "not-valid@"
     val sendCodeV2Request: SendCodeV2Request = SendCodeV2Request(testEmail)
-    val testVerificationCode: String = "ABCDEFG"
+    val testVerificationCode: String = "ABCDEF"
+    val testBadVerificationCode: String = "A1CDEFG"
     val testCacheItem: CacheItem = CacheItem("some-id", JsObject.empty, Instant.now(testClock), Instant.now(testClock))
 
     val verifyCodeV2Request: VerifyCodeV2Request = VerifyCodeV2Request(testEmail, testVerificationCode)
     val badVerifyCodeV2Request: VerifyCodeV2Request = VerifyCodeV2Request("invalid@email.com", testVerificationCode)
+    val invalidEmailVerifyCodeV2Request: VerifyCodeV2Request = VerifyCodeV2Request("invalid-email@", testVerificationCode)
+    val invalidCodeVerifyCodeV2Request: VerifyCodeV2Request = VerifyCodeV2Request("valid-email@email.com", testBadVerificationCode)
 
     val codeSentResult: SendCodeResult = SendCodeResult.codeSent()
     val codeNotSentResult: SendCodeResult = SendCodeResult.codeNotSent("boom - didn't manage to send the verification code")
@@ -105,19 +109,30 @@ class EmailVerificationV2ServiceSpec extends RepositoryBaseSpec {
       verifyCodeResult.isVerified shouldBe true
     }
 
-    "not verify given an invalid code or email" in new Setup {
+    "not verify given an invalid email" in new Setup {
       when(mockAuditService.sendVerificationCode(testEmail, testVerificationCode, "test-application", codeSentResult))
-        .thenReturn(Future.successful(()))
-      when(mockAuditService.verifyVerificationCode(badVerifyCodeV2Request.email, testVerificationCode, "test-application", codeNotFoundResult))
         .thenReturn(Future.successful(()))
       when(mockEmailService.sendCode(AM.eq(testEmail), AM.eq(testVerificationCode), AM.eq("test-application"), AM.eq(English))(AM.any(), AM.any()))
         .thenReturn(Future.successful(codeSentResult))
       val sendCodeResult: SendCodeResult = Await.result(emailVerificationService.doSendCode(sendCodeV2Request), 5.seconds)
-      val verifyCodeResult: VerifyCodeResult = Await.result(emailVerificationService.doVerifyCode(badVerifyCodeV2Request), 5.seconds)
+      val verifyCodeResult: VerifyCodeResult = Await.result(emailVerificationService.doVerifyCode(invalidEmailVerifyCodeV2Request), 5.seconds)
 
       sendCodeResult.status         shouldBe "CODE_SENT"
       verifyCodeResult.isVerified   shouldBe false
-      verifyCodeResult.codeNotFound shouldBe true
+      verifyCodeResult.codeNotValid shouldBe true
+    }
+
+    "not verify given an invalid code" in new Setup {
+      when(mockAuditService.sendVerificationCode(testEmail, testVerificationCode, "test-application", codeSentResult))
+        .thenReturn(Future.successful(()))
+      when(mockEmailService.sendCode(AM.eq(testEmail), AM.eq(testVerificationCode), AM.eq("test-application"), AM.eq(English))(AM.any(), AM.any()))
+        .thenReturn(Future.successful(codeSentResult))
+      val sendCodeResult: SendCodeResult = Await.result(emailVerificationService.doSendCode(sendCodeV2Request), 5.seconds)
+      val verifyCodeResult: VerifyCodeResult = Await.result(emailVerificationService.doVerifyCode(invalidCodeVerifyCodeV2Request), 5.seconds)
+
+      sendCodeResult.status         shouldBe "CODE_SENT"
+      verifyCodeResult.isVerified   shouldBe false
+      verifyCodeResult.codeNotValid shouldBe true
     }
   }
 }

@@ -16,12 +16,14 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import scala.util.Random
+import uk.gov.hmrc.emailverification.services.PasscodeGenerator.codeSize
 
-class PasscodeGenerator {
+import scala.util.Random
+import scala.util.matching.Regex
+
+class PasscodeGenerator() {
 
   def generate(): String = {
-    val codeSize = 6
     Random.alphanumeric
       .filterNot(_.isDigit)
       .filterNot(_.isLower)
@@ -29,5 +31,11 @@ class PasscodeGenerator {
       .take(codeSize)
       .mkString
   }
+}
 
+object PasscodeGenerator {
+  val codeSize: Int = 6
+  private val codePattern: Regex = ("\\p{Upper}" * codeSize).r
+
+  def validate(code: String): Boolean = codePattern.matches(code)
 }
