@@ -192,7 +192,7 @@ Welsh
 | Method | Path                                 | Description                                         |
 |--------|--------------------------------------|-----------------------------------------------------|
 | POST   | [/v2/send-code](#post-send-code)     | Send a verification code to the email to be verified |
-| POST   | [/v2/verify-code](#post-verify-code) | Verify the verification code is correct and for the email to be <br/><br/><br/><br/>verified |
+| POST   | [/v2/verify-code](#post-verify-code) | Verify the verification code is correct and for the email to be verified |
 
 
 # <a id="api-endpoints">API</a>
