@@ -19,12 +19,13 @@ package uk.gov.hmrc.emailverification.models
 import play.api.http.HeaderNames
 import play.api.libs.json.{Format, Json}
 import play.api.mvc.Request
+import uk.gov.hmrc.emailverification.services.PasscodeGenerator
 
 sealed trait EmailValidation {
   private val emailValidationRegex =
     """^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]{0,63}+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
 
-  def validate(email: String): Boolean =
+  def validateEmail(email: String): Boolean =
     emailValidationRegex.matches(email)
 }
 
@@ -34,7 +35,7 @@ object SendCodeV2Request extends EmailValidation {
   implicit val sendCodeV2RequestFormat: Format[SendCodeV2Request] = Json.format[SendCodeV2Request]
 
   implicit class ValidatingSendCodeV2Request(emailSendCodeV2Request: SendCodeV2Request) {
-    def isEmailValid: Boolean = validate(emailSendCodeV2Request.email)
+    def isEmailValid: Boolean = validateEmail(emailSendCodeV2Request.email)
   }
 }
 
@@ -61,24 +62,28 @@ object VerifyCodeV2Request extends EmailValidation {
   implicit val verifyCodeV2RequestFormat: Format[VerifyCodeV2Request] = Json.format[VerifyCodeV2Request]
 
   implicit class ValidatingVerifyCodeV2Request(emailVerifyCodeV2Request: VerifyCodeV2Request) {
-    def isEmailValid: Boolean = validate(emailVerifyCodeV2Request.email)
+    def isEmailValid: Boolean = validateEmail(emailVerifyCodeV2Request.email)
+    def isVerificationCodeValid: Boolean = PasscodeGenerator.validate(emailVerifyCodeV2Request.verificationCode)
   }
 }
 
 case class VerifyCodeResult(status: String, message: Option[String]) {
   def isVerified: Boolean = VerifyCodeResult.code.CODE_VERIFIED == status
   def codeNotFound: Boolean = VerifyCodeResult.code.CODE_NOT_FOUND == status
+  def codeNotValid: Boolean = VerifyCodeResult.code.CODE_NOT_VALIDATED == status
 }
 
 object VerifyCodeResult {
   implicit val verifyCodeResultFormat: Format[VerifyCodeResult] = Json.format[VerifyCodeResult]
 
   def codeVerified(message: Option[String] = Some("The verification code for the email verified successfully")): VerifyCodeResult = VerifyCodeResult(code.CODE_VERIFIED, message)
+  def codeNotValid(message: Option[String]): VerifyCodeResult = VerifyCodeResult(code.CODE_NOT_VALIDATED, message)
   def codeNotVerified(message: String): VerifyCodeResult = VerifyCodeResult(code.CODE_NOT_VERIFIED, Some(message))
   def codeNotFound(message: String): VerifyCodeResult = VerifyCodeResult(code.CODE_NOT_FOUND, Some(message))
 
   private object code {
     val CODE_VERIFIED: String = "CODE_VERIFIED"
+    val CODE_NOT_VALIDATED: String = "CODE_NOT_VALIDATED"
     val CODE_NOT_VERIFIED: String = "CODE_NOT_VERIFIED"
     val CODE_NOT_FOUND: String = "CODE_NOT_FOUND"
   }

@@ -48,24 +48,23 @@ class EmailVerificationV2Service @Inject() (
   }
 
   def doVerifyCode(verifyCodeRequest: VerifyCodeV2Request)(implicit headerCarrier: HeaderCarrier, userAgent: UserAgent): Future[VerifyCodeResult] = {
-    if (!verifyCodeRequest.isEmailValid)
-      Future.successful(VerifyCodeResult.codeNotVerified("Invalid email"))
-    else
-      for {
-        doc <- verificationCodeRepository.get(verifyCodeRequest.email)(VerificationCodeV2MongoRepository.emailVerificationCodeDataDataKey)
-        verified = doc.map(_.verificationCode == verifyCodeRequest.verificationCode)
-        verifiedStatus = if (verified.isEmpty) VerifyCodeResult.codeNotFound("Verification code not found")
-                         else if (verified.getOrElse(false)) VerifyCodeResult.codeVerified()
-                         else
-                           VerifyCodeResult
-                             .codeNotVerified("Invalid verification code")
-        _ <- auditService.verifyVerificationCode(verifyCodeRequest.email, verifyCodeRequest.verificationCode, appConfig.appName, verifiedStatus)
-      } yield verifiedStatus
+    (verifyCodeRequest.isEmailValid, verifyCodeRequest.isVerificationCodeValid) match {
+      case (false, _) => Future.successful(VerifyCodeResult.codeNotValid(Some("Invalid email")))
+      case (_, false) => Future.successful(VerifyCodeResult.codeNotValid(Some("Invalid verification code")))
+      case (true, true) =>
+        for {
+          doc <- verificationCodeRepository.get(verifyCodeRequest.email)(VerificationCodeV2MongoRepository.emailVerificationCodeDataDataKey)
+          verified = doc.map(_.verificationCode == verifyCodeRequest.verificationCode)
+          verifiedStatus = if (verified.isEmpty) VerifyCodeResult.codeNotFound("Verification code not found")
+                           else if (verified.getOrElse(false)) VerifyCodeResult.codeVerified()
+                           else VerifyCodeResult.codeNotVerified("Invalid verification code")
+          _ <- auditService.verifyVerificationCode(verifyCodeRequest.email, verifyCodeRequest.verificationCode, appConfig.appName, verifiedStatus)
+        } yield verifiedStatus
+    }
   }
 
   def getVerificationCode(sendCodeRequest: SendCodeV2Request): Future[Option[String]] =
     for {
       maybeDoc <- verificationCodeRepository.get(sendCodeRequest.email)(VerificationCodeV2MongoRepository.emailVerificationCodeDataDataKey)
     } yield maybeDoc.map(_.verificationCode)
-
 }
