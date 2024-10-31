@@ -57,8 +57,9 @@ class EmailVerificationV2Controller @Inject() (
 
     val verifyCodeRequest = request.body
     emailVerificationService.doVerifyCode(verifyCodeRequest).map {
-      case verifyResult: VerifyCodeResult if verifyResult.isVerified => Ok(Json.toJson(verifyResult))
-      case verifyResult: VerifyCodeResult                            => NotFound(Json.toJson(verifyResult))
+      case verifyResult: VerifyCodeResult if verifyResult.isVerified   => Ok(Json.toJson(verifyResult))
+      case verifyResult: VerifyCodeResult if verifyResult.codeNotValid => BadRequest(Json.toJson(verifyResult))
+      case verifyResult: VerifyCodeResult                              => NotFound(Json.toJson(verifyResult))
     }
   }
 }
