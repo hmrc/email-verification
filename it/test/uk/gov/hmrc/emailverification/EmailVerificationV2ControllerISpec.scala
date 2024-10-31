@@ -107,6 +107,17 @@ class EmailVerificationV2ControllerISpec extends AnyWordSpec with OptionValues w
       }
     }
 
+    "given an invalid verification code" should {
+      "respond with a BadRequest" in {
+        val response = resourceRequest(s"/email-verification/v2/verify-code")
+          .withHttpHeaders(HeaderNames.USER_AGENT -> "test-user")
+          .post(Json.parse(s"""{"email":"email@email.com", "verificationCode":"1234567"}"""))
+          .futureValue
+
+        response.status shouldBe Status.BAD_REQUEST
+      }
+    }
+
     "given a user-agent that is not on the allow list" should {
       "respond with Forbidden" in {
         val response = resourceRequest(s"/email-verification/v2/send-code")
