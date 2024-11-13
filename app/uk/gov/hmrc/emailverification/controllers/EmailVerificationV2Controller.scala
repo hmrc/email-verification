@@ -20,7 +20,7 @@ import config.AppConfig
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.emailverification.models.{SendCodeResult, SendCodeV2Request, UserAgent, VerifyCodeResult, VerifyCodeV2Request}
+import uk.gov.hmrc.emailverification.models.{SendCodeResult, SendCodeV2Request, VerifyCodeResult, VerifyCodeV2Request}
 import uk.gov.hmrc.emailverification.services.EmailVerificationV2Service
 
 import javax.inject.Inject
@@ -42,7 +42,6 @@ class EmailVerificationV2Controller @Inject() (
   // 5. Respond with an OK if all went well else ???
   def sendCode(): Action[SendCodeV2Request] = accessCheckedAction(parse.json[SendCodeV2Request]) { implicit request =>
     import uk.gov.hmrc.emailverification.models.SendCodeResult._
-    implicit val userAgent: UserAgent = UserAgent(request)
 
     val sendCodeRequest: SendCodeV2Request = request.body
     emailVerificationService.doSendCode(sendCodeRequest).map {
@@ -53,7 +52,6 @@ class EmailVerificationV2Controller @Inject() (
 
   def verifyCode(): Action[VerifyCodeV2Request] = accessCheckedAction(parse.json[VerifyCodeV2Request]) { implicit request =>
     import uk.gov.hmrc.emailverification.models.VerifyCodeResult._
-    implicit val userAgent: UserAgent = UserAgent(request)
 
     val verifyCodeRequest = request.body
     emailVerificationService.doVerifyCode(verifyCodeRequest).map {

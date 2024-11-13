@@ -41,7 +41,7 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
   "sendCode" should {
     "return OK indicating email has been sent" in new SetUp {
       val emailForTest = "joe@bloggs.com"
-      when(mockAuditService.sendVerificationCode(meq(emailForTest), meq(expectedVerificationCode), meq("test-application"), meq(SendCodeResult.codeSent()))(any(), any()))
+      when(mockAuditService.sendVerificationCode(meq(emailForTest), meq(expectedVerificationCode), meq("test-application"), meq(SendCodeResult.codeSent()))(any()))
         .thenReturn(Future.successful(()))
 
       when(emailServiceMock.sendCode(meq(emailForTest), meq(expectedVerificationCode), meq("test-application"), meq(English))(meq(hc), meq(global)))
