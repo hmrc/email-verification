@@ -17,7 +17,7 @@
 package uk.gov.hmrc.emailverification.services
 
 import play.api.Logging
-import uk.gov.hmrc.emailverification.models.{SendCodeResult, UserAgent, VerifyCodeResult}
+import uk.gov.hmrc.emailverification.models.{SendCodeResult, VerifyCodeResult}
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -31,41 +31,29 @@ class AuditV2Service @Inject() (
 )(implicit ec: ExecutionContext)
     extends Logging {
 
-  def sendVerificationCode(emailAddress: String, verificationCode: String, serviceName: String, responseCode: SendCodeResult)(implicit
-    hc: HeaderCarrier,
-    userAgent: UserAgent
-  ): Future[Unit] = {
-    val userAgentMap: Map[String, String] = userAgent.unwrap.fold(Map.empty[String, String])(ua => Map("userAgent" -> ua))
+  def sendVerificationCode(emailAddress: String, verificationCode: String, serviceName: String, responseCode: SendCodeResult)(implicit hc: HeaderCarrier): Future[Unit] = {
     val details = Map[String, String](
-      "emailAddress"     -> emailAddress,
+      "email"            -> emailAddress,
       "verificationCode" -> verificationCode,
       "serviceName"      -> serviceName,
       "bearerToken"      -> hc.authorization.getOrElse(Authorization("-")).value,
+      "isSuccessful"     -> responseCode.isSent.toString,
       "responseCode"     -> responseCode.status
-    ) ++ userAgentMap
-
-    sendEvent("CodeSendResult", details, "/email-verification/v2/send-code")
+    )
+    sendEvent("EmailVerificationCodeSent", details, "/email-verification/v2/send-code")
   }
 
-  def verifyVerificationCode(emailAddress: String, verificationCode: String, serviceName: String, verified: VerifyCodeResult)(implicit
-    hc: HeaderCarrier,
-    userAgent: UserAgent
-  ): Future[Unit] = {
-    val userAgentMap: Map[String, String] = userAgent.unwrap.fold(Map.empty[String, String])(ua =>
-      Map(
-        "userAgent" ->
-          ua
-      )
-    )
+  def verifyVerificationCode(emailAddress: String, verificationCode: String, serviceName: String, verified: VerifyCodeResult)(implicit hc: HeaderCarrier): Future[Unit] = {
     val details = Map[String, String](
-      "emailAddress"     -> emailAddress,
+      "email"            -> emailAddress,
       "verificationCode" -> verificationCode,
       "serviceName"      -> serviceName,
       "bearerToken"      -> hc.authorization.getOrElse(Authorization("-")).value,
-      "verified"         -> verified.status
-    ) ++ userAgentMap
+      "isSuccessful"     -> verified.isVerified.toString,
+      "responseCode"     -> verified.status
+    )
 
-    sendEvent("CodeVerificationResult", details, "/email-verification/v2/verify-code")
+    sendEvent("EmailVerificationCodeVerified", details, "/email-verification/v2/verify-code")
   }
 
   private def sendEvent(auditType: String, details: Map[String, String], path: String)(implicit hc: HeaderCarrier) = {

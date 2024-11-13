@@ -32,7 +32,7 @@ class EmailVerificationV2Service @Inject() (
   auditService: AuditV2Service
 )(implicit ec: ExecutionContext, appConfig: AppConfig)
     extends Logging {
-  def doSendCode(sendCodeRequest: SendCodeV2Request)(implicit headerCarrier: HeaderCarrier, userAgent: UserAgent): Future[SendCodeResult] = {
+  def doSendCode(sendCodeRequest: SendCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[SendCodeResult] = {
     if (!sendCodeRequest.isEmailValid)
       Future.successful(SendCodeResult.codeNotSent("Invalid email"))
     else
@@ -47,7 +47,7 @@ class EmailVerificationV2Service @Inject() (
       } yield status
   }
 
-  def doVerifyCode(verifyCodeRequest: VerifyCodeV2Request)(implicit headerCarrier: HeaderCarrier, userAgent: UserAgent): Future[VerifyCodeResult] = {
+  def doVerifyCode(verifyCodeRequest: VerifyCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[VerifyCodeResult] = {
     (verifyCodeRequest.isEmailValid, verifyCodeRequest.isVerificationCodeValid) match {
       case (false, _) => Future.successful(VerifyCodeResult.codeNotValid(Some("Invalid email")))
       case (_, false) => Future.successful(VerifyCodeResult.codeNotValid(Some("Invalid verification code")))
