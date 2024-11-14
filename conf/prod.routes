@@ -1,5 +1,5 @@
 # Add all the application routes to the app.routes file
 ->        /email-verification           app.Routes
-->        /email-verification/v2        appv2.Routes
-->        /                             appv2.Routes
+->        /email-verification/v2        appV2.Routes
+->        /                             appV2.Routes
 ->        /                             health.Routes
