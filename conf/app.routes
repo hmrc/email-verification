@@ -1,7 +1,3 @@
-# Stripped down api only endpoints
-POST        /v2/send-code                              uk.gov.hmrc.emailverification.controllers.EmailVerificationV2Controller.sendCode()
-POST        /v2/verify-code                            uk.gov.hmrc.emailverification.controllers.EmailVerificationV2Controller.verifyCode()
-
 # microservice specific routes
 POST        /verify-email                              uk.gov.hmrc.emailverification.controllers.JourneyController.verifyEmail()
 GET         /verification-status/:credId               uk.gov.hmrc.emailverification.controllers.JourneyController.completedEmails(credId)
