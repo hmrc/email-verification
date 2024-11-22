@@ -72,7 +72,7 @@ class EmailVerificationV2ControllerISpec extends AnyWordSpec with OptionValues w
       "sendCode when a valid email is provided" in {
         val response = resourceRequest(s"/email-verification/v2/send-code")
           .withHttpHeaders(HeaderNames.USER_AGENT -> "test-user")
-          .post(Json.parse(s"""{"email":"joe@bloggs.com"}"""))
+          .post(Json.parse(s"""{"email":"success@sender.com"}"""))
           .futureValue
 
         response.status                       shouldBe Status.OK
@@ -82,14 +82,14 @@ class EmailVerificationV2ControllerISpec extends AnyWordSpec with OptionValues w
       "verify code successfully when provided the correct verification code" in {
         val retrieveVerificationCodeResponse = resourceRequest(s"/test-only/retrieve/verification-code")
           .withHttpHeaders(HeaderNames.USER_AGENT -> "test-user")
-          .post(Json.parse("""{"email":"joe@bloggs.com"}"""))
+          .post(Json.parse("""{"email":"success@sender.com"}"""))
           .futureValue
         retrieveVerificationCodeResponse.status shouldBe Status.OK
         val verificationCode = (retrieveVerificationCodeResponse.json \ "verificationCode").as[String]
 
         val response = resourceRequest(s"/email-verification/v2/verify-code")
           .withHttpHeaders(HeaderNames.USER_AGENT -> "test-user")
-          .post(Json.parse(s"""{"email":"joe@bloggs.com", "verificationCode":"$verificationCode"}"""))
+          .post(Json.parse(s"""{"email":"success@sender.com", "verificationCode":"$verificationCode"}"""))
           .futureValue
         response.status                       shouldBe Status.OK
         (response.json \ "status").as[String] shouldBe "CODE_VERIFIED"

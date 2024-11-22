@@ -43,9 +43,10 @@ class AppConfig @Inject() (val config: Configuration) {
   lazy val verifiedEmailRepoTTLDays: Int = config.get[Int]("verifiedEmailRepo.ttlDays")
 
   // V2
-  val appName: String = config.get[String]("appName")
+  lazy val appName: String = config.get[String]("appName")
+  lazy val useCannedEmails: Boolean = config.get[Boolean]("microservice.services.use-canned-emails")
 
-  lazy val accessRequestFormUrl = config.get[String]("microservice.services.access-control.request.formUrl")
-  lazy val accessControlEnabled = config.get[Boolean]("microservice.services.access-control.enabled")
-  lazy val accessControlAllowList = config.get[Seq[String]]("microservice.services.access-control.allow-list").toSet
+  lazy val accessRequestFormUrl: String = config.get[String]("microservice.services.access-control.request.formUrl")
+  lazy val accessControlEnabled: Boolean = config.get[Boolean]("microservice.services.access-control.enabled")
+  lazy val accessControlAllowList: Set[String] = config.get[Seq[String]]("microservice.services.access-control.allow-list").toSet
 }

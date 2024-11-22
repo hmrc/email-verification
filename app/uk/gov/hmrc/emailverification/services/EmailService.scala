@@ -38,21 +38,4 @@ class EmailService @Inject() (emailConnector: EmailConnector) {
 
     emailConnector.sendEmail(emailAddress, templateId, params).map(_ => ())
   }
-
-  def sendCode(email: String, verificationCode: String, serviceName: String, lang: Language)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[SendCodeResult] = {
-    val params = Map(
-      "passcode"  -> verificationCode,
-      "team_name" -> serviceName
-    )
-
-    val templateId = lang match {
-      case English => "email_verification_passcode"
-      case Welsh   => "email_verification_passcode_welsh"
-    }
-
-    emailConnector.sendEmail(email, templateId, params).map {
-      case httpResponse if httpResponse.status / 200 == 1 => SendCodeResult.codeSent()
-      case httpResponse                                   => SendCodeResult.codeNotSent(httpResponse.body)
-    }
-  }
 }
