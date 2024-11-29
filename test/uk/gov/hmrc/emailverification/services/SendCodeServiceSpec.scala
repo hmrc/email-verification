@@ -140,7 +140,7 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
 
     val mockAuditService: AuditV2Service = mock[AuditV2Service]
 
-    val emailServiceMock: EmailV2Service = mock[EmailV2Service]
+    val emailServiceMock: EmailService = mock[EmailService]
 
     val verifyService =
       new EmailVerificationV2Service(passcodeGeneratorMock, verificationRepository, emailServiceMock, mockAuditService)

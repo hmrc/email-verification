@@ -28,7 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class EmailVerificationV2Service @Inject() (
   verificationCodeGenerator: PasscodeGenerator,
   verificationCodeRepository: VerificationCodeV2MongoRepository,
-  emailService: EmailV2Service,
+  emailService: EmailService,
   auditService: AuditV2Service
 )(implicit ec: ExecutionContext, appConfig: AppConfig)
     extends Logging {

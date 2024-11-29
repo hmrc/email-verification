@@ -16,15 +16,7 @@
 
 package config
 
-import com.google.inject.{AbstractModule, Provides}
+import com.google.inject.AbstractModule
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.emailverification.connectors.EmailConnector
-import uk.gov.hmrc.emailverification.services.{CannedEmailV2Service, EmailV2Service, LiveEmailV2Service}
 
-class Module(env: Environment, config: Configuration) extends AbstractModule {
-  @Provides
-  def provideEmailV2Service(appConfig: AppConfig, emailConnector: EmailConnector): EmailV2Service = {
-    if (appConfig.useCannedEmails) new CannedEmailV2Service()
-    else new LiveEmailV2Service(emailConnector)
-  }
-}
+class Module(env: Environment, config: Configuration) extends AbstractModule {}
