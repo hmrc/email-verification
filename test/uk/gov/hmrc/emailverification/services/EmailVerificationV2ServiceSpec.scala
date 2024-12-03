@@ -68,7 +68,7 @@ class EmailVerificationV2ServiceSpec extends RepositoryBaseSpec {
     val mockAuditService: AuditV2Service = mock[AuditV2Service]
 
     val mockEmailService: EmailService = mock[EmailService]
-    val emailVerificationService = new EmailVerificationV2Service(mockVerificationCodeGenerator, verificationRepository, mockEmailService, mockAuditService)
+    val emailVerificationService = new LiveEmailVerificationV2Service(mockVerificationCodeGenerator, verificationRepository, mockEmailService, mockAuditService)
   }
 
   "doSendCode" should {

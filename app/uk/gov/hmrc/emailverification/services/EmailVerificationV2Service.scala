@@ -25,13 +25,20 @@ import uk.gov.hmrc.http.HeaderCarrier
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class EmailVerificationV2Service @Inject() (
+sealed trait EmailVerificationV2Service {
+  def doSendCode(sendCodeRequest: SendCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[SendCodeResult]
+  def doVerifyCode(verifyCodeRequest: VerifyCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[VerifyCodeResult]
+  def getVerificationCode(sendCodeRequest: SendCodeV2Request): Future[Option[String]]
+}
+
+class LiveEmailVerificationV2Service @Inject() (
   verificationCodeGenerator: PasscodeGenerator,
   verificationCodeRepository: VerificationCodeV2MongoRepository,
   emailService: EmailService,
   auditService: AuditV2Service
 )(implicit ec: ExecutionContext, appConfig: AppConfig)
-    extends Logging {
+    extends EmailVerificationV2Service
+    with Logging {
   def doSendCode(sendCodeRequest: SendCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[SendCodeResult] = {
     if (!sendCodeRequest.isEmailValid)
       Future.successful(SendCodeResult.codeNotSent("Invalid email"))
@@ -67,4 +74,16 @@ class EmailVerificationV2Service @Inject() (
     for {
       maybeDoc <- verificationCodeRepository.get(sendCodeRequest.email)(VerificationCodeV2MongoRepository.emailVerificationCodeDataDataKey)
     } yield maybeDoc.map(_.verificationCode)
+}
+
+//(implicit appConfig: AppConfig)
+class TestEmailVerificationV2Service @Inject() () extends EmailVerificationV2Service with Logging {
+  override def doSendCode(sendCodeRequest: SendCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[SendCodeResult] =
+    Future.successful(SendCodeResult.codeSent())
+
+  override def doVerifyCode(verifyCodeRequest: VerifyCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[VerifyCodeResult] =
+    Future.successful(VerifyCodeResult.codeVerified())
+
+  override def getVerificationCode(sendCodeRequest: SendCodeV2Request): Future[Option[String]] =
+    Future.successful(Some("ABCDEF"))
 }

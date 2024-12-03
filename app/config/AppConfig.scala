@@ -44,7 +44,7 @@ class AppConfig @Inject() (val config: Configuration) {
 
   // V2
   lazy val appName: String = config.get[String]("appName")
-  lazy val useCannedEmails: Boolean = config.get[Boolean]("microservice.services.use-canned-emails")
+  lazy val useTestEmailVerificationService: Boolean = config.get[Boolean]("microservice.services.use-test-email-verification-service")
 
   lazy val accessRequestFormUrl: String = config.get[String]("microservice.services.access-control.request.formUrl")
   lazy val accessControlEnabled: Boolean = config.get[Boolean]("microservice.services.access-control.enabled")
