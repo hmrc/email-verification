@@ -20,18 +20,26 @@ import config.AppConfig
 import play.api.Logging
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.VerificationCodeV2MongoRepository
+import uk.gov.hmrc.emailverification.services.TestEmailVerificationV2Service.{getVerificationCodeFor, sendCodeResponseFor, verifyCodeResponseFor}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class EmailVerificationV2Service @Inject() (
+sealed trait EmailVerificationV2Service {
+  def doSendCode(sendCodeRequest: SendCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[SendCodeResult]
+  def doVerifyCode(verifyCodeRequest: VerifyCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[VerifyCodeResult]
+  def getVerificationCode(sendCodeRequest: SendCodeV2Request): Future[Option[String]]
+}
+
+class LiveEmailVerificationV2Service @Inject() (
   verificationCodeGenerator: PasscodeGenerator,
   verificationCodeRepository: VerificationCodeV2MongoRepository,
-  emailService: EmailV2Service,
+  emailService: EmailService,
   auditService: AuditV2Service
 )(implicit ec: ExecutionContext, appConfig: AppConfig)
-    extends Logging {
+    extends EmailVerificationV2Service
+    with Logging {
   def doSendCode(sendCodeRequest: SendCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[SendCodeResult] = {
     if (!sendCodeRequest.isEmailValid)
       Future.successful(SendCodeResult.codeNotSent("Invalid email"))
@@ -67,4 +75,49 @@ class EmailVerificationV2Service @Inject() (
     for {
       maybeDoc <- verificationCodeRepository.get(sendCodeRequest.email)(VerificationCodeV2MongoRepository.emailVerificationCodeDataDataKey)
     } yield maybeDoc.map(_.verificationCode)
+}
+
+//(implicit appConfig: AppConfig)
+class TestEmailVerificationV2Service @Inject() () extends EmailVerificationV2Service with Logging {
+  override def doSendCode(sendCodeRequest: SendCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[SendCodeResult] =
+    Future.successful {
+      sendCodeResponseFor(sendCodeRequest)
+    }
+
+  override def doVerifyCode(verifyCodeRequest: VerifyCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[VerifyCodeResult] =
+    Future.successful(
+      verifyCodeResponseFor(verifyCodeRequest)
+    )
+
+  override def getVerificationCode(sendCodeRequest: SendCodeV2Request): Future[Option[String]] =
+    Future.successful(getVerificationCodeFor(sendCodeRequest.email))
+}
+
+object TestEmailVerificationV2Service {
+//  private val sendCodeResponseMap = Map(
+//    SendCodeV2Request("codesent@sendcode.com")    -> SendCodeResult.codeSent(),
+//    SendCodeV2Request("codenotsent@sendcode.com") -> SendCodeResult.codeNotSent("Could not send the verification code.")
+//  )
+
+  private val verifyCodeResponseMap = Map(
+    VerifyCodeV2Request("codesent@sendcode.com", "ABCDEF")          -> VerifyCodeResult.codeVerified(),
+    VerifyCodeV2Request("codenotverified@verifycode.com", "FEDCBA") -> VerifyCodeResult.codeNotVerified("Could not verify the verification code.")
+  )
+
+  def sendCodeResponseFor(sendCodeV2Request: SendCodeV2Request): SendCodeResult = sendCodeV2Request match {
+    case SendCodeV2Request("codesent@sendcode.com")    => SendCodeResult.codeSent()
+    case SendCodeV2Request("codenotsent@sendcode.com") => SendCodeResult.codeNotSent("Could not send the verification code.")
+    case _                                             => SendCodeResult.codeNotSent("Invalid email")
+  }
+
+  def getVerificationCodeFor(email: String): Option[String] =
+    verifyCodeResponseMap.find(_._1.email == email).map(_._1.verificationCode).orElse(Some("HIJKLM"))
+
+  def verifyCodeResponseFor(verifyCodeV2Request: VerifyCodeV2Request): VerifyCodeResult = verifyCodeV2Request match {
+    case VerifyCodeV2Request("codesent@sendcode.com", "ABCDEF")          => VerifyCodeResult.codeVerified()
+    case VerifyCodeV2Request("invalidcodesent@sendcode.com", "ABCDEF")   => VerifyCodeResult.codeNotValid(None)
+    case VerifyCodeV2Request("codenotsent@sendcode.com", _)              => VerifyCodeResult.codeNotFound("Verification code not found")
+    case VerifyCodeV2Request("codenotverified@verifycode.com", "FEDCBA") => VerifyCodeResult.codeNotVerified("Could not verify the verification code.")
+    case _                                                               => VerifyCodeResult.codeNotVerified("Invalid email")
+  }
 }

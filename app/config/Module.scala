@@ -18,13 +18,21 @@ package config
 
 import com.google.inject.{AbstractModule, Provides}
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.emailverification.connectors.EmailConnector
-import uk.gov.hmrc.emailverification.services.{CannedEmailV2Service, EmailV2Service, LiveEmailV2Service}
+import uk.gov.hmrc.emailverification.repositories.VerificationCodeV2MongoRepository
+import uk.gov.hmrc.emailverification.services._
+
+import scala.concurrent.ExecutionContext
 
 class Module(env: Environment, config: Configuration) extends AbstractModule {
   @Provides
-  def provideEmailV2Service(appConfig: AppConfig, emailConnector: EmailConnector): EmailV2Service = {
-    if (appConfig.useCannedEmails) new CannedEmailV2Service()
-    else new LiveEmailV2Service(emailConnector)
+  def emailVerificationServiceProvider(verificationCodeGenerator: PasscodeGenerator,
+                                       verificationCodeRepository: VerificationCodeV2MongoRepository,
+                                       emailService: EmailService,
+                                       auditService: AuditV2Service
+                                      )(implicit appConfig: AppConfig, ec: ExecutionContext): EmailVerificationV2Service = {
+    if (appConfig.useTestEmailVerificationService)
+      new TestEmailVerificationV2Service()
+    else
+      new LiveEmailVerificationV2Service(verificationCodeGenerator, verificationCodeRepository, emailService, auditService)
   }
 }

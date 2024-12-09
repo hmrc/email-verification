@@ -1,3 +1,0 @@
-# Stripped down api only endpoints
-POST        /send-code                              uk.gov.hmrc.emailverification.controllers.EmailVerificationV2Controller.sendCode()
-POST        /verify-code                            uk.gov.hmrc.emailverification.controllers.EmailVerificationV2Controller.verifyCode()
