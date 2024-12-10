@@ -27,7 +27,6 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
     "be available when configuration is defined" in new Setup(
       Map(
         "appName"                                              -> "the-app-name",
-        "microservice.services.use-canned-emails"              -> true,
         "platform.frontend.host"                               -> "some-host",
         "microservice.services.email.path"                     -> "some-path",
         "microservice.services.access-control.request.formUrl" -> "access-request-form-url",
@@ -36,7 +35,6 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
       )
     ) {
       appConfig.appName                shouldBe "the-app-name"
-      appConfig.useCannedEmails        shouldBe true
       appConfig.platformFrontendHost   shouldBe "some-host"
       appConfig.emailServicePath       shouldBe "some-path"
       appConfig.accessRequestFormUrl   shouldBe "access-request-form-url"
@@ -61,9 +59,6 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
 
       val exception5: RuntimeException = intercept[RuntimeException](appConfig.accessControlAllowList)
       exception5.getMessage shouldBe s"hardcoded value: No configuration setting found for key 'microservice'"
-
-      val exception6: RuntimeException = intercept[RuntimeException](appConfig.useCannedEmails)
-      exception6.getMessage shouldBe s"hardcoded value: No configuration setting found for key 'microservice'"
 
       val exception7: RuntimeException = intercept[RuntimeException](appConfig.appName)
       exception7.getMessage shouldBe s"hardcoded value: No configuration setting found for key 'appName'"
