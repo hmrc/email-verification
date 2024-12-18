@@ -543,6 +543,21 @@ Verifies a passcode matches that stored against the email address and session id
 | 404    | PASSCODE_NOT_FOUND             | Passcode not found (or expired)   |
 | 404    | PASSCODE_MISMATCH              | Incorrect passcode                |
 
+
+## Test data for V2 endpoints when using `use-test-email-verification-service = true`
+
+```
+/send-code 	
+  codesent@sendcode.com                             CODE_SENT
+  codenotsent@sendcode.com                          CODE_NOT_SENT
+
+/verify-code
+  codesent@sendcode.com           ABCDEF            CODE_VERIFIED
+  invalidcodesent@sendcode.com    ABCDEF            CODE_NOT_VALIDATED
+  codenotsent@sendcode.com        <any-other-code>  CODE_NOT_FOUND
+  codenotverified@verifycode.com  FEDCBA            CODE_NOT_VERIFIED
+```
+
 ## Error response payload structure
 
 Error responses are mapped to the following json structure returned as the response body

@@ -35,12 +35,13 @@ class TestEmailVerificationV2ServiceSpec extends RepositoryBaseSpec {
     val notSendCodeTestEmail: String = "codenotsent@sendcode.com"
     val notSendCodeV2Request: SendCodeV2Request = SendCodeV2Request(notSendCodeTestEmail)
     val testVerificationCode: String = "ABCDEF"
+    val testInvalidVerificationCode: String = "123456"
     val testBadVerificationCode: String = "FEDCBA"
     val testCacheItem: CacheItem = CacheItem("some-id", JsObject.empty, Instant.now(testClock), Instant.now(testClock))
 
     val verifyCodeV2Request: VerifyCodeV2Request = VerifyCodeV2Request(sendCodeTestEmail, testVerificationCode)
     val badVerifyCodeV2Request: VerifyCodeV2Request = VerifyCodeV2Request(notSendCodeTestEmail, testBadVerificationCode)
-    val invalidEmailVerifyCodeV2Request: VerifyCodeV2Request = VerifyCodeV2Request("invalidcodesent@sendcode.com", testVerificationCode)
+    val invalidEmailVerifyCodeV2Request: VerifyCodeV2Request = VerifyCodeV2Request("invalidcodesent@sendcode.com", testInvalidVerificationCode)
     val invalidCodeVerifyCodeV2Request: VerifyCodeV2Request = VerifyCodeV2Request("valid-email@email.com", testBadVerificationCode)
 
     val codeSentResult: SendCodeResult = SendCodeResult.codeSent()

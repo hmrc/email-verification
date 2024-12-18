@@ -115,7 +115,7 @@ object TestEmailVerificationV2Service {
 
   def verifyCodeResponseFor(verifyCodeV2Request: VerifyCodeV2Request): VerifyCodeResult = verifyCodeV2Request match {
     case VerifyCodeV2Request("codesent@sendcode.com", "ABCDEF")          => VerifyCodeResult.codeVerified()
-    case VerifyCodeV2Request("invalidcodesent@sendcode.com", "ABCDEF")   => VerifyCodeResult.codeNotValid(None)
+    case VerifyCodeV2Request("invalidcodesent@sendcode.com", "123456")   => VerifyCodeResult.codeNotValid(None)
     case VerifyCodeV2Request("codenotsent@sendcode.com", _)              => VerifyCodeResult.codeNotFound("Verification code not found")
     case VerifyCodeV2Request("codenotverified@verifycode.com", "FEDCBA") => VerifyCodeResult.codeNotVerified("Could not verify the verification code.")
     case _                                                               => VerifyCodeResult.codeNotVerified("Invalid email")
