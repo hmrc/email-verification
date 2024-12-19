@@ -546,17 +546,15 @@ Verifies a passcode matches that stored against the email address and session id
 
 ## Test data for V2 endpoints when using `use-test-email-verification-service = true`
 
-```
-/send-code 	
-  codesent@sendcode.com                             CODE_SENT
-  codenotsent@sendcode.com                          CODE_NOT_SENT
-
-/verify-code
-  codesent@sendcode.com           ABCDEF            CODE_VERIFIED
-  invalidcodesent@sendcode.com    ABCDEF            CODE_NOT_VALIDATED
-  codenotsent@sendcode.com        <any-other-code>  CODE_NOT_FOUND
-  codenotverified@verifycode.com  FEDCBA            CODE_NOT_VERIFIED
-```
+| Endpoint        | Email                          | Verification Code | Status             | HTTP Response Code |
+|-----------------|--------------------------------|-------------------|--------------------|--------------------|
+| /v2/send-code   | codesent@sendcode.com          |                   | CODE_SENT          | 200                |
+| /v2/send-code   | codenotsent@sendcode.com       |                   | CODE_NOT_SENT      | 400                |
+| /v2/send-code   | test@test                      |                   | CODE_NOT_SENT      | 400                |
+| /v2/verify-code | codesent@sendcode.com          | ABCDEF            | CODE_VERIFIED      | 200                |
+| /v2/verify-code | codenotverified@verifycode.com | FEDCBA            | CODE_NOT_VERIFIED  | 404                |
+| /v2/verify-code | invalidcodesent@sendcode.com   | 123456            | CODE_NOT_VALIDATED | 400                |
+| /v2/verify-code | codenotsent@sendcode.com       | test              | CODE_NOT_FOUND     | 404                |
 
 ## Error response payload structure
 
