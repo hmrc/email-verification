@@ -41,8 +41,7 @@ class EmailService @Inject() (emailConnector: EmailConnector) {
 
   def sendCode(email: String, verificationCode: String, serviceName: String, lang: Language)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[SendCodeResult] = {
     val params = Map(
-      "passcode"  -> verificationCode,
-      "team_name" -> serviceName
+      "verification_code" -> verificationCode
     )
 
     val templateId = lang match {
