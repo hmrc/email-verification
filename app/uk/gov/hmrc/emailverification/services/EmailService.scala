@@ -46,8 +46,8 @@ class EmailService @Inject() (emailConnector: EmailConnector) {
     )
 
     val templateId = lang match {
-      case English => "email_verification_passcode"
-      case Welsh   => "email_verification_passcode_welsh"
+      case English => "cir_email_verification_code"
+      case Welsh   => "cir_email_verification_code_welsh"
     }
 
     emailConnector.sendEmail(email, templateId, params).map {
