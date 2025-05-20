@@ -16,20 +16,21 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
-import javax.inject.Inject
 import play.api.libs.json._
 import play.api.mvc.{ControllerComponents, Request, Result}
 import uk.gov.hmrc.emailverification.models.ErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.Inject
 import scala.concurrent.Future
+import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 abstract class BaseControllerWithJsonErrorHandling @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
   private val separatorChar: String = ";"
 
-  override protected def withJsonBody[T](f: T => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] =
+  override protected def withJsonBody[T](f: T => Future[Result])(implicit request: Request[JsValue], ct: ClassTag[T], reads: Reads[T]): Future[Result] =
     Try(request.body.validate[T]) match {
       case Success(JsSuccess(payload, _)) => f(payload)
       case Success(JsError(errs)) =>
