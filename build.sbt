@@ -1,11 +1,10 @@
 import uk.gov.hmrc.DefaultBuildSettings
 
 ThisBuild / majorVersion := 1
-ThisBuild / scalaVersion := "2.13.12"
+ThisBuild / scalaVersion := "2.13.16"
 
 lazy val microservice = Project("email-verification", file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtDistributablesPlugin) *)
-  .settings(DefaultBuildSettings.defaultSettings() *)
   .settings(scalafmtOnCompile := true)
   .settings(ScoverageSettings())
   .settings(scalacOptions ++= Seq(
@@ -18,7 +17,6 @@ lazy val microservice = Project("email-verification", file("."))
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true
   )
-  .settings(resolvers += Resolver.jcenterRepo)
   .settings(PlayKeys.playDefaultPort := 9891)
 
 lazy val it = project
