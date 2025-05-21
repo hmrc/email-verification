@@ -17,6 +17,9 @@
 package uk.gov.hmrc.emailverification.services
 
 import config.AppConfig
+import org.mockito.ArgumentMatchersSugar.{any, eqTo}
+import org.mockito.Mockito.{verify, when}
+import org.mockito.MockitoSugar.verifyZeroInteractions
 
 import java.util.UUID
 import org.mockito.captor.{ArgCaptor, Captor}
