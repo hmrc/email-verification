@@ -17,6 +17,7 @@
 package uk.gov.hmrc.emailverification.controllers
 
 import config.AppConfig
+import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.Mockito._
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
@@ -119,7 +120,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       contentAsJson(response).as[VerifiedEmail] shouldBe VerifiedEmail(emailMixedCase)
       verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
-      verify(mockAuditService).sendCheckEmailVerifiedEvent(*, *, eqTo(OK))(*)
+      verify(mockAuditService).sendCheckEmailVerifiedEvent(any, any, eqTo(OK))(any)
     }
 
     "lower case email address" in new Setup {
@@ -129,7 +130,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       contentAsJson(response).as[VerifiedEmail] shouldBe VerifiedEmail(emailMixedCase)
       verify(mockVerifiedEmailService).find(eqTo(emailMixedCase.toUpperCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
-      verify(mockAuditService).sendCheckEmailVerifiedEvent(*, *, eqTo(OK))(*)
+      verify(mockAuditService).sendCheckEmailVerifiedEvent(any, any, eqTo(OK))(any)
     }
 
     "return 404 if email not found" in new Setup {
@@ -138,7 +139,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       status(response) shouldBe 404
       verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
-      verify(mockAuditService).sendCheckEmailVerifiedEvent(*, *, eqTo(NOT_FOUND))(*)
+      verify(mockAuditService).sendCheckEmailVerifiedEvent(any, any, eqTo(NOT_FOUND))(any)
     }
   }
 

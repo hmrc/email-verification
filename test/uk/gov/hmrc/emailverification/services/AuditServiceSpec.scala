@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.emailverification.services
 
+import org.mockito.ArgumentMatchersSugar.any
+import org.mockito.Mockito.{verify, when}
 import org.mockito.captor.ArgCaptor
 import org.scalatest.Assertion
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
