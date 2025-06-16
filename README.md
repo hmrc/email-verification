@@ -1,6 +1,6 @@
 # email-verification
 
-**Note: Link Based Verification was ***Deprecated*** as of March 22.** 
+**Note: Link Based Verification was ***Deprecated*** as of March 2022.** 
 
 # <a id="toc">Table of Contents</a>
 
@@ -66,7 +66,7 @@ More information on this is under [Details](#details).
 
 ## <a id="link-based-deprecation">Link-based deprecation</a>
 
-This service supports both link-based & passcode email verification. Link-based verification was deprecated in this service in March 22.
+This service supports both link-based & passcode email verification. Link-based verification was deprecated in this service in March 2022.
 
 All new callers of this service MUST use the [passcode API](#api-endpoints).
 
