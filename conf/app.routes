@@ -2,10 +2,11 @@
 POST        /verify-email                              uk.gov.hmrc.emailverification.controllers.JourneyController.verifyEmail()
 GET         /verification-status/:credId               uk.gov.hmrc.emailverification.controllers.JourneyController.completedEmails(credId)
 
-# DEPRECATED endpoints are below:
+# DEPRECATED endpoints - start
 POST        /verification-requests                     uk.gov.hmrc.emailverification.controllers.EmailVerificationController.requestVerification()
 POST        /verified-email-addresses                  uk.gov.hmrc.emailverification.controllers.EmailVerificationController.validateToken()
 POST        /verified-email-check                      uk.gov.hmrc.emailverification.controllers.EmailVerificationController.verifiedEmail()
+# DEPRECATED endpoints - end
 
 POST        /request-passcode                          uk.gov.hmrc.emailverification.controllers.EmailPasscodeController.requestPasscode()
 POST        /verify-passcode                           uk.gov.hmrc.emailverification.controllers.EmailPasscodeController.verifyPasscode()

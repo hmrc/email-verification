@@ -34,6 +34,7 @@ import java.util.UUID
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
+@deprecated(message = "Link based deprecated endpoints are no longer supported", since = "1.45.0")
 class EmailVerificationController @Inject() (
   emailConnector: EmailConnector,
   verificationLinkService: VerificationLinkService,
@@ -57,8 +58,14 @@ class EmailVerificationController @Inject() (
     } yield Created
   }
 
+  private def toByteString(data: String): String = {
+    data.getBytes("UTF-8").map("%02x".format(_)).mkString
+  }
+
   def requestVerification(): Action[JsValue] = Action.async(parse.json) { implicit httpRequest =>
     withJsonBody[EmailVerificationRequest] { request =>
+      logger.warn("Deprecated endpoint `requestVerification` called with continueUrl: " + request.continueUrl)
+
       val mixedCaseEmail = request.email
       verifiedEmailService.isVerified(mixedCaseEmail) flatMap {
         case true => Future.successful(Conflict(Json.toJson(ErrorResponse("EMAIL_VERIFIED_ALREADY", "Email has already been verified"))))
@@ -85,10 +92,6 @@ class EmailVerificationController @Inject() (
     }
   }
 
-  private def toByteString(data: String): String = {
-    data.getBytes("UTF-8").map("%02x".format(_)).mkString
-  }
-
   def validateToken(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     def createEmailIfNotExist(email: String): Future[Result] =
       verifiedEmailService.find(email) flatMap {
@@ -97,6 +100,8 @@ class EmailVerificationController @Inject() (
       }
 
     withJsonBody[TokenVerificationRequest] { request =>
+      logger.warn("Deprecated endpoint `validateToken` called")
+
       tokenRepo.findToken(request.token) flatMap {
         case Some(doc) =>
           createEmailIfNotExist(doc.email)
@@ -108,6 +113,8 @@ class EmailVerificationController @Inject() (
 
   def verifiedEmail(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[VerifiedEmail] { verifiedEmail =>
+      logger.warn("Deprecated endpoint `verifiedEmail` called")
+
       verifiedEmailService.find(mixedCaseEmail = verifiedEmail.email).map {
         case Some(email) =>
           auditService.sendCheckEmailVerifiedEvent(
@@ -126,4 +133,5 @@ class EmailVerificationController @Inject() (
       }
     }
   }
+
 }
