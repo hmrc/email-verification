@@ -114,7 +114,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "passcode"     -> passcode,
           "serviceName"  -> serviceName,
           "responseCode" -> OK.toString,
-          "bearerToken"  -> authBearerToken
+          "bearerToken"  -> authBearerToken,
+          "userAgent"    -> "test-user-agent"
         )
       )
     }
@@ -129,7 +130,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "emailVerified"       -> "false",
           "responseCode"        -> BAD_REQUEST.toString,
           "bearerToken"         -> authBearerToken,
-          "verifyFailureReason" -> "failure reason"
+          "verifyFailureReason" -> "failure reason",
+          "userAgent"           -> "test-user-agent"
         )
       )
     }
@@ -148,7 +150,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "success"                -> "true",
           "responseCode"           -> CREATED.toString,
           "outcome"                -> "Successfully sent a passcode to the email address requiring verification",
-          "callingService"         -> serviceName
+          "callingService"         -> serviceName,
+          "userAgent"              -> "test-user-agent"
         ),
         "HMRC Gateway - Email Verification - Send new passcode to email address"
       )
@@ -163,9 +166,26 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "emailAddress" -> emailAddress,
           "success"      -> "false",
           "outcome"      -> "SessionId missing",
-          "responseCode" -> UNAUTHORIZED.toString
+          "responseCode" -> UNAUTHORIZED.toString,
+          "userAgent"    -> "test-user-agent"
         ),
         "HMRC Gateway - Email Verification - error, unauthorised, session id missing from email passcode request"
+      )
+    }
+  }
+
+  "sendEmailRequestMissingAuthSession" should {
+    "fire audit event with appropriate fields" in new Setup {
+      auditService.sendEmailRequestMissingAuthSession(emailAddress, UNAUTHORIZED)(request)
+      confirmPasscodeVerificationRequestEvent(
+        Map(
+          "emailAddress" -> emailAddress,
+          "success"      -> "false",
+          "outcome"      -> "Auth session not found",
+          "responseCode" -> UNAUTHORIZED.toString,
+          "userAgent"    -> "test-user-agent"
+        ),
+        "HMRC Gateway - Email Verification - error, unauthorised, auth session not found to authorise email passcode request"
       )
     }
   }
@@ -179,7 +199,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "success"        -> "true",
           "responseCode"   -> CONFLICT.toString,
           "outcome"        -> "Email address already verified",
-          "callingService" -> serviceName
+          "callingService" -> serviceName,
+          "userAgent"      -> "test-user-agent"
         ),
         "HMRC Gateway - Email Verification - warning, conflict, email address already verified request"
       )
@@ -198,7 +219,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "success"                -> "false",
           "responseCode"           -> FORBIDDEN.toString,
           "outcome"                -> "Max permitted passcode emails per session has been exceeded",
-          "callingService"         -> serviceName
+          "callingService"         -> serviceName,
+          "userAgent"              -> "test-user-agent"
         ),
         "HMRC Gateway - Email Verification - warning, forbidden, max permitted passcode emails per session has been exceeded"
       )
@@ -215,7 +237,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "success"                -> "false",
           "responseCode"           -> FORBIDDEN.toString,
           "outcome"                -> "Max permitted passcode emails per session has been exceeded",
-          "callingService"         -> serviceName
+          "callingService"         -> serviceName,
+          "userAgent"              -> "test-user-agent"
         ),
         "HMRC Gateway - Email Verification - warning, forbidden, max permitted number of different email addresses per session has been exceeded"
       )
@@ -234,7 +257,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "success"                -> "false",
           "responseCode"           -> BAD_GATEWAY.toString,
           "outcome"                -> "sendEmail request failed",
-          "callingService"         -> serviceName
+          "callingService"         -> serviceName,
+          "userAgent"              -> "test-user-agent"
         ),
         "HMRC Gateway - Email Verification - error, bad request or email delivery failure whilst sending a passcode to an email address"
       )
@@ -252,7 +276,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "sameEmailAttempts" -> emailAttempts.toString,
           "success"           -> "true",
           "responseCode"      -> OK.toString,
-          "outcome"           -> "Email address confirmed"
+          "outcome"           -> "Email address confirmed",
+          "userAgent"         -> "test-user-agent"
         ),
         "HMRC Gateway - Email Verification - passcode email verification was successful"
       )
@@ -268,7 +293,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "passcode"     -> passcode,
           "success"      -> "false",
           "responseCode" -> NOT_FOUND.toString,
-          "outcome"      -> "Email address not found or verification attempt time expired"
+          "outcome"      -> "Email address not found or verification attempt time expired",
+          "userAgent"    -> "test-user-agent"
         ),
         "HMRC Gateway - Email Verification - warning, email address not found or verification attempt was time expired"
       )
@@ -286,7 +312,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "sameEmailAttempts" -> emailAttempts.toString,
           "success"           -> "false",
           "responseCode"      -> NOT_FOUND.toString,
-          "outcome"           -> "Email verification passcode match not found or time expired"
+          "outcome"           -> "Email verification passcode match not found or time expired",
+          "userAgent"         -> "test-user-agent"
         ),
         "HMRC Gateway - Email Verification - warning, email verification passcode not found or was time expired"
       )
@@ -302,7 +329,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "passcode"     -> passcode,
           "success"      -> "false",
           "responseCode" -> UNAUTHORIZED.toString,
-          "outcome"      -> "SessionId missing"
+          "outcome"      -> "SessionId missing",
+          "userAgent"    -> "test-user-agent"
         ),
         "HMRC Gateway - Email Verification - error, unauthorised, session id missing from passcode verification request"
       )
@@ -320,7 +348,8 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
           "sameEmailAttempts" -> emailAttempts.toString,
           "success"           -> "false",
           "responseCode"      -> FORBIDDEN.toString,
-          "outcome"           -> "Max permitted passcode verification attempts have been exceeded"
+          "outcome"           -> "Max permitted passcode verification attempts have been exceeded",
+          "userAgent"         -> "test-user-agent"
         ),
         "HMRC Gateway - Email Verification - warning, forbidden, max permitted passcode verification attempts per session has been exceeded"
       )
@@ -362,6 +391,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
       .withHeaders(HeaderNames.deviceID -> deviceId)
       .withHeaders(HeaderNames.xSessionId -> sessionId)
       .withHeaders(HeaderNames.authorisation -> authBearerToken)
+      .withHeaders(play.api.http.HeaderNames.USER_AGENT -> "test-user-agent")
   }
 
   trait Setup extends TestData {

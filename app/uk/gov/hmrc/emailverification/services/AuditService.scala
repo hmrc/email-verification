@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import javax.inject.Inject
 import play.api.Logging
 import play.api.http.HeaderNames
-import play.api.libs.json.{JsArray, JsObject, JsString, JsValue, Json}
+import play.api.libs.json._
 import play.api.mvc.Request
 import uk.gov.hmrc.emailverification.models.{EmailVerificationRequest, PasscodeDoc, VerifyEmailRequest}
 import uk.gov.hmrc.http.Authorization
@@ -28,6 +27,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, ExtendedDataEvent}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvider
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class AuditService @Inject() (
@@ -36,7 +36,7 @@ class AuditService @Inject() (
     extends BackendHeaderCarrierProvider
     with Logging {
 
-  def requestContextForLog(implicit request: Request[_]): String = {
+  private def requestContextForLog(implicit request: Request[_]): String = {
     val continueUrl: String = (request.body match {
       case EmailVerificationRequest(_, _, _, _, continueUrl) =>
         Some(continueUrl.url)
@@ -412,15 +412,19 @@ class AuditService @Inject() (
       sendEventWithJsonDetails("EmailVerificationOutcomeRequest", details, "HMRC Gateway - Email Verification - Email address not found or expired")
   }
 
-  private def sendEvent(auditType: String, details: Map[String, String], transactionName: String)(implicit request: Request[_]) = {
-    val hcDetails = hc.toAuditDetails() ++ details
+  private def sendEvent(auditType: String, details: Map[String, String], transactionName: String)(implicit request: Request[_]): Future[Unit] = {
+    val hcDetails = hc.toAuditDetails() ++ details ++ Map(
+      "userAgent" -> request.headers.get(HeaderNames.USER_AGENT).getOrElse("-")
+    )
 
     val event = DataEvent(auditType = auditType, tags = hc.toAuditTags(transactionName, request.path), detail = hcDetails, auditSource = "email-verification")
     auditConnector.sendEvent(event).map(_ => ())
   }
 
-  private def sendEventWithJsonDetails(auditType: String, details: JsObject, transactionName: String)(implicit request: Request[_]) = {
-    val hcDetails = JsObject(hc.toAuditDetails().map(tuple => tuple._1 -> JsString(tuple._2))) ++ details
+  private def sendEventWithJsonDetails(auditType: String, details: JsObject, transactionName: String)(implicit request: Request[_]): Future[Unit] = {
+    val hcDetails = JsObject(hc.toAuditDetails().map(tuple => tuple._1 -> JsString(tuple._2))) ++ details ++ JsObject(
+      Map("userAgent" -> JsString(request.headers.get(HeaderNames.USER_AGENT).getOrElse("-")))
+    )
 
     val event = ExtendedDataEvent(auditType = auditType, tags = hc.toAuditTags(transactionName, request.path), detail = hcDetails.as[JsValue], auditSource = "email-verification")
     auditConnector.sendExtendedEvent(event).map(_ => ())
