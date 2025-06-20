@@ -35,6 +35,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import java.time.{Duration, Instant}
 import scala.concurrent.{ExecutionContext, Future}
 
+@annotation.nowarn("msg=deprecated")
 class EmailVerificationControllerSpec extends UnitSpec {
   "requestVerification" should {
     "send email containing verificationLink param and return success response" in new Setup {
