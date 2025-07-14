@@ -26,7 +26,8 @@ case class JourneyData(
   enterEmailUrl: Option[String],
   backUrl: Option[String],
   serviceTitle: Option[String],
-  emailAddress: Option[String]
+  emailAddress: Option[String],
+  labels: Option[Labels]
 )
 
 object JourneyData {

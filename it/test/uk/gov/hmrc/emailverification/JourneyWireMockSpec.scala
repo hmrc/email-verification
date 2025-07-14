@@ -25,7 +25,7 @@ import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Injecting
-import uk.gov.hmrc.emailverification.models.{English, Journey, VerificationStatus}
+import uk.gov.hmrc.emailverification.models.{English, Journey, Label, Labels, VerificationStatus}
 import uk.gov.hmrc.emailverification.repositories.{JourneyMongoRepository, VerificationStatusMongoRepository}
 
 import java.time.Instant
@@ -126,21 +126,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       val testEmail6 = "aaa6@bbb.ccc"
 
       val journey: Journey = Journey(
-        UUID.randomUUID().toString,
-        credId,
-        "/continueUrl",
-        "origin",
-        "/accessibility",
-        "serviceName",
-        English,
-        None,
-        None,
-        None,
-        None,
-        "passcode",
-        1,
-        0,
-        0
+        journeyId = UUID.randomUUID().toString,
+        credId = credId,
+        continueUrl = "/continueUrl",
+        origin = "origin",
+        accessibilityStatementUrl = "/accessibility",
+        serviceName = "serviceName",
+        language = English,
+        emailAddress = None,
+        enterEmailUrl = None,
+        backUrl = None,
+        pageTitle = None,
+        passcode = "passcode",
+        emailAddressAttempts = 1,
+        passcodesSentToEmail = 0,
+        passcodeAttempts = 0,
+        labels = None
       )
 
       expectJourneyToExist(journey.copy(journeyId = UUID.randomUUID().toString, emailAddress = Some(testEmail1)))
@@ -196,23 +197,24 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
   }
 
   "GET /journey/:journeyId" should {
-    "return 200 OK and the frontend journey data when the journey ID is valid" in new Setup {
+    "return 200 OK and the frontend journey data when the journey ID is valid (and NO language labels)" in new Setup {
       val journey: Journey = Journey(
-        UUID.randomUUID().toString,
-        "credId",
-        "/continueUrl",
-        "origin",
-        "/accessibility",
-        "serviceName",
-        English,
-        None,
-        Some("/enterEmail"),
-        Some("/back"),
-        Some("title"),
-        "passcode",
-        0,
-        0,
-        0
+        journeyId = UUID.randomUUID().toString,
+        credId = "credId",
+        continueUrl = "/continueUrl",
+        origin = "origin",
+        accessibilityStatementUrl = "/accessibility",
+        serviceName = "serviceName",
+        language = English,
+        emailAddress = None,
+        enterEmailUrl = Some("/enterEmail"),
+        backUrl = Some("/back"),
+        pageTitle = Some("title"),
+        passcode = "passcode",
+        emailAddressAttempts = 0,
+        passcodesSentToEmail = 0,
+        passcodeAttempts = 0,
+        labels = None
       )
 
       expectJourneyToExist(journey)
@@ -228,6 +230,56 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       )
     }
 
+    "return 200 OK and the frontend journey data when the journey ID is valid (and contains language labels)" in new Setup {
+      val journey: Journey = Journey(
+        journeyId = UUID.randomUUID().toString,
+        credId = "credId",
+        continueUrl = "/continueUrl",
+        origin = "origin",
+        accessibilityStatementUrl = "/accessibility",
+        serviceName = "serviceName",
+        language = English,
+        emailAddress = None,
+        enterEmailUrl = Some("/enterEmail"),
+        backUrl = Some("/back"),
+        pageTitle = Some("title"),
+        passcode = "passcode",
+        emailAddressAttempts = 0,
+        passcodesSentToEmail = 0,
+        passcodeAttempts = 0,
+        labels = Some(Labels(
+          en = Label(
+            pageTitle = Some("Page Title.en"), userFacingServiceName = Some("Service Name.en")
+          ),
+          cy = Label(
+            pageTitle = Some("Page Title.cy"), userFacingServiceName = Some("Service Name.cy")
+          )
+        ))
+      )
+
+      expectJourneyToExist(journey)
+
+      val result: WSResponse = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}").get())
+      result.status shouldBe OK
+      result.json shouldBe Json.obj(
+        "accessibilityStatementUrl" -> "/accessibility",
+        "enterEmailUrl"             -> "/enterEmail",
+        "deskproServiceName"        -> "serviceName",
+        "backUrl"                   -> "/back",
+        "serviceTitle"              -> "title",
+        "labels"                    -> Json.obj(
+          "en" -> Json.obj(
+            "pageTitle"             -> "Page Title.en",
+            "userFacingServiceName" -> "Service Name.en"
+          ),
+          "cy" -> Json.obj(
+            "pageTitle"             -> "Page Title.cy",
+            "userFacingServiceName" -> "Service Name.cy"
+          )
+        )
+      )
+    }
+
     "return 404 Not Found when the journey ID is invalid" in new Setup {
       val result: WSResponse = await(resourceRequest("/email-verification/journey/nope").get())
       result.status shouldBe NOT_FOUND
@@ -238,21 +290,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     "the journey ID is valid and more attempts are allowed" should {
       "send the passcode email and return 200 OK" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          None,
-          None,
-          None,
-          None,
-          "passcode",
-          0,
-          0,
-          0
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = None,
+          enterEmailUrl = None,
+          backUrl = None,
+          pageTitle = None,
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 0,
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -271,21 +324,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         val testEmail = "aaa@bbb.ccc"
 
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some(testEmail),
-          Some("/enterEmail"),
-          Some("/back"),
-          Some("title"),
-          "passcode",
-          0,
-          4,
-          0
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some(testEmail),
+          enterEmailUrl = Some("/enterEmail"),
+          backUrl = Some("/back"),
+          pageTitle = Some("title"),
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 4,
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey.copy(passcodesSentToEmail = 4))
@@ -322,21 +376,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     "the journey ID is valid but too many attempts have been made" should {
       "return 403 Forbidden and the continue URL" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          None,
-          None,
-          None,
-          None,
-          "passcode",
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = None,
+          enterEmailUrl = None,
+          backUrl = None,
+          pageTitle = None,
+          passcode = "passcode",
           emailAddressAttempts = 100,
-          0,
-          0
+          passcodesSentToEmail = 0,
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -359,21 +414,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     "the journey ID is valid and more attempts are allowed in the session" should {
       "resend the passcode email and return 200 OK" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some("aa@bb.cc"),
-          Some("/enterEmailUrl"),
-          None,
-          None,
-          "passcode",
-          0,
-          0,
-          0
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some("aa@bb.cc"),
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = None,
+          pageTitle = None,
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 0,
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -389,21 +445,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
       "given 4 failed passcode resends to the same email, then a subsequent passcode resend, the next passcode resend submission should lock the user out" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some("aa@bb.cc"),
-          Some("/enterEmailUrl"),
-          None,
-          None,
-          "passcode",
-          0,
-          4,
-          0
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some("aa@bb.cc"),
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = None,
+          pageTitle = None,
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 4,
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -445,21 +502,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     "the journey ID is valid but too many attempts have been made for the current email address" should {
       "return 403 Forbidden and the frontend journey data" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some("aa@bb.cc"),
-          Some("/enterEmailUrl"),
-          Some("/back"),
-          Some("title"),
-          "passcode",
-          0,
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some("aa@bb.cc"),
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = Some("/back"),
+          pageTitle = Some("title"),
+          passcode = "passcode",
+          emailAddressAttempts = 0,
           passcodesSentToEmail = 100,
-          passcodeAttempts = 0
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -486,21 +544,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     "the journey ID is valid but too many attempts have been made in the session" should {
       "return 403 Forbidden and the continue URL" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some("aa@bb.cc"),
-          Some("/enterEmailUrl"),
-          None,
-          None,
-          "passcode",
-          0,
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some("aa@bb.cc"),
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = None,
+          pageTitle = None,
+          passcode = "passcode",
+          emailAddressAttempts = 0,
           passcodesSentToEmail = 0,
-          passcodeAttempts = 100
+          passcodeAttempts = 100,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -519,21 +578,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     "the journey ID is valid and the passcode is correct" should {
       "verify the email address and return 200 OK and the continue URL" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some("aa@bb.cc"),
-          Some("/enterEmailUrl"),
-          None,
-          None,
-          "passcode",
-          0,
-          0,
-          0
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some("aa@bb.cc"),
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = None,
+          pageTitle = None,
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 0,
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -562,21 +622,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       }
       "a passcode is submitted correctly after a previous fail returns a 200" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some("aa@bb.cc"),
-          Some("/enterEmailUrl"),
-          Some("/back"),
-          Some("title"),
-          "passcode",
-          0,
-          0,
-          0
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some("aa@bb.cc"),
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = Some("/back"),
+          pageTitle = Some("title"),
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 0,
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -622,21 +683,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       }
       "verify a second email address if there is already exists a verified email via the passcode journey" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some("aa2@bb.cc"),
-          Some("/enterEmailUrl"),
-          None,
-          None,
-          "passcode",
-          0,
-          0,
-          0
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some("aa2@bb.cc"),
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = None,
+          pageTitle = None,
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 0,
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -679,21 +741,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     "the journey ID is valid but the passcode is incorrect" should {
       "return 400 Bad Request and the enter email URL" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some("aa@bb.cc"),
-          Some("/enterEmailUrl"),
-          Some("/back"),
-          Some("title"),
-          "passcode",
-          0,
-          0,
-          0
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some("aa@bb.cc"),
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = Some("/back"),
+          pageTitle = Some("title"),
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 0,
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -722,21 +785,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     "the journey ID is valid but the email is not provided" should {
       "return 403 FORBIDDEN" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          None,
-          Some("/enterEmailUrl"),
-          None,
-          None,
-          "passcode",
-          0,
-          4,
-          0
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = None,
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = None,
+          pageTitle = None,
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 4,
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -770,21 +834,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
     "the journey ID is valid but too many attempts have been made" should {
       "return 403 Forbidden and the continue URL" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          credId,
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some("aa@bb.cc"),
-          Some("/enterEmailUrl"),
-          None,
-          None,
-          "passcode",
-          0,
-          0,
-          100
+          journeyId = UUID.randomUUID().toString,
+          credId = credId,
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some("aa@bb.cc"),
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = None,
+          pageTitle = None,
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 0,
+          passcodeAttempts = 100,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -818,21 +883,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
       "given 4 passcode entry failures, with a following passcode entry failure, the next passcode entry will fail" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          "credId",
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some("aa@bb.cc"),
-          Some("/enterEmailUrl"),
-          None,
-          None,
-          "passcode",
-          0,
-          0,
-          4
+          journeyId = UUID.randomUUID().toString,
+          credId = "credId",
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some("aa@bb.cc"),
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = None,
+          pageTitle = None,
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 0,
+          passcodeAttempts = 4,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -867,21 +933,22 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
       "maxPasscodeAttempts should match with config value" in new Setup {
         val journey: Journey = Journey(
-          UUID.randomUUID().toString,
-          credId,
-          "/continueUrl",
-          "origin",
-          "/accessibility",
-          "serviceName",
-          English,
-          Some("aa@bb.cc"),
-          Some("/enterEmailUrl"),
-          None,
-          None,
-          "passcode",
-          0,
-          0,
-          0
+          journeyId = UUID.randomUUID().toString,
+          credId = credId,
+          continueUrl = "/continueUrl",
+          origin = "origin",
+          accessibilityStatementUrl = "/accessibility",
+          serviceName = "serviceName",
+          language = English,
+          emailAddress = Some("aa@bb.cc"),
+          enterEmailUrl = Some("/enterEmailUrl"),
+          backUrl = None,
+          pageTitle = None,
+          passcode = "passcode",
+          emailAddressAttempts = 0,
+          passcodesSentToEmail = 0,
+          passcodeAttempts = 0,
+          labels = None
         )
 
         expectJourneyToExist(journey)
@@ -1048,7 +1115,8 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
               createdAt = Instant.now(),
               emailAddressAttempts = journey.emailAddressAttempts,
               passcodesSentToEmail = journey.passcodesSentToEmail,
-              passcodeAttempts = journey.passcodeAttempts
+              passcodeAttempts = journey.passcodeAttempts,
+              labels = journey.labels
             )
           )
           .toFuture()

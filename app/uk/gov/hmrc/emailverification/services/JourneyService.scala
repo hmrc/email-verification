@@ -66,7 +66,8 @@ class JourneyService @Inject() (
       passcode = passcode,
       emailAddressAttempts = emailAddressAttempts,
       passcodesSentToEmail = 0,
-      passcodeAttempts = 0
+      passcodeAttempts = 0,
+      labels = verifyEmailRequest.labels
     )
     for {
       _ <- journeyRepository.initialise(journey)

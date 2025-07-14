@@ -46,7 +46,8 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         "passcode",
         1,
         passcodesSentToEmail = 1,
-        passcodeAttempts = 0
+        passcodeAttempts = 0,
+        labels = None
       )
 
       whenReady(repository.initialise(testJourney)) { value =>
@@ -77,7 +78,8 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         "passcode",
         1,
         passcodesSentToEmail = 1,
-        passcodeAttempts = 0
+        passcodeAttempts = 0,
+        labels = None
       )
 
       whenReady(repository.initialise(testJourney)) { value =>
@@ -104,7 +106,8 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         "passcode",
         1,
         passcodesSentToEmail = 1,
-        passcodeAttempts = 0
+        passcodeAttempts = 0,
+        labels = None
       )
 
       whenReady(repository.initialise(testJourney)) { value =>
@@ -133,7 +136,8 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
       "passcode",
       1,
       passcodesSentToEmail = 1,
-      passcodeAttempts = 0
+      passcodeAttempts = 0,
+      labels = None
     )
     val testJourney2 = testJourney1.copy(journeyId = "journeyId2")
     val testJourney3 = testJourney1.copy(journeyId = "journeyId3", credId = "credId2")

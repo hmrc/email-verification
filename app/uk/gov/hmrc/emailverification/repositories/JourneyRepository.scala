@@ -20,10 +20,11 @@ import com.google.inject.ImplementedBy
 import org.mongodb.scala.model.IndexModel
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.emailverification.models.{Journey, Language}
+import uk.gov.hmrc.emailverification.models.{Journey, Labels, Language}
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
@@ -73,7 +74,8 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
           createdAt = Instant.now(),
           emailAddressAttempts = journey.emailAddressAttempts,
           passcodesSentToEmail = journey.passcodesSentToEmail,
-          passcodeAttempts = 0
+          passcodeAttempts = 0,
+          labels = journey.labels
         )
       )
       .toFuture()
@@ -161,7 +163,8 @@ object JourneyMongoRepository {
     createdAt: Instant,
     emailAddressAttempts: Int,
     passcodesSentToEmail: Int,
-    passcodeAttempts: Int
+    passcodeAttempts: Int,
+    labels: Option[Labels] // Added as option for non-breaking backwards compatibility for pre-existing journeys
   ) {
     def toJourney: Journey = Journey(
       journeyId,
@@ -178,7 +181,8 @@ object JourneyMongoRepository {
       passcode,
       emailAddressAttempts,
       passcodesSentToEmail,
-      passcodeAttempts
+      passcodeAttempts,
+      labels
     )
   }
 
@@ -198,6 +202,7 @@ object JourneyMongoRepository {
       (__ \ "createdAt").format[Instant](uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.instantFormat) and
       (__ \ "emailAddressAttempts").format[Int] and
       (__ \ "passcodesSentToEmail").format[Int] and
-      (__ \ "passcodeAttempts").format[Int]
+      (__ \ "passcodeAttempts").format[Int] and
+      (__ \ "labels").formatNullable[Labels]
   )(Entity.apply, unlift(Entity.unapply))
 }
