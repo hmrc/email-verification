@@ -25,7 +25,7 @@ import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Injecting
-import uk.gov.hmrc.emailverification.models.{English, Journey, Label, Labels, VerificationStatus}
+import uk.gov.hmrc.emailverification.models.{English, Journey, Label, Labels, VerificationStatus, Welsh}
 import uk.gov.hmrc.emailverification.repositories.{JourneyMongoRepository, VerificationStatusMongoRepository}
 
 import java.time.Instant
@@ -72,6 +72,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
             "userFacingServiceName" -> "Team Name"
           )
         )
+
         val response: WSResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailWithLabelsPayload(emailAddress, labels)))
 
         val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
@@ -87,7 +88,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         }
       }
 
-      "the email should contain the Welsh service name when all fields are present" in new Setup {
+      "the email should contain the Welsh service name when all fields are present and language is Welsh" in new Setup {
         expectEmailToSendSuccessfully()
         val labels: JsObject = Json.obj(
           "cy" -> Json.obj(
@@ -99,13 +100,13 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
             "userFacingServiceName" -> "Team Name.en"
           )
         )
-        val response: WSResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailWithLabelsPayload(emailAddress, labels)))
+        val response: WSResponse = await(resourceRequest("/email-verification/verify-email").post(verifyEmailWithLabelsPayload(emailAddress, labels, Welsh.value)))
 
         val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
 
         response.status                          shouldBe CREATED
         (response.json \ "redirectUri").as[String] should fullyMatch regex s"/email-verification/journey/$uuidRegex/passcode\\?continueUrl=$continueUrl&origin=$origin"
-        verifyEmailRequestEventFired(1, emailAddress, CREATED)
+        verifyEmailRequestEventFired(1, emailAddress, CREATED, Welsh.value)
         eventually {
           verify(1,
                  postRequestedFor(urlEqualTo("/hmrc/email"))
@@ -1023,7 +1024,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
 
   trait Setup extends TestData with Eventually {
 
-    def verifyEmailRequestEventFired(times: Int = 1, emailAddress: String, expectedStatus: Int): Unit = {
+    def verifyEmailRequestEventFired(times: Int = 1, emailAddress: String, expectedStatus: Int, lang: String = lang): Unit = {
       eventually {
         verify(
           times,
@@ -1165,7 +1166,9 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       "lang" -> lang
     )
 
-    def verifyEmailWithLabelsPayload(emailAddress: String = emailAddress, labels: JsObject): JsObject = Json.obj(
+    def verifyEmailWithLabelsPayload(emailAddress: String = emailAddress,
+                                     labels: JsObject,
+                                     lang: String = lang): JsObject = Json.obj(
       "credId"                    -> credId,
       "continueUrl"               -> continueUrl,
       "origin"                    -> origin,
