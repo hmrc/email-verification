@@ -16,22 +16,35 @@
 
 package uk.gov.hmrc.emailverification.utils
 
-import uk.gov.hmrc.emailverification.models.VerifyEmailRequest
+import uk.gov.hmrc.emailverification.models.{VerifyEmailRequest, Welsh}
 
 object JourneyLabelsUtil {
 
   def getTeamNameLabel(verifyEmailRequest: VerifyEmailRequest): String = {
-    val welsh = verifyEmailRequest.labels.flatMap(_.cy.userFacingServiceName)
-    val english = verifyEmailRequest.labels.flatMap(_.en.userFacingServiceName)
+
+    val labels = verifyEmailRequest.labels
     val deskPro = verifyEmailRequest.deskproServiceName
     val origin = verifyEmailRequest.origin
-    welsh orElse english orElse deskPro getOrElse origin
+
+    val message = (verifyEmailRequest.lang, labels.map(_.en), labels.map(_.cy)) match {
+      case (Some(Welsh), _, Some(cy)) => cy.userFacingServiceName
+      case (_, None, Some(cy))        => cy.userFacingServiceName
+      case (_, en, _)                 => en.flatMap(_.userFacingServiceName)
+    }
+
+    message orElse deskPro getOrElse origin
   }
 
   def getPageTitleLabel(verifyEmailRequest: VerifyEmailRequest): Option[String] = {
-    val welsh = verifyEmailRequest.labels.flatMap(_.cy.pageTitle)
-    val english = verifyEmailRequest.labels.flatMap(_.en.pageTitle)
+    val labels = verifyEmailRequest.labels
     val maybePageTitle = verifyEmailRequest.pageTitle
-    welsh orElse english orElse maybePageTitle
+
+    val message = (verifyEmailRequest.lang, labels.map(_.en), labels.map(_.cy)) match {
+      case (Some(Welsh), _, Some(cy)) => cy.pageTitle
+      case (_, None, Some(cy))        => cy.pageTitle
+      case (_, en, _)                 => en.flatMap(_.pageTitle)
+    }
+
+    message orElse maybePageTitle
   }
 }

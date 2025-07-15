@@ -45,9 +45,9 @@ object VerifyEmailRequest {
 }
 
 object Label {
-  implicit val reads: Reads[Label] = Json.reads
+  implicit val format: Format[Label] = Json.format
 }
 
 object Labels {
-  implicit val reads: Reads[Labels] = Json.reads
+  implicit val format: Format[Labels] = Json.format
 }

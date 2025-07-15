@@ -35,7 +35,8 @@ case class Journey(
   passcode: String,
   emailAddressAttempts: Int,
   passcodesSentToEmail: Int,
-  passcodeAttempts: Int
+  passcodeAttempts: Int,
+  labels: Option[Labels]
 ) {
   def frontendData: JourneyData = JourneyData(
     accessibilityStatementUrl,
@@ -43,7 +44,8 @@ case class Journey(
     enterEmailUrl,
     backUrl,
     pageTitle,
-    emailAddress
+    emailAddress,
+    labels
   )
 }
 

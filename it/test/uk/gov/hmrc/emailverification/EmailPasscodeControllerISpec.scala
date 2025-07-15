@@ -60,21 +60,22 @@ class EmailPasscodeControllerISpec extends BaseISpec with Eventually {
       expectUserToBeAuthorisedWithGG(credId)
 
       val journey: Journey = Journey(
-        UUID.randomUUID().toString,
-        credId,
-        "/continueUrl",
-        "origin",
-        "/accessibility",
-        "serviceName",
-        English,
+        journeyId = UUID.randomUUID().toString,
+        credId = credId,
+        continueUrl = "/continueUrl",
+        origin = "origin",
+        accessibilityStatementUrl = "/accessibility",
+        serviceName = "serviceName",
+        language = English,
         emailAddress = Some(generateUUID),
-        Some("/enterEmail"),
-        Some("/back"),
-        Some("title"),
+        enterEmailUrl = Some("/enterEmail"),
+        backUrl = Some("/back"),
+        pageTitle = Some("title"),
         passcode = passcode2,
-        0,
-        0,
-        0
+        emailAddressAttempts = 0,
+        passcodesSentToEmail = 0,
+        passcodeAttempts = 0,
+        labels = None
       )
 
       expectJourneyToExist(journey)
@@ -743,7 +744,8 @@ class EmailPasscodeControllerISpec extends BaseISpec with Eventually {
               createdAt = Instant.now(),
               emailAddressAttempts = journey.emailAddressAttempts,
               passcodesSentToEmail = journey.passcodesSentToEmail,
-              passcodeAttempts = journey.passcodeAttempts
+              passcodeAttempts = journey.passcodeAttempts,
+              labels = journey.labels
             )
           )
           .toFuture()

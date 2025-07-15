@@ -18,72 +18,171 @@ package uk.gov.hmrc.emailverification.utils
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.emailverification.models.{Label, Labels, VerifyEmailRequest}
+import uk.gov.hmrc.emailverification.models.{Label, Labels, VerifyEmailRequest, Welsh}
 import uk.gov.hmrc.emailverification.utils.JourneyLabelsUtil.{getPageTitleLabel, getTeamNameLabel}
 
 class JourneyLabelsUtilSpec extends AnyWordSpec with Matchers {
 
   "getTeamNameLabel" should {
-    "return the Welsh team name when Welsh label exist" in {
-      val labels = Some(Labels(cy = Label(null, Some("Welsh Team Name")), en = Label(null, Some("English Team Name"))))
-      val request = VerifyEmailRequest(null, null, "origin", Some("DeskPro Name"), null, null, null, null, null, labels)
+    "return the Welsh team name when Welsh label exist and language is set to Welsh" in {
+      val labels = Some(Labels(cy = Label(None, Some("Welsh Team Name")), en = Label(None, Some("English Team Name"))))
+      val request = VerifyEmailRequest(
+        credId = "cred-1234",
+        continueUrl = "/continue",
+        origin = "origin",
+        deskproServiceName = Some("DeskPro Name"),
+        accessibilityStatementUrl = "/a11y",
+        email = None,
+        lang = Some(Welsh),
+        backUrl = None,
+        pageTitle = None,
+        labels = labels
+      )
 
       getTeamNameLabel(request) shouldBe "Welsh Team Name"
     }
 
     "return the English team name when Welsh does not exist but English" in {
-      val labels = Some(Labels(cy = Label(null, None), en = Label(null, Some("English Team Name"))))
-      val request = VerifyEmailRequest(null, null, "origin", Some("DeskPro Name"), null, null, null, null, null, labels)
+      val labels = Some(Labels(cy = Label(None, None), en = Label(None, Some("English Team Name"))))
+      val request = VerifyEmailRequest(
+        credId = "cred-1234",
+        continueUrl = "/continue",
+        origin = "origin",
+        deskproServiceName = Some("DeskPro Name"),
+        accessibilityStatementUrl = "/a11y",
+        email = None,
+        lang = None,
+        backUrl = None,
+        pageTitle = None,
+        labels = labels
+      )
 
       getTeamNameLabel(request) shouldBe "English Team Name"
     }
 
     "return the DeskPro name when Welsh nor English does not exist but DeskPro" in {
-      val labels = Some(Labels(cy = Label(null, None), en = Label(null, None)))
-      val request = VerifyEmailRequest(null, null, "origin", Some("DeskPro Name"), null, null, null, null, null, labels)
+      val labels = Some(Labels(cy = Label(None, None), en = Label(None, None)))
+      val request = VerifyEmailRequest(
+        credId = "cred-1234",
+        continueUrl = "/continue",
+        origin = "origin",
+        deskproServiceName = Some("DeskPro Name"),
+        accessibilityStatementUrl = "/a11y",
+        email = None,
+        lang = None,
+        backUrl = None,
+        pageTitle = None,
+        labels = labels
+      )
 
       getTeamNameLabel(request) shouldBe "DeskPro Name"
     }
 
     "return the origin when Welsh, English nor DeskPro does not exist" in {
-      val labels = Some(Labels(cy = Label(null, None), en = Label(null, None)))
-      val request = VerifyEmailRequest(null, null, "origin", None, null, null, null, null, null, labels)
+      val labels = Some(Labels(cy = Label(None, None), en = Label(None, None)))
+      val request = VerifyEmailRequest(
+        credId = "cred-1234",
+        continueUrl = "/continue",
+        origin = "origin",
+        deskproServiceName = None,
+        accessibilityStatementUrl = "/a11y",
+        email = None,
+        lang = None,
+        backUrl = None,
+        pageTitle = None,
+        labels = labels
+      )
 
       getTeamNameLabel(request) shouldBe "origin"
     }
 
     "return the DeskPro Name when the labels field does not exist" in {
-      val request = VerifyEmailRequest(null, null, "origin", Some("DeskPro Name"), null, null, null, null, null, None)
+      val request = VerifyEmailRequest(
+        credId = "cred-1234",
+        continueUrl = "/continue",
+        origin = "origin",
+        deskproServiceName = Some("DeskPro Name"),
+        accessibilityStatementUrl = "/a11y",
+        email = None,
+        lang = None,
+        backUrl = None,
+        pageTitle = None,
+        labels = None
+      )
 
       getTeamNameLabel(request) shouldBe "DeskPro Name"
     }
   }
 
   "getPageTitleLabel" should {
-    "return the Welsh title when Welsh label exist" in {
+    "return the Welsh title when Welsh label exist and language is set to Welsh" in {
       val labels = Some(Labels(cy = Label(Some("Welsh Title"), null), en = Label(Some("English Title"), null)))
-      val request = VerifyEmailRequest(null, null, null, null, null, null, null, null, Some("Page Title"), labels)
+      val request = VerifyEmailRequest(
+        credId = "cred-1234",
+        continueUrl = "/continue",
+        origin = "origin",
+        deskproServiceName = None,
+        accessibilityStatementUrl = "/a11y",
+        email = None,
+        lang = Some(Welsh),
+        backUrl = None,
+        pageTitle = Some("Page Title"),
+        labels = labels
+      )
 
       getPageTitleLabel(request) shouldBe Some("Welsh Title")
     }
 
     "return the English title when Welsh does not exist but English" in {
       val labels = Some(Labels(cy = Label(None, null), en = Label(Some("English Title"), null)))
-      val request = VerifyEmailRequest(null, null, null, null, null, null, null, null, Some("Page Title"), labels)
+      val request = VerifyEmailRequest(
+        credId = "cred-1234",
+        continueUrl = "/continue",
+        origin = "origin",
+        deskproServiceName = None,
+        accessibilityStatementUrl = "/a11y",
+        email = None,
+        lang = None,
+        backUrl = None,
+        pageTitle = Some("Page Title"),
+        labels = labels
+      )
 
       getPageTitleLabel(request) shouldBe Some("English Title")
     }
 
     "return the Page title when Welsh nor English label does not exist" in {
       val labels = Some(Labels(cy = Label(None, null), en = Label(None, null)))
-      val request = VerifyEmailRequest(null, null, null, null, null, null, null, null, Some("Page Title"), labels)
+      val request = VerifyEmailRequest(
+        credId = "cred-1234",
+        continueUrl = "/continue",
+        origin = "origin",
+        deskproServiceName = None,
+        accessibilityStatementUrl = "/a11y",
+        email = None,
+        lang = None,
+        backUrl = None,
+        pageTitle = Some("Page Title"),
+        labels = labels
+      )
 
       getPageTitleLabel(request) shouldBe Some("Page Title")
     }
 
     "return the None when Welsh, English nor Page Title does not exist" in {
       val labels = Some(Labels(cy = Label(None, null), en = Label(None, null)))
-      val request = VerifyEmailRequest(null, null, null, null, null, null, null, null, None, labels)
+      val request = VerifyEmailRequest(
+        credId = "cred-1234",
+        continueUrl = "/continue",
+        origin = "origin",
+        deskproServiceName = None,
+        accessibilityStatementUrl = "/a11y",
+        email = None,
+        lang = None,
+        backUrl = None,
+        pageTitle = None,
+        labels = labels
+      )
 
       getPageTitleLabel(request) shouldBe None
     }
