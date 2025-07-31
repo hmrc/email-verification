@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import uk.gov.hmrc.gg.test.UnitSpec
+import uk.gov.hmrc.emailverification.support.UnitSpec
 
 class PasscodeGeneratorSpec extends UnitSpec {
 

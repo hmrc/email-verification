@@ -16,25 +16,22 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import org.mockito.ArgumentMatchersSugar.any
-import org.mockito.Mockito.{verify, when}
 import org.mockito.captor.{ArgCaptor, Captor}
 import org.scalatest.Assertion
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import uk.gov.hmrc.emailverification.models.PasscodeDoc
-import uk.gov.hmrc.gg.test.UnitSpec
+import uk.gov.hmrc.emailverification.support.UnitSpec
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.model.{DataEvent, ExtendedDataEvent}
-import uk.gov.hmrc.play.it.SessionCookieEncryptionSupport
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCookieEncryptionSupport {
+class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
 
   def normalisedPasscodeVerificationRequestEventDetails(detailsMap: Map[String, String]): Map[String, String] = {
     Map(
@@ -107,6 +104,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendPasscodeViaEmailEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendPasscodeViaEmailEvent(emailAddress, passcode, serviceName, OK)(request)
       confirmSendEmailWithPasscodeEventFired(
         Map(
@@ -122,6 +120,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendCheckEmailVerifiedEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendCheckEmailVerifiedEvent(emailAddress, Some("failure reason"), BAD_REQUEST)(request)
       confirmCheckEmailVerifiedEvent(
         Map(
@@ -137,6 +136,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendEmailPasscodeRequestSuccessfulEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendEmailPasscodeRequestSuccessfulEvent(emailAddress, passcode, serviceName, differentEmailAttempts, passcodeDoc, CREATED)(request)
       confirmPasscodeVerificationRequestEvent(
         Map(
@@ -157,6 +157,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendEmailRequestMissingSessionIdEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendEmailRequestMissingSessionIdEvent(emailAddress, UNAUTHORIZED)(request)
       confirmPasscodeVerificationRequestEvent(
         Map(
@@ -172,6 +173,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendEmailAddressAlreadyVerifiedEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendEmailAddressAlreadyVerifiedEvent(emailAddress, serviceName, CONFLICT)(request)
       confirmPasscodeVerificationRequestEvent(
         Map(
@@ -188,6 +190,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendMaxEmailsExceededEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendMaxEmailsExceededEvent(emailAddress, serviceName, differentEmailAttempts, passcodeDoc, FORBIDDEN)(request)
       confirmPasscodeVerificationRequestEvent(
         Map(
@@ -207,6 +210,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendMaxDifferentEmailsExceededEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendMaxDifferentEmailsExceededEvent(emailAddress, serviceName, differentEmailAttempts, FORBIDDEN)(request)
       confirmPasscodeVerificationRequestEvent(
         Map(
@@ -224,6 +228,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendPasscodeEmailDeliveryErrorEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendPasscodeEmailDeliveryErrorEvent(emailAddress, serviceName, differentEmailAttempts, passcodeDoc, BAD_GATEWAY)(request)
       confirmPasscodeVerificationRequestEvent(
         Map(
@@ -243,6 +248,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendEmailAddressConfirmedEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendEmailAddressConfirmedEvent(emailAddress, passcode, passcodeDoc, OK)(request)
       confirmPasscodeVerificationResponseEvent(
         Map(
@@ -261,6 +267,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendEmailAddressNotFoundOrExpiredEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendEmailAddressNotFoundOrExpiredEvent(emailAddress, passcode, NOT_FOUND)(request)
       confirmPasscodeVerificationResponseEvent(
         Map(
@@ -277,6 +284,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendPasscodeMatchNotFoundOrExpiredEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendPasscodeMatchNotFoundOrExpiredEvent(emailAddress, passcode, passcodeDoc, NOT_FOUND)(request)
       confirmPasscodeVerificationResponseEvent(
         Map(
@@ -295,6 +303,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendVerificationRequestMissingSessionIdEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendVerificationRequestMissingSessionIdEvent(emailAddress, passcode, UNAUTHORIZED)(request)
       confirmPasscodeVerificationResponseEvent(
         Map(
@@ -311,6 +320,7 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   "sendMaxPasscodeAttemptsExceededEvent" should {
     "fire audit event with appropriate fields" in new Setup {
+      when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
       auditService.sendMaxPasscodeAttemptsExceededEvent(emailAddress, passcode, passcodeDoc, FORBIDDEN)(request)
       confirmPasscodeVerificationResponseEvent(
         Map(
@@ -398,7 +408,6 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
 
   trait Setup extends TestData {
     implicit val mockAuditConnector: AuditConnector = mock[AuditConnector]
-    when(mockAuditConnector.sendEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
     val auditService = new AuditService(mockAuditConnector)
   }
 

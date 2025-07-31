@@ -17,18 +17,14 @@
 package uk.gov.hmrc.emailverification.services
 
 import config.AppConfig
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
-import org.mockito.Mockito.{verify, when}
-import org.mockito.MockitoSugar.verifyZeroInteractions
-
-import java.util.UUID
 import org.mockito.captor.{ArgCaptor, Captor}
 import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, VerificationStatusRepository}
-import uk.gov.hmrc.gg.test.UnitSpec
+import uk.gov.hmrc.emailverification.support.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class JourneyServiceSpec extends UnitSpec with ScalaFutures {

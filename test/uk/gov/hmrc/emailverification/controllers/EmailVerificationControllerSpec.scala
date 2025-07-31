@@ -17,7 +17,6 @@
 package uk.gov.hmrc.emailverification.controllers
 
 import config.AppConfig
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.Mockito._
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
@@ -28,9 +27,9 @@ import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.VerificationTokenMongoRepository
 import uk.gov.hmrc.emailverification.services.{AuditService, VerificationLinkService, VerifiedEmailService}
-import uk.gov.hmrc.gg.test.UnitSpec
+import uk.gov.hmrc.emailverification.support.UnitSpec
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 
 import java.time.{Duration, Instant}
 import scala.concurrent.{ExecutionContext, Future}
@@ -45,7 +44,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
         .thenReturn(Future.successful(HttpResponse(202, "")))
       when(mockTokenRepo.upsert(any, any, any, any)).thenReturn(Future.unit)
 
-      val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
+      val result: Future[Result] = controller.requestVerification()(request.withBody(validRequest))
 
       status(result) shouldBe Status.CREATED
       verify(mockTokenRepo).upsert(any, eqTo(emailMixedCase), eqTo(Duration.ofDays(2)), any)
@@ -59,8 +58,9 @@ class EmailVerificationControllerSpec extends UnitSpec {
       when(mockVerificationLinkService.verificationLinkFor(any, eqTo(ForwardUrl("http://some/url")))).thenReturn(verificationLink)
       when(mockEmailConnector.sendEmail(any, any, any)(any, any))
         .thenReturn(Future.failed(UpstreamErrorResponse.apply("Bad Request from email", 400)))
+      when(mockAuditConnector.sendExtendedEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
 
-      val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
+      val result: Future[Result] = controller.requestVerification()(request.withBody(validRequest))
 
       status(result)                              shouldBe Status.BAD_REQUEST
       (contentAsJson(result) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
@@ -72,7 +72,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
     "return 409 when email already registered" in new Setup {
       when(mockVerifiedEmailService.isVerified(eqTo(emailMixedCase))).thenReturn(Future.successful(true))
 
-      val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
+      val result: Future[Result] = controller.requestVerification()(request.withBody(validRequest))
       status(result) shouldBe Status.CONFLICT
       verify(mockAuditService).sendLinkBasedVerificationRequestEvent(eqTo("requestVerification"))(any)
     }
@@ -109,7 +109,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
     "return 400 when the token does not exist in mongo" in new Setup {
       when(mockTokenRepo.findToken(eqTo(someToken))).thenReturn(Future.successful(None))
 
-      val result: Result = await(controller.validateToken()(request.withBody(Json.obj("token" -> someToken))))
+      val result: Future[Result] = controller.validateToken()(request.withBody(Json.obj("token" -> someToken)))
 
       status(result) shouldBe Status.BAD_REQUEST
       verifyNoInteractions(mockVerifiedEmailService)

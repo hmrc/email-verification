@@ -14,27 +14,32 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.emailverification
+package uk.gov.hmrc.emailverification.controllers
 
-import java.util.UUID
-import support.BaseISpec
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.mongodb.scala.result.InsertOneResult
 import org.scalatest.concurrent.Eventually
+import play.api.http.Status._
 import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
 import play.api.libs.ws.WSResponse
+import play.api.test.Helpers.{AUTHORIZATION, await, defaultAwaitTimeout}
 import play.api.test.Injecting
-import uk.gov.hmrc.emailverification.models.{English, Journey, Label, Labels, VerificationStatus, Welsh}
+import support.IntegrationBaseSpec
+import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{JourneyMongoRepository, VerificationStatusMongoRepository}
+import uk.gov.hmrc.emailverification.support.WireMockHelper.wireMockPort
 
 import java.time.Instant
-import scala.concurrent.ExecutionContext.Implicits.global
+import java.util.UUID
 import scala.concurrent.Future
 
-class JourneyWireMockSpec extends BaseISpec with Injecting {
+class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
 
-  override def extraConfig: Map[String, Any] = super.extraConfig ++ Map("auditing.enabled" -> true)
+  override def serviceConfig: Map[String, Any] = super.serviceConfig ++ Map(
+    "auditing.enabled"               -> true,
+    "auditing.consumer.baseUri.port" -> wireMockPort
+  )
 
   "POST /verify-email" when {
     "given a valid payload and the email was successfully sent out" should {
@@ -248,14 +253,18 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         emailAddressAttempts = 0,
         passcodesSentToEmail = 0,
         passcodeAttempts = 0,
-        labels = Some(Labels(
-          en = Label(
-            pageTitle = Some("Page Title.en"), userFacingServiceName = Some("Service Name.en")
-          ),
-          cy = Label(
-            pageTitle = Some("Page Title.cy"), userFacingServiceName = Some("Service Name.cy")
+        labels = Some(
+          Labels(
+            en = Label(
+              pageTitle = Some("Page Title.en"),
+              userFacingServiceName = Some("Service Name.en")
+            ),
+            cy = Label(
+              pageTitle = Some("Page Title.cy"),
+              userFacingServiceName = Some("Service Name.cy")
+            )
           )
-        ))
+        )
       )
 
       expectJourneyToExist(journey)
@@ -268,7 +277,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         "deskproServiceName"        -> "serviceName",
         "backUrl"                   -> "/back",
         "serviceTitle"              -> "title",
-        "labels"                    -> Json.obj(
+        "labels" -> Json.obj(
           "en" -> Json.obj(
             "pageTitle"             -> "Page Title.en",
             "userFacingServiceName" -> "Service Name.en"
@@ -813,7 +822,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
         )
 
         result.status shouldBe FORBIDDEN
-        result.json shouldBe Json.obj("status" -> "noEmailProvided")
+        result.json   shouldBe Json.obj("status" -> "noEmailProvided")
       }
     }
 
@@ -1166,9 +1175,7 @@ class JourneyWireMockSpec extends BaseISpec with Injecting {
       "lang" -> lang
     )
 
-    def verifyEmailWithLabelsPayload(emailAddress: String = emailAddress,
-                                     labels: JsObject,
-                                     lang: String = lang): JsObject = Json.obj(
+    def verifyEmailWithLabelsPayload(emailAddress: String = emailAddress, labels: JsObject, lang: String = lang): JsObject = Json.obj(
       "credId"                    -> credId,
       "continueUrl"               -> continueUrl,
       "origin"                    -> origin,
