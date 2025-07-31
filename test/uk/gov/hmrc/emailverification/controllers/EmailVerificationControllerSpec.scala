@@ -50,6 +50,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       status(result) shouldBe Status.CREATED
       verify(mockTokenRepo).upsert(any, eqTo(emailMixedCase), eqTo(Duration.ofDays(2)), any)
       verify(mockEmailConnector).sendEmail(eqTo(emailMixedCase), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any, any)
+      verify(mockAuditService).sendLinkBasedVerificationRequestEvent(eqTo("requestVerification"))(any)
     }
 
     "return 400 if upstream email service returns bad request and should not create mongo entry" in new Setup {
@@ -64,8 +65,8 @@ class EmailVerificationControllerSpec extends UnitSpec {
       status(result)                              shouldBe Status.BAD_REQUEST
       (contentAsJson(result) \ "code").as[String] shouldBe "BAD_EMAIL_REQUEST"
       verify(mockEmailConnector).sendEmail(eqTo(emailMixedCase), eqTo(templateId), eqTo(params + ("verificationLink" -> verificationLink)))(any, any)
-      verify(mockAuditConnector).sendExtendedEvent(any)(any, any)
       verifyNoInteractions(mockTokenRepo)
+      verify(mockAuditService).sendLinkBasedVerificationRequestEvent(eqTo("requestVerification"))(any)
     }
 
     "return 409 when email already registered" in new Setup {
@@ -73,6 +74,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
 
       val result: Result = await(controller.requestVerification()(request.withBody(validRequest)))
       status(result) shouldBe Status.CONFLICT
+      verify(mockAuditService).sendLinkBasedVerificationRequestEvent(eqTo("requestVerification"))(any)
     }
   }
 
@@ -89,6 +91,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       status(result) shouldBe Status.CREATED
       verify(mockVerifiedEmailService).insert(eqTo(emailMixedCase))
       verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
+      verify(mockAuditService).sendLinkBasedVerificationRequestEvent(eqTo("validateToken"))(any)
     }
 
     "return 204 when the token is valid and the email was already validated" in new Setup {
@@ -100,6 +103,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       status(result) shouldBe Status.NO_CONTENT
       verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
+      verify(mockAuditService).sendLinkBasedVerificationRequestEvent(eqTo("validateToken"))(any)
     }
 
     "return 400 when the token does not exist in mongo" in new Setup {
@@ -109,6 +113,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
 
       status(result) shouldBe Status.BAD_REQUEST
       verifyNoInteractions(mockVerifiedEmailService)
+      verify(mockAuditService).sendLinkBasedVerificationRequestEvent(eqTo("validateToken"))(any)
     }
   }
 
@@ -121,6 +126,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
       verify(mockAuditService).sendCheckEmailVerifiedEvent(any, any, eqTo(OK))(any)
+      verify(mockAuditService).sendLinkBasedVerificationRequestEvent(eqTo("verifiedEmail"))(any)
     }
 
     "lower case email address" in new Setup {
@@ -131,6 +137,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       verify(mockVerifiedEmailService).find(eqTo(emailMixedCase.toUpperCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
       verify(mockAuditService).sendCheckEmailVerifiedEvent(any, any, eqTo(OK))(any)
+      verify(mockAuditService).sendLinkBasedVerificationRequestEvent(eqTo("verifiedEmail"))(any)
     }
 
     "return 404 if email not found" in new Setup {
@@ -140,6 +147,7 @@ class EmailVerificationControllerSpec extends UnitSpec {
       verify(mockVerifiedEmailService).find(eqTo(emailMixedCase))
       verifyNoMoreInteractions(mockVerifiedEmailService)
       verify(mockAuditService).sendCheckEmailVerifiedEvent(any, any, eqTo(NOT_FOUND))(any)
+      verify(mockAuditService).sendLinkBasedVerificationRequestEvent(eqTo("verifiedEmail"))(any)
     }
   }
 

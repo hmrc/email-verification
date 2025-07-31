@@ -18,7 +18,7 @@ package uk.gov.hmrc.emailverification.services
 
 import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.Mockito.{verify, when}
-import org.mockito.captor.ArgCaptor
+import org.mockito.captor.{ArgCaptor, Captor}
 import org.scalatest.Assertion
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.mvc.AnyContentAsEmpty
@@ -27,7 +27,7 @@ import uk.gov.hmrc.emailverification.models.PasscodeDoc
 import uk.gov.hmrc.gg.test.UnitSpec
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
-import uk.gov.hmrc.play.audit.model.DataEvent
+import uk.gov.hmrc.play.audit.model.{DataEvent, ExtendedDataEvent}
 import uk.gov.hmrc.play.it.SessionCookieEncryptionSupport
 
 import java.time.Instant
@@ -324,6 +324,38 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite with SessionCoo
         ),
         "HMRC Gateway - Email Verification - warning, forbidden, max permitted passcode verification attempts per session has been exceeded"
       )
+    }
+  }
+
+  "sendLinkBasedVerificationRequestEvent" should {
+    "fire audit event with user agent when user agent is present" in new Setup {
+      val requestWithUserAgent: FakeRequest[AnyContentAsEmpty.type] = request.withHeaders(request.headers.add(play.api.http.HeaderNames.USER_AGENT -> "test-user-agent"))
+      when(mockAuditConnector.sendExtendedEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
+
+      auditService.sendLinkBasedVerificationRequestEvent("TransactionName")(requestWithUserAgent)
+
+      val dataEventCaptor: Captor[ExtendedDataEvent] = ArgCaptor[ExtendedDataEvent]
+      verify(mockAuditConnector).sendExtendedEvent(dataEventCaptor.capture)(any, any)
+      val dataEvent: ExtendedDataEvent = dataEventCaptor.value
+
+      dataEvent.auditType                               shouldBe "LinkBasedVerificationRequest"
+      dataEvent.tags("transactionName")                 shouldBe "TransactionName"
+      (dataEvent.detail \ "userAgentString").as[String] shouldBe "test-user-agent"
+    }
+
+    "fire audit event with default user agent when user agent is missing" in new Setup {
+      val requestWithoutUserAgent: FakeRequest[AnyContentAsEmpty.type] = request.withHeaders(request.headers.remove(play.api.http.HeaderNames.USER_AGENT))
+      when(mockAuditConnector.sendExtendedEvent(any)(any, any)).thenReturn(Future.successful(AuditResult.Success))
+
+      auditService.sendLinkBasedVerificationRequestEvent("TransactionName")(requestWithoutUserAgent)
+
+      val dataEventCaptor: Captor[ExtendedDataEvent] = ArgCaptor[ExtendedDataEvent]
+      verify(mockAuditConnector).sendExtendedEvent(dataEventCaptor.capture)(any, any)
+      val dataEvent: ExtendedDataEvent = dataEventCaptor.value
+
+      dataEvent.auditType                               shouldBe "LinkBasedVerificationRequest"
+      dataEvent.tags("transactionName")                 shouldBe "TransactionName"
+      (dataEvent.detail \ "userAgentString").as[String] shouldBe "-"
     }
   }
 
