@@ -2,4 +2,3 @@
 ->        /email-verification           app.Routes
 ->        /email-verification/v2        appV2.Routes
 ->        /                             appV2.Routes
-->        /                             health.Routes

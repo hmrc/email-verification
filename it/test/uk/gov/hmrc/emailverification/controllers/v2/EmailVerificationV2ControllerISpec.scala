@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.emailverification.controllers
+package uk.gov.hmrc.emailverification.controllers.v2
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{noContent, post, stubFor}

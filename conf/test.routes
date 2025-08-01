@@ -1,0 +1,2 @@
+GET         /passcodes                         uk.gov.hmrc.emailverification.controllers.testonly.TestOnlyEmailPasscodeController.testOnlyGetPasscodes()
+POST        /retrieve/verification-code        uk.gov.hmrc.emailverification.controllers.testonly.TestOnlyEmailVerificationV2Controller.getVerificationCode

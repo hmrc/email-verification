@@ -17,21 +17,17 @@
 package uk.gov.hmrc.emailverification.controllers
 
 import config.AppConfig
-
-import javax.inject.Inject
 import play.api.Logging
-import play.api.libs.json.{JsArray, JsValue, Json}
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.auth.core.retrieve.Credentials
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.models._
-import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, PasscodeMongoRepository}
+import uk.gov.hmrc.emailverification.repositories.PasscodeMongoRepository
 import uk.gov.hmrc.emailverification.services.{AuditService, VerifiedEmailService}
-import uk.gov.hmrc.http.UpstreamErrorResponse
-import uk.gov.hmrc.http.SessionId
+import uk.gov.hmrc.http.{SessionId, UpstreamErrorResponse}
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -40,39 +36,11 @@ class EmailPasscodeController @Inject() (emailConnector: EmailConnector,
                                          verifiedEmailService: VerifiedEmailService,
                                          controllerComponents: ControllerComponents,
                                          auditService: AuditService,
-                                         val authConnector: AuthConnector,
-                                         journeyRepository: JourneyRepository
+                                         val authConnector: AuthConnector
                                         )(implicit ec: ExecutionContext, appConfig: AppConfig)
     extends BaseControllerWithJsonErrorHandling(controllerComponents)
     with AuthorisedFunctions
     with Logging {
-
-  def testOnlyGetPasscodes(): Action[AnyContent] = Action.async { implicit request =>
-    def journeyDocs() = authorised().retrieve(Retrievals.credentials) {
-      case Some(Credentials(credId, _)) =>
-        journeyRepository.findByCredId(credId)
-      case _ => Future(List())
-    }
-
-    hc.sessionId match {
-      case Some(SessionId(id)) =>
-        for {
-          passcodeDocs <- passcodeRepo.findPasscodesBySessionId(id)
-          journeyDocs  <- journeyDocs()
-          emailPasscodes = passcodeDocs.map(d => EmailPasscode(d.email, d.passcode)) ++
-                             journeyDocs.filter(_.emailAddress.isDefined).map(d => EmailPasscode(d.emailAddress.get, d.passcode))
-        } yield
-          if (emailPasscodes.isEmpty) NotFound(Json.toJson(ErrorResponse("PASSCODE_NOT_FOUND", "No passcode found for sessionId")))
-          else
-            Ok(Json.obj {
-              "passcodes" -> JsArray(emailPasscodes.map {
-                Json.toJson(_)
-              })
-            })
-      case None =>
-        Future.successful(Unauthorized(Json.toJson(ErrorResponse("NO_SESSION_ID", "No session id provided"))))
-    }
-  }
 
   private def newPasscode(): String = {
     val codeSize = 6
