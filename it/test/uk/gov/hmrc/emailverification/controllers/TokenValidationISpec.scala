@@ -28,14 +28,6 @@ class TokenValidationISpec extends IntegrationBaseSpec {
 
   implicit lazy val config: Config = Configuration.from(serviceConfig).underlying
 
-//  override def extraConfig: Map[String, Any] = {
-//    super.extraConfig ++ Map[String, Any](
-//      "appName"                       -> "test-app",
-//      "verifiedEmailCheckCollection"  -> "new",
-//      "verifiedEmailUpdateCollection" -> "new"
-//    )
-//  }
-
   def tokenFor(email: String): String = {
     expectEmailToBeSent()
 
