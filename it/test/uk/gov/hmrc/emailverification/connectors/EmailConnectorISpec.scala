@@ -18,31 +18,19 @@ package uk.gov.hmrc.emailverification.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.Application
-import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
+import play.api.mvc.ControllerHelpers.TODO.executionContext
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import support.IntegrationBaseSpec
 import uk.gov.hmrc.emailverification.models.SendEmailRequest
-import uk.gov.hmrc.gg.test.{UnitSpec, WiremockSupport}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
-import scala.concurrent.ExecutionContext
-
-class EmailConnectorISpec extends UnitSpec with ScalaFutures with GuiceOneServerPerSuite with WiremockSupport {
-
-  override def fakeApplication(): Application = GuiceApplicationBuilder()
-    .configure(
-      replaceExternalDependenciesWithMockServers ++ Seq(
-        "microservice.services.email.host" -> wiremockHost,
-        "microservice.services.email.port" -> wiremockPort
-      )
-    )
-    .build()
+class EmailConnectorISpec extends IntegrationBaseSpec with ScalaFutures  {
 
   "send email" should {
 
     "submit request to email micro service to send email and get successful response status" in {
-      val executionContext: ExecutionContext = ExecutionContext.Implicits.global
+
       val params: Map[String, String] = Map("p1" -> "v1")
       val templateId = "my-template"
       val recipient = "user@example.com"

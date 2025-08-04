@@ -412,6 +412,14 @@ class AuditService @Inject() (
       sendEventWithJsonDetails("EmailVerificationOutcomeRequest", details, "HMRC Gateway - Email Verification - Email address not found or expired")
   }
 
+  def sendLinkBasedVerificationRequestEvent(transactionName: String)(implicit request: Request[_]): Future[Unit] = {
+    val details = Json.obj(
+      "userAgentString" -> JsString(request.headers.get(HeaderNames.USER_AGENT).getOrElse("-"))
+    )
+
+    sendEventWithJsonDetails("LinkBasedVerificationRequest", details, transactionName)
+  }
+
   private def sendEvent(auditType: String, details: Map[String, String], transactionName: String)(implicit request: Request[_]) = {
     val hcDetails = hc.toAuditDetails() ++ details
 

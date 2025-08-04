@@ -14,57 +14,33 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.emailverification
+package uk.gov.hmrc.emailverification.controllers.v2
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{noContent, post, stubFor}
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.Application
 import play.api.http.{HeaderNames, Status}
-import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import uk.gov.hmrc.gg.test.WireMockSpec
-import uk.gov.hmrc.mongo.test.MongoSupport
+import support.IntegrationBaseSpec
 
-class EmailVerificationV2ControllerISpec extends AnyWordSpec with OptionValues with WireMockSpec with MongoSupport with GuiceOneServerPerSuite with ScalaFutures {
-  override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
-      .configure(
-        "appName"                                              -> "test-app",
-        "application.router"                                   -> "testOnlyDoNotUseInAppConf.Routes",
-        "microservice.services.email.port"                     -> wiremockPort,
-        "microservice.services.access-control.request.formUrl" -> "access-request-form-url",
-        "microservice.services.access-control.enabled"         -> "true",
-        "microservice.services.access-control.allow-list"      -> List("test-user")
-      )
-      .build()
+class EmailVerificationV2ControllerISpec extends IntegrationBaseSpec with OptionValues with GuiceOneServerPerSuite with ScalaFutures {
+
+  override def serviceConfig: Map[String, Any] = super.serviceConfig ++ Map(
+    "microservice.services.access-control.enabled"    -> "true",
+    "microservice.services.access-control.allow-list" -> List("test-user")
+  )
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(Span(5, Seconds), Span(5, Seconds))
 
-  override def dropDatabase(): Unit =
-    await(
-      mongoDatabase
-        .drop()
-        .toFuture()
-    )
-
   override def beforeEach(): Unit = {
-    super.beforeEach()
     WireMock.reset()
 
-    dropDatabase()
     stubFor(post("/write/audit").willReturn(noContent))
     stubFor(post("/write/audit/merged").willReturn(noContent))
     stubFor(post("/hmrc/email").willReturn(WireMock.aResponse.withStatus(Status.ACCEPTED)))
-  }
-
-  override def afterAll(): Unit = {
-    super.afterAll()
-    dropDatabase()
   }
 
   "EmailVerificationV2Controller" when {
@@ -85,7 +61,9 @@ class EmailVerificationV2ControllerISpec extends AnyWordSpec with OptionValues w
           .post(Json.parse("""{"email":"success@sender.com"}"""))
           .futureValue
         retrieveVerificationCodeResponse.status shouldBe Status.OK
+
         val verificationCode = (retrieveVerificationCodeResponse.json \ "verificationCode").as[String]
+        println(verificationCode)
 
         val response = resourceRequest(s"/email-verification/v2/verify-code")
           .withHttpHeaders(HeaderNames.USER_AGENT -> "test-user")

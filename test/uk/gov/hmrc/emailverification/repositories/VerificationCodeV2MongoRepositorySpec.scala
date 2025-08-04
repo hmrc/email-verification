@@ -17,7 +17,6 @@
 package uk.gov.hmrc.emailverification.repositories
 
 import config.AppConfig
-import org.mockito.Mockito.when
 import uk.gov.hmrc.emailverification.models.VerificationCodeMongoDoc
 import uk.gov.hmrc.mongo.CurrentTimestampSupport
 

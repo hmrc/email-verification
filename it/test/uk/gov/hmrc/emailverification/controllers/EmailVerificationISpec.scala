@@ -14,21 +14,28 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.emailverification
+package uk.gov.hmrc.emailverification.controllers
 
+import com.typesafe.config.Config
 import org.scalatest.Assertion
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.prop.TableDrivenPropertyChecks.forAll
+import org.scalatest.prop.Tables.Table
+import play.api.Configuration
 import play.api.libs.json.{JsValue, Json}
-import support.BaseISpec
-import support.EmailStub._
-
-import java.util.UUID
-import org.scalatest.prop.TableDrivenPropertyChecks._
 import play.api.libs.ws.WSResponse
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import support.EmailStub.{decryptedToken, expectEmailServiceToRespond, expectEmailToBeSent, lastVerificationEmail, verificationRequest, verifyEmailSentWithContinueUrl}
+import support.IntegrationBaseSpec
 import uk.gov.hmrc.emailverification.models.Journey
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
-class EmailVerificationISpec extends BaseISpec {
+class EmailVerificationISpec extends IntegrationBaseSpec with ScalaFutures {
+
+  implicit lazy val config: Config = Configuration.from(serviceConfig).underlying
+
   val emailToVerify = "example@domain.com"
 
   "email verification" should {
@@ -59,49 +66,37 @@ class EmailVerificationISpec extends BaseISpec {
 
     forAll(continueUrls) { (email, template, url) =>
       s"send the verification email to the specified address successfully with continue url $url" in new Setup {
-        Given("The email service is running")
         expectEmailToBeSent()
-
-        When("a client submits a verification request")
 
         val response: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
         response.status shouldBe 201
 
-        Then("an email is sent")
         verifyEmailSentWithContinueUrl(email, url, template)
       }
 
       s"only latest email verification request token with continue url $url for a given email should be valid" in new Setup {
-        Given("The email service is running")
         expectEmailToBeSent()
 
-        When("client submits a verification request")
         val response1: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
         response1.status shouldBe 201
         val token1: String = decryptedToken(lastVerificationEmail)._1.get
 
-        When("client submits a second verification request for same email")
         val response2: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
         response2.status shouldBe 201
         val token2: String = decryptedToken(lastVerificationEmail)._1.get
 
-        Then("only the last verification request token should be valid")
         await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token1))).status shouldBe 400
         await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token2))).status shouldBe 201
       }
 
       s"second verification request with continue url $url should return successful 204 response" in new Setup {
-        Given("The email service is running")
         expectEmailToBeSent()
 
-        When("client submits a verification request")
         val response1: WSResponse = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email, template, url)))
         response1.status shouldBe 201
         val token: String = decryptedToken(lastVerificationEmail)._1.get
 
-        Then("the verification request with the token should be successful")
         await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 201
-        Then("an additional verification requests with the token should be successful, but return with a 204 response")
         await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 204
       }
 
@@ -110,19 +105,13 @@ class EmailVerificationISpec extends BaseISpec {
           val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
           response.status shouldBe 201
           val token = decryptedToken(lastVerificationEmail)._1.get
-          And("the client verifies the token")
           await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 201
-          Then("the email should be verified")
           await(wsClient.url(appClient("/verified-email-check")).post(Json.obj("email" -> emailToVerify))).status shouldBe 200
         }
 
-        Given("The email service is running")
         expectEmailToBeSent()
 
-        When("client submits first verification request ")
         submitVerificationRequest("example1@domain.com", template, url)
-
-        When("client submits second verification request ")
         submitVerificationRequest("example2@domain.com", template, url)
       }
     }
@@ -161,17 +150,17 @@ class EmailVerificationISpec extends BaseISpec {
       response.body shouldBe
         Json
           .parse("""{
-            |"code":"EMAIL_VERIFIED_ALREADY",
-            |"message":"Email has already been verified"
-            |}""".stripMargin)
+              |"code":"EMAIL_VERIFIED_ALREADY",
+              |"message":"Email has already been verified"
+              |}""".stripMargin)
           .toString()
     }
 
     "submit multiple emails should increase the email attempts count" in new Setup {
-      Given("The email service is running")
+      // Given("The email service is running")
       expectEmailToBeSent()
 
-      When("client submits two verify email requests with diff email")
+      // When("client submits two verify email requests with diff email")
       val response: WSResponse = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress)))
       response.status shouldBe 201
       val response1: WSResponse = await(wsClient.url(appClient("/verify-email")).post(verifyEmailRequestJson(emailAddress1)))
@@ -189,7 +178,7 @@ class EmailVerificationISpec extends BaseISpec {
       val submitEmailResponse: WSResponse = await(wsClient.url(appClient(s"/journey/$journeyId4/email")).post(Json.obj("email" -> emailAddress1)))
       submitEmailResponse.status shouldBe 403
 
-      Then("verify the email retry count is incremented and status is locked")
+      // Then("verify the email retry count is incremented and status is locked")
       await(verificationStatusRepo.isLocked(credId, emailAddress1)) shouldBe true
     }
   }
@@ -199,6 +188,13 @@ class EmailVerificationISpec extends BaseISpec {
     await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(email))).status shouldBe 201
     val token = tokenFor(email)
     await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 201
+  }
+
+  def tokenFor(email: String): String = {
+    expectEmailToBeSent()
+
+    await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify = email))).status shouldBe 201
+    decryptedToken(lastVerificationEmail)._1.get
   }
 
   trait Setup {
@@ -226,17 +222,17 @@ class EmailVerificationISpec extends BaseISpec {
 
     def verifyEmailRequestJson(emailAddr: String): JsValue = {
       Json.parse(s"""{
-                    |  "credId": "$credId",
-                    |  "continueUrl": "$continueUrl",
-                    |  "origin" : "$origin",
-                    |  "deskproServiceName" : "",
-                    |  "accessibilityStatementUrl": "/",
-                    |  "continueUrl": "$continueUrl",
-                    |  "email" : { "address" : "$emailAddr", "enterUrl"  : "/ppt/email" },
-                    |  "lang" : "en",
-                    |  "backUrl" : "",
-                    |  "pageTitle" : ""
-                    |}""".stripMargin)
+           |  "credId": "$credId",
+           |  "continueUrl": "$continueUrl",
+           |  "origin" : "$origin",
+           |  "deskproServiceName" : "",
+           |  "accessibilityStatementUrl": "/",
+           |  "continueUrl": "$continueUrl",
+           |  "email" : { "address" : "$emailAddr", "enterUrl"  : "/ppt/email" },
+           |  "lang" : "en",
+           |  "backUrl" : "",
+           |  "pageTitle" : ""
+           |}""".stripMargin)
     }
   }
 

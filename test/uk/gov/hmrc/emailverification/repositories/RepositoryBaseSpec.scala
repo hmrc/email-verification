@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
-import uk.gov.hmrc.gg.test.UnitSpec
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import uk.gov.hmrc.emailverification.support.UnitSpec
 import uk.gov.hmrc.mongo.test.IndexedMongoQueriesSupport
 
 import java.time.{Clock, Instant, ZoneId}

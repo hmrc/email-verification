@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
-import org.mockito.Mockito.when
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.models.{English, Welsh}
-import uk.gov.hmrc.gg.test.UnitSpec
+import uk.gov.hmrc.emailverification.support.UnitSpec
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}

@@ -29,7 +29,7 @@ import java.util.Base64
 import scala.jdk.CollectionConverters._
 
 object EmailStub extends Matchers {
-  private def crypto(implicit config: Config) = SymmetricCryptoFactory.aesCryptoFromConfig("queryParameter.encryption", config)
+  private def crypto(implicit config: Config) = SymmetricCryptoFactory.aesCryptoFromConfig("queryParameter.encryption", config.asInstanceOf[Config])
 
   def verificationRequest(emailToVerify: String = "test@example.com", templateId: String = "some-template-id", continueUrl: String = "http://example.com/continue"): JsValue =
     Json.parse(s"""{

@@ -18,13 +18,11 @@ package uk.gov.hmrc.emailverification.services
 
 import com.typesafe.config.Config
 import config.AppConfig
-import org.mockito.Mockito.when
-import org.mockito.stubbing.ScalaFirstStubbing.toScalaFirstStubbing
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Configuration
 import uk.gov.hmrc.crypto.{Decrypter, Encrypter}
 import uk.gov.hmrc.emailverification.models.ForwardUrl
-import uk.gov.hmrc.gg.test.UnitSpec
+import uk.gov.hmrc.emailverification.support.UnitSpec
 
 class VerificationLinkServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
   "createVerificationLink" should {

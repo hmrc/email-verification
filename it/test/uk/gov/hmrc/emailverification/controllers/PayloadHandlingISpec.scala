@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.emailverification
+package uk.gov.hmrc.emailverification.controllers
 
+import play.api.http.Status._
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.libs.ws.WSResponse
-import support.BaseISpec
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.EmailStub._
+import support.IntegrationBaseSpec
 
-class PayloadHandlingISpec extends BaseISpec {
+class PayloadHandlingISpec extends IntegrationBaseSpec {
 
   "a POST request for email verification" should {
 
@@ -160,7 +162,7 @@ class PayloadHandlingISpec extends BaseISpec {
 
   trait Setup {
     val validPayload: JsObject = Json.obj(
-      "appName" -> "test-app",
+      "appName"            -> "test-app",
       "templateId"         -> "some-template-id",
       "email"              -> "abc@def.com",
       "templateParameters" -> Json.obj(),

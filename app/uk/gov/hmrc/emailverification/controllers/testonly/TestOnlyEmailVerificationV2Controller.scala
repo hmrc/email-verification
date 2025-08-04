@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.emailverification.controllers
+package uk.gov.hmrc.emailverification.controllers.testonly
 
 import play.api.Logging
 import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.emailverification.controllers.BaseControllerWithJsonErrorHandling
 import uk.gov.hmrc.emailverification.models.SendCodeV2Request
 import uk.gov.hmrc.emailverification.services.EmailVerificationV2Service
 

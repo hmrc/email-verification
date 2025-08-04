@@ -17,10 +17,9 @@
 package uk.gov.hmrc.emailverification.services
 
 import config.AppConfig
-import org.mockito.Mockito.when
 import org.mockito.{ArgumentMatchers => AM}
 import play.api.libs.json.JsObject
-import uk.gov.hmrc.emailverification.models.{English, SendCodeResult, SendCodeV2Request, UserAgent, VerifyCodeResult, VerifyCodeV2Request}
+import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{RepositoryBaseSpec, VerificationCodeV2MongoRepository}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.CurrentTimestampSupport
