@@ -75,7 +75,8 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
           emailAddressAttempts = journey.emailAddressAttempts,
           passcodesSentToEmail = journey.passcodesSentToEmail,
           passcodeAttempts = 0,
-          labels = journey.labels
+          labels = journey.labels,
+          useNewGovUkServiceNavigation = journey.useNewGovUkServiceNavigation
         )
       )
       .toFuture()
@@ -164,7 +165,8 @@ object JourneyMongoRepository {
     emailAddressAttempts: Int,
     passcodesSentToEmail: Int,
     passcodeAttempts: Int,
-    labels: Option[Labels] // Added as option for non-breaking backwards compatibility for pre-existing journeys
+    labels: Option[Labels], // Added as option for non-breaking backwards compatibility for pre-existing journeys
+    useNewGovUkServiceNavigation: Boolean
   ) {
     def toJourney: Journey = Journey(
       journeyId,

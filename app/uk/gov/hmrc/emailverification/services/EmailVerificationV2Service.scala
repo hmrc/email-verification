@@ -40,6 +40,7 @@ class LiveEmailVerificationV2Service @Inject() (
 )(implicit ec: ExecutionContext, appConfig: AppConfig)
     extends EmailVerificationV2Service
     with Logging {
+
   def doSendCode(sendCodeRequest: SendCodeV2Request)(implicit headerCarrier: HeaderCarrier): Future[SendCodeResult] = {
     if (!sendCodeRequest.isEmailValid)
       Future.successful(SendCodeResult.codeNotSent("Invalid email"))
