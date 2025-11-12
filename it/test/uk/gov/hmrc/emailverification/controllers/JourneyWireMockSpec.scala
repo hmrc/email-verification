@@ -147,7 +147,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         emailAddressAttempts = 1,
         passcodesSentToEmail = 0,
         passcodeAttempts = 0,
-        labels = None
+        labels = None,
+        useNewGovUkServiceNavigation = false
       )
 
       expectJourneyToExist(journey.copy(journeyId = UUID.randomUUID().toString, emailAddress = Some(testEmail1)))
@@ -220,7 +221,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         emailAddressAttempts = 0,
         passcodesSentToEmail = 0,
         passcodeAttempts = 0,
-        labels = None
+        labels = None,
+        useNewGovUkServiceNavigation = false
       )
 
       expectJourneyToExist(journey)
@@ -228,11 +230,12 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
       val result: WSResponse = await(resourceRequest(s"/email-verification/journey/${journey.journeyId}").get())
       result.status shouldBe OK
       result.json shouldBe Json.obj(
-        "accessibilityStatementUrl" -> "/accessibility",
-        "enterEmailUrl"             -> "/enterEmail",
-        "deskproServiceName"        -> "serviceName",
-        "backUrl"                   -> "/back",
-        "serviceTitle"              -> "title"
+        "accessibilityStatementUrl"    -> "/accessibility",
+        "enterEmailUrl"                -> "/enterEmail",
+        "deskproServiceName"           -> "serviceName",
+        "backUrl"                      -> "/back",
+        "serviceTitle"                 -> "title",
+        "useNewGovUkServiceNavigation" -> false
       )
     }
 
@@ -264,7 +267,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
               userFacingServiceName = Some("Service Name.cy")
             )
           )
-        )
+        ),
+        useNewGovUkServiceNavigation = false
       )
 
       expectJourneyToExist(journey)
@@ -273,8 +277,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
       result.status shouldBe OK
       result.json shouldBe Json.obj(
         "accessibilityStatementUrl" -> "/accessibility",
-        "enterEmailUrl"             -> "/enterEmail",
         "deskproServiceName"        -> "serviceName",
+        "enterEmailUrl"             -> "/enterEmail",
         "backUrl"                   -> "/back",
         "serviceTitle"              -> "title",
         "labels" -> Json.obj(
@@ -286,7 +290,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
             "pageTitle"             -> "Page Title.cy",
             "userFacingServiceName" -> "Service Name.cy"
           )
-        )
+        ),
+        "useNewGovUkServiceNavigation" -> false
       )
     }
 
@@ -315,7 +320,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -349,7 +355,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 4,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey.copy(passcodesSentToEmail = 4))
@@ -401,7 +408,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 100,
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -439,7 +447,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -470,7 +479,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 4,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -490,11 +500,13 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         secondResponse.status shouldBe FORBIDDEN
         secondResponse.json shouldBe Json.obj(
           "status" -> "tooManyAttemptsForEmail",
-          "journey" -> Json.obj("accessibilityStatementUrl" -> "/accessibility",
-                                "deskproServiceName" -> "serviceName",
-                                "enterEmailUrl"      -> "/enterEmailUrl",
-                                "emailAddress"       -> "aa@bb.cc"
-                               )
+          "journey" -> Json.obj(
+            "accessibilityStatementUrl"    -> "/accessibility",
+            "deskproServiceName"           -> "serviceName",
+            "enterEmailUrl"                -> "/enterEmailUrl",
+            "emailAddress"                 -> "aa@bb.cc",
+            "useNewGovUkServiceNavigation" -> false
+          )
         )
       }
     }
@@ -527,7 +539,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 100,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -540,12 +553,13 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         result.json shouldBe Json.obj(
           "status" -> "tooManyAttemptsForEmail",
           "journey" -> Json.obj(
-            "accessibilityStatementUrl" -> "/accessibility",
-            "enterEmailUrl"             -> "/enterEmailUrl",
-            "deskproServiceName"        -> "serviceName",
-            "backUrl"                   -> "/back",
-            "serviceTitle"              -> "title",
-            "emailAddress"              -> "aa@bb.cc"
+            "accessibilityStatementUrl"    -> "/accessibility",
+            "deskproServiceName"           -> "serviceName",
+            "enterEmailUrl"                -> "/enterEmailUrl",
+            "backUrl"                      -> "/back",
+            "serviceTitle"                 -> "title",
+            "emailAddress"                 -> "aa@bb.cc",
+            "useNewGovUkServiceNavigation" -> false
           )
         )
       }
@@ -569,7 +583,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 0,
           passcodeAttempts = 100,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -603,7 +618,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -647,7 +663,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -663,12 +680,13 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         firstResponse.json shouldBe Json.obj(
           "status" -> "incorrectPasscode",
           "journey" -> Json.obj(
-            "accessibilityStatementUrl" -> "/accessibility",
-            "enterEmailUrl"             -> "/enterEmailUrl",
-            "deskproServiceName"        -> "serviceName",
-            "backUrl"                   -> "/back",
-            "serviceTitle"              -> "title",
-            "emailAddress"              -> "aa@bb.cc"
+            "accessibilityStatementUrl"    -> "/accessibility",
+            "deskproServiceName"           -> "serviceName",
+            "enterEmailUrl"                -> "/enterEmailUrl",
+            "backUrl"                      -> "/back",
+            "serviceTitle"                 -> "title",
+            "emailAddress"                 -> "aa@bb.cc",
+            "useNewGovUkServiceNavigation" -> false
           )
         )
         val secondResponse: WSResponse = await(
@@ -708,7 +726,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -766,7 +785,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -781,12 +801,13 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         result.json shouldBe Json.obj(
           "status" -> "incorrectPasscode",
           "journey" -> Json.obj(
-            "accessibilityStatementUrl" -> "/accessibility",
-            "enterEmailUrl"             -> "/enterEmailUrl",
-            "deskproServiceName"        -> "serviceName",
-            "backUrl"                   -> "/back",
-            "serviceTitle"              -> "title",
-            "emailAddress"              -> "aa@bb.cc"
+            "accessibilityStatementUrl"    -> "/accessibility",
+            "deskproServiceName"           -> "serviceName",
+            "enterEmailUrl"                -> "/enterEmailUrl",
+            "backUrl"                      -> "/back",
+            "serviceTitle"                 -> "title",
+            "emailAddress"                 -> "aa@bb.cc",
+            "useNewGovUkServiceNavigation" -> false
           )
         )
       }
@@ -810,7 +831,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 4,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -859,7 +881,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 0,
           passcodeAttempts = 100,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -908,7 +931,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 0,
           passcodeAttempts = 4,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -924,10 +948,11 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         firstResponse.json shouldBe Json.obj(
           "status" -> "incorrectPasscode",
           "journey" -> Json.obj(
-            "accessibilityStatementUrl" -> "/accessibility",
-            "enterEmailUrl"             -> "/enterEmailUrl",
-            "deskproServiceName"        -> "serviceName",
-            "emailAddress"              -> "aa@bb.cc"
+            "accessibilityStatementUrl"    -> "/accessibility",
+            "deskproServiceName"           -> "serviceName",
+            "enterEmailUrl"                -> "/enterEmailUrl",
+            "emailAddress"                 -> "aa@bb.cc",
+            "useNewGovUkServiceNavigation" -> false
           )
         )
 
@@ -958,7 +983,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           emailAddressAttempts = 0,
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
-          labels = None
+          labels = None,
+          useNewGovUkServiceNavigation = false
         )
 
         expectJourneyToExist(journey)
@@ -1126,7 +1152,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
               emailAddressAttempts = journey.emailAddressAttempts,
               passcodesSentToEmail = journey.passcodesSentToEmail,
               passcodeAttempts = journey.passcodeAttempts,
-              labels = journey.labels
+              labels = journey.labels,
+              useNewGovUkServiceNavigation = false
             )
           )
           .toFuture()
@@ -1173,7 +1200,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         "address"  -> emailAddress,
         "enterUrl" -> emailEntryUrl
       ),
-      "lang" -> lang,
+      "lang"                         -> lang,
       "useNewGovUkServiceNavigation" -> useNewGovUkServiceNavigation
     )
 
@@ -1187,8 +1214,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         "address"  -> emailAddress,
         "enterUrl" -> emailEntryUrl
       ),
-      "lang"   -> lang,
-      "labels" -> labels,
+      "lang"                         -> lang,
+      "labels"                       -> labels,
       "useNewGovUkServiceNavigation" -> useNewGovUkServiceNavigation
     )
   }
