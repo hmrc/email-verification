@@ -105,7 +105,7 @@ class EmailVerificationISpec extends IntegrationBaseSpec with ScalaFutures {
           val response = await(wsClient.url(appClient("/verification-requests")).post(verificationRequest(emailToVerify, templateId, continueUrl)))
           response.status shouldBe 201
           val token = decryptedToken(lastVerificationEmail)._1.get
-          await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status shouldBe 201
+          await(wsClient.url(appClient("/verified-email-addresses")).post(Json.obj("token" -> token))).status     shouldBe 201
           await(wsClient.url(appClient("/verified-email-check")).post(Json.obj("email" -> emailToVerify))).status shouldBe 200
         }
 
@@ -230,6 +230,7 @@ class EmailVerificationISpec extends IntegrationBaseSpec with ScalaFutures {
            |  "continueUrl": "$continueUrl",
            |  "email" : { "address" : "$emailAddr", "enterUrl"  : "/ppt/email" },
            |  "lang" : "en",
+           |  "useNewGovUkServiceNavigation" : true,
            |  "backUrl" : "",
            |  "pageTitle" : ""
            |}""".stripMargin)
