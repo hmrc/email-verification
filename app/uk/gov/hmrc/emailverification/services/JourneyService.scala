@@ -68,7 +68,7 @@ class JourneyService @Inject() (
       passcodesSentToEmail = 0,
       passcodeAttempts = 0,
       labels = verifyEmailRequest.labels,
-      useNewGovUkServiceNavigation = verifyEmailRequest.useNewGovUkServiceNavigation
+      useNewGovUkServiceNavigation = Some(verifyEmailRequest.useNewGovUkServiceNavigation)
     )
     for {
       _ <- journeyRepository.initialise(journey)

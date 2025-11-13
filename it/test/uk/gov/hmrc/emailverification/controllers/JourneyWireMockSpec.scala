@@ -148,7 +148,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         passcodesSentToEmail = 0,
         passcodeAttempts = 0,
         labels = None,
-        useNewGovUkServiceNavigation = false
+        useNewGovUkServiceNavigation = Some(false)
       )
 
       expectJourneyToExist(journey.copy(journeyId = UUID.randomUUID().toString, emailAddress = Some(testEmail1)))
@@ -222,7 +222,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         passcodesSentToEmail = 0,
         passcodeAttempts = 0,
         labels = None,
-        useNewGovUkServiceNavigation = false
+        useNewGovUkServiceNavigation = Some(false)
       )
 
       expectJourneyToExist(journey)
@@ -268,7 +268,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
             )
           )
         ),
-        useNewGovUkServiceNavigation = false
+        useNewGovUkServiceNavigation = Some(false)
       )
 
       expectJourneyToExist(journey)
@@ -321,7 +321,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -356,7 +356,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 4,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey.copy(passcodesSentToEmail = 4))
@@ -409,7 +409,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -448,7 +448,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -480,7 +480,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 4,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -540,7 +540,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 100,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -584,7 +584,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 0,
           passcodeAttempts = 100,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -619,7 +619,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -664,7 +664,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -727,7 +727,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -786,7 +786,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -832,7 +832,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 4,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -882,7 +882,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 0,
           passcodeAttempts = 100,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -932,7 +932,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 0,
           passcodeAttempts = 4,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -984,7 +984,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
           passcodesSentToEmail = 0,
           passcodeAttempts = 0,
           labels = None,
-          useNewGovUkServiceNavigation = false
+          useNewGovUkServiceNavigation = Some(false)
         )
 
         expectJourneyToExist(journey)
@@ -1153,7 +1153,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
               passcodesSentToEmail = journey.passcodesSentToEmail,
               passcodeAttempts = journey.passcodeAttempts,
               labels = journey.labels,
-              useNewGovUkServiceNavigation = false
+              useNewGovUkServiceNavigation = Some(false)
             )
           )
           .toFuture()
@@ -1188,7 +1188,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
     val emailEntryUrl = "/start"
     val accessibilityStatementUrl = "/accessibility"
     val lang = "en"
-    val useNewGovUkServiceNavigation = false
+    val useNewGovUkServiceNavigation = Some(false)
 
     def verifyEmailPayload(emailAddress: String = emailAddress): JsObject = Json.obj(
       "credId"                    -> credId,

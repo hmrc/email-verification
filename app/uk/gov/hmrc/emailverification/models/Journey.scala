@@ -37,7 +37,7 @@ case class Journey(
   passcodesSentToEmail: Int,
   passcodeAttempts: Int,
   labels: Option[Labels],
-  useNewGovUkServiceNavigation: Boolean
+  useNewGovUkServiceNavigation: Option[Boolean]
 ) {
   def frontendData: JourneyData = JourneyData(
     accessibilityStatementUrl,
