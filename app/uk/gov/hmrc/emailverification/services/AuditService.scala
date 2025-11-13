@@ -40,7 +40,7 @@ class AuditService @Inject() (
     val continueUrl: String = (request.body match {
       case EmailVerificationRequest(_, _, _, _, continueUrl) =>
         Some(continueUrl.url)
-      case VerifyEmailRequest(_, continueUrl, _, _, _, _, _, _, _, _) =>
+      case VerifyEmailRequest(_, continueUrl, _, _, _, _, _, _, _, _, _) =>
         Some(continueUrl)
       case _ =>
         None
@@ -333,18 +333,19 @@ class AuditService @Inject() (
 
   def sendEmailVerificationRequestLockedEvent(verifyEmailRequest: VerifyEmailRequest, responseStatus: Int)(implicit request: Request[_]): Future[Unit] = {
     val details = Map(
-      "credId"                    -> verifyEmailRequest.credId,
-      "bearerToken"               -> hc.authorization.getOrElse(Authorization("-")).value,
-      "origin"                    -> verifyEmailRequest.origin,
-      "continueUrl"               -> verifyEmailRequest.continueUrl,
-      "deskproServiceName"        -> verifyEmailRequest.deskproServiceName.getOrElse("-"),
-      "accessibilityStatementUrl" -> verifyEmailRequest.accessibilityStatementUrl,
-      "pageTitle"                 -> verifyEmailRequest.pageTitle.getOrElse("-"),
-      "backUrl"                   -> verifyEmailRequest.backUrl.getOrElse("-"),
-      "emailAddress"              -> verifyEmailRequest.email.fold("-")(_.address),
-      "emailEntryUrl"             -> verifyEmailRequest.email.fold("-")(_.enterUrl),
-      "lang"                      -> verifyEmailRequest.lang.fold("-")(_.value),
-      "statusCode"                -> responseStatus.toString
+      "credId"                       -> verifyEmailRequest.credId,
+      "bearerToken"                  -> hc.authorization.getOrElse(Authorization("-")).value,
+      "origin"                       -> verifyEmailRequest.origin,
+      "continueUrl"                  -> verifyEmailRequest.continueUrl,
+      "deskproServiceName"           -> verifyEmailRequest.deskproServiceName.getOrElse("-"),
+      "accessibilityStatementUrl"    -> verifyEmailRequest.accessibilityStatementUrl,
+      "pageTitle"                    -> verifyEmailRequest.pageTitle.getOrElse("-"),
+      "backUrl"                      -> verifyEmailRequest.backUrl.getOrElse("-"),
+      "emailAddress"                 -> verifyEmailRequest.email.fold("-")(_.address),
+      "emailEntryUrl"                -> verifyEmailRequest.email.fold("-")(_.enterUrl),
+      "lang"                         -> verifyEmailRequest.lang.fold("-")(_.value),
+      "statusCode"                   -> responseStatus.toString,
+      "useNewGovUkServiceNavigation" -> verifyEmailRequest.useNewGovUkServiceNavigation.toString
     )
     logger.warn(s"[GG-5074] Email verification now locked for 24hrs by the requestor’s credId ${requestContextForLog(request)}")
     sendEvent(
@@ -356,18 +357,19 @@ class AuditService @Inject() (
 
   def sendVerifyEmailSuccessEvent(verifyEmailRequest: VerifyEmailRequest, responseStatus: Int)(implicit request: Request[_]): Future[Unit] = {
     val details = Map(
-      "credId"                    -> verifyEmailRequest.credId,
-      "bearerToken"               -> hc.authorization.getOrElse(Authorization("-")).value,
-      "origin"                    -> verifyEmailRequest.origin,
-      "continueUrl"               -> verifyEmailRequest.continueUrl,
-      "deskproServiceName"        -> verifyEmailRequest.deskproServiceName.getOrElse("-"),
-      "accessibilityStatementUrl" -> verifyEmailRequest.accessibilityStatementUrl,
-      "pageTitle"                 -> verifyEmailRequest.pageTitle.getOrElse("-"),
-      "backUrl"                   -> verifyEmailRequest.backUrl.getOrElse("-"),
-      "emailAddress"              -> verifyEmailRequest.email.fold("-")(_.address),
-      "emailEntryUrl"             -> verifyEmailRequest.email.fold("-")(_.enterUrl),
-      "lang"                      -> verifyEmailRequest.lang.fold("-")(_.value),
-      "statusCode"                -> responseStatus.toString
+      "credId"                       -> verifyEmailRequest.credId,
+      "bearerToken"                  -> hc.authorization.getOrElse(Authorization("-")).value,
+      "origin"                       -> verifyEmailRequest.origin,
+      "continueUrl"                  -> verifyEmailRequest.continueUrl,
+      "deskproServiceName"           -> verifyEmailRequest.deskproServiceName.getOrElse("-"),
+      "accessibilityStatementUrl"    -> verifyEmailRequest.accessibilityStatementUrl,
+      "pageTitle"                    -> verifyEmailRequest.pageTitle.getOrElse("-"),
+      "backUrl"                      -> verifyEmailRequest.backUrl.getOrElse("-"),
+      "emailAddress"                 -> verifyEmailRequest.email.fold("-")(_.address),
+      "emailEntryUrl"                -> verifyEmailRequest.email.fold("-")(_.enterUrl),
+      "lang"                         -> verifyEmailRequest.lang.fold("-")(_.value),
+      "statusCode"                   -> responseStatus.toString,
+      "useNewGovUkServiceNavigation" -> verifyEmailRequest.useNewGovUkServiceNavigation.toString
     )
     logger.warn(s"[GG-5646] VerifyEmailRequest received. ${requestContextForLog(request)}")
     sendEvent(
@@ -379,18 +381,19 @@ class AuditService @Inject() (
 
   def sendEmailVerificationRequestFailed(verifyEmailRequest: VerifyEmailRequest, responseStatus: Int)(implicit request: Request[_]): Future[Unit] = {
     val details = Map(
-      "credId"                    -> verifyEmailRequest.credId,
-      "bearerToken"               -> hc.authorization.getOrElse(Authorization("-")).value,
-      "origin"                    -> verifyEmailRequest.origin,
-      "continueUrl"               -> verifyEmailRequest.continueUrl,
-      "deskproServiceName"        -> verifyEmailRequest.deskproServiceName.getOrElse("-"),
-      "accessibilityStatementUrl" -> verifyEmailRequest.accessibilityStatementUrl,
-      "pageTitle"                 -> verifyEmailRequest.pageTitle.getOrElse("-"),
-      "backUrl"                   -> verifyEmailRequest.backUrl.getOrElse("-"),
-      "emailAddress"              -> verifyEmailRequest.email.fold("-")(_.address),
-      "emailEntryUrl"             -> verifyEmailRequest.email.fold("-")(_.enterUrl),
-      "lang"                      -> verifyEmailRequest.lang.fold("-")(_.value),
-      "statusCode"                -> responseStatus.toString
+      "credId"                       -> verifyEmailRequest.credId,
+      "bearerToken"                  -> hc.authorization.getOrElse(Authorization("-")).value,
+      "origin"                       -> verifyEmailRequest.origin,
+      "continueUrl"                  -> verifyEmailRequest.continueUrl,
+      "deskproServiceName"           -> verifyEmailRequest.deskproServiceName.getOrElse("-"),
+      "accessibilityStatementUrl"    -> verifyEmailRequest.accessibilityStatementUrl,
+      "pageTitle"                    -> verifyEmailRequest.pageTitle.getOrElse("-"),
+      "backUrl"                      -> verifyEmailRequest.backUrl.getOrElse("-"),
+      "emailAddress"                 -> verifyEmailRequest.email.fold("-")(_.address),
+      "emailEntryUrl"                -> verifyEmailRequest.email.fold("-")(_.enterUrl),
+      "lang"                         -> verifyEmailRequest.lang.fold("-")(_.value),
+      "statusCode"                   -> responseStatus.toString,
+      "useNewGovUkServiceNavigation" -> verifyEmailRequest.useNewGovUkServiceNavigation.toString
     )
     logger.warn(s"[GG-5646] VerifyEmailRequest received. ${requestContextForLog(request)}")
     sendEvent("VerifyEmailRequest", details, "HMRC Gateway - Email Verification - error, request to send an email to verify by passcode failed")

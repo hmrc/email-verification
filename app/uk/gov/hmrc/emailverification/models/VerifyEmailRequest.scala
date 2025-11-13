@@ -28,7 +28,8 @@ case class VerifyEmailRequest(
   lang: Option[Language],
   backUrl: Option[String],
   pageTitle: Option[String],
-  labels: Option[Labels]
+  labels: Option[Labels],
+  useNewGovUkServiceNavigation: Boolean = false
 )
 
 case class Email(address: String, enterUrl: String)

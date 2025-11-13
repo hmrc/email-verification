@@ -250,6 +250,7 @@ Replace example values with the appropriate values for your service.
     }
   },
   "lang":"en" // Optional; en or cy; defaults to "en"
+  "useNewGovUkServiceNavigation": "false" // true or false; defaults to "false"
 }
 ```
 
@@ -283,7 +284,8 @@ Replace example values with the appropriate values for your service to recommenc
       "userFacingServiceName": "Student Tax Checker Service" // Optional. Displayed in the email as a signature starting "From the xxxx"
     }
   },
-  "lang":"en" // Optional; en or cy; defaults to "en"
+  "lang":"en" // Optional; en or cy; defaults to "en",
+  "useNewGovUkServiceNavigation": "false" // true or false; defaults to "false"
 }
 ```
 

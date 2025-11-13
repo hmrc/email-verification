@@ -82,7 +82,8 @@ class EmailPasscodeControllerISpec extends IntegrationBaseSpec with ScalaFutures
         emailAddressAttempts = 0,
         passcodesSentToEmail = 0,
         passcodeAttempts = 0,
-        labels = None
+        labels = None,
+        useNewGovUkServiceNavigation = Some(false)
       )
 
       expectJourneyToExist(journey)
@@ -683,7 +684,8 @@ class EmailPasscodeControllerISpec extends IntegrationBaseSpec with ScalaFutures
               emailAddressAttempts = journey.emailAddressAttempts,
               passcodesSentToEmail = journey.passcodesSentToEmail,
               passcodeAttempts = journey.passcodeAttempts,
-              labels = journey.labels
+              labels = journey.labels,
+              useNewGovUkServiceNavigation = journey.useNewGovUkServiceNavigation
             )
           )
           .toFuture()

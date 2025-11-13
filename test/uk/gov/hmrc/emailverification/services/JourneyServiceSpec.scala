@@ -340,7 +340,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
                 emailAddressAttempts = 1,
                 passcodesSentToEmail = 0,
                 passcodeAttempts = 0,
-                labels = None
+                labels = None,
+                useNewGovUkServiceNavigation = Some(false)
               )
             )
           )
@@ -365,7 +366,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
                 emailAddressAttempts = 1,
                 passcodesSentToEmail = 0,
                 passcodeAttempts = 0,
-                labels = None
+                labels = None,
+                useNewGovUkServiceNavigation = Some(false)
               )
             )
           )
@@ -439,7 +441,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
                 emailAddressAttempts = 1,
                 passcodesSentToEmail = 0,
                 passcodeAttempts = 0,
-                labels = None
+                labels = None,
+                useNewGovUkServiceNavigation = Some(false)
               )
             )
           )
@@ -477,7 +480,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
                 emailAddressAttempts = 1,
                 passcodesSentToEmail = 2,
                 passcodeAttempts = 2,
-                labels = None
+                labels = None,
+                useNewGovUkServiceNavigation = Some(false)
               )
             )
           )
@@ -487,7 +491,9 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         when(mockVerificationStatusRepository.lock(eqTo("credId"), eqTo(email))).thenReturn(Future.unit)
 
         val result: ResendPasscodeResult = await(journeyService.resendPasscode(journeyId)(HeaderCarrier()))
-        result shouldBe ResendPasscodeResult.TooManyAttemptsForEmail(JourneyData("/accessibility", serviceName, Some("/enterEmail"), None, None, Some(email), None))
+        result shouldBe ResendPasscodeResult.TooManyAttemptsForEmail(
+          JourneyData("/accessibility", serviceName, Some("/enterEmail"), None, None, Some(email), None, useNewGovUkServiceNavigation = Some(false))
+        )
       }
     }
 
@@ -516,7 +522,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
                 emailAddressAttempts = 1,
                 passcodesSentToEmail = 1,
                 passcodeAttempts = 2,
-                labels = None
+                labels = None,
+                useNewGovUkServiceNavigation = Some(false)
               )
             )
           )
@@ -554,7 +561,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
                 emailAddressAttempts = 1,
                 passcodesSentToEmail = 1,
                 passcodeAttempts = 1,
-                labels = None
+                labels = None,
+                useNewGovUkServiceNavigation = Some(false)
               )
             )
           )
@@ -604,7 +612,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
                 emailAddressAttempts = 1,
                 passcodesSentToEmail = 0,
                 passcodeAttempts = 2,
-                labels = None
+                labels = None,
+                useNewGovUkServiceNavigation = Some(false)
               )
             )
           )
@@ -644,7 +653,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
                 emailAddressAttempts = 1,
                 passcodesSentToEmail = 0,
                 passcodeAttempts = 0,
-                labels = None
+                labels = None,
+                useNewGovUkServiceNavigation = Some(false)
               )
             )
           )
@@ -652,7 +662,9 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         when(mockAppConfig.maxPasscodeAttempts).thenReturn(100)
 
         val result: PasscodeValidationResult = await(journeyService.validatePasscode(journeyId, credId, passcode.reverse))
-        result shouldBe PasscodeValidationResult.IncorrectPasscode(JourneyData("/accessibility", "some service", enterEmailUrl, None, None, Some("aa@bb.cc"), None))
+        result shouldBe PasscodeValidationResult.IncorrectPasscode(
+          JourneyData("/accessibility", "some service", enterEmailUrl, None, None, Some("aa@bb.cc"), None, useNewGovUkServiceNavigation = Some(false))
+        )
       }
     }
 
@@ -680,7 +692,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
                 emailAddressAttempts = 1,
                 passcodesSentToEmail = 0,
                 passcodeAttempts = 0,
-                labels = None
+                labels = None,
+                useNewGovUkServiceNavigation = Some(false)
               )
             )
           )
@@ -786,7 +799,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
       emailAddressAttempts = 0,
       passcodesSentToEmail = 0,
       passcodeAttempts = 0,
-      labels = None
+      labels = None,
+      useNewGovUkServiceNavigation = Some(false)
     )
 
     def createTestJourney(credId: String, email: Option[String], emailAddressAttempts: Int, passcodesSentToEmail: Int) = new Journey(
@@ -805,7 +819,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
       emailAddressAttempts = emailAddressAttempts,
       passcodesSentToEmail = passcodesSentToEmail,
       passcodeAttempts = 0,
-      labels = None
+      labels = None,
+      useNewGovUkServiceNavigation = Some(false)
     )
   }
 
