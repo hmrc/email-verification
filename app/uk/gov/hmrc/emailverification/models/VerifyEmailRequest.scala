@@ -29,7 +29,7 @@ case class VerifyEmailRequest(
   backUrl: Option[String],
   pageTitle: Option[String],
   labels: Option[Labels],
-  useNewGovUkServiceNavigation: Boolean = false
+  useNewGovUkServiceNavigation: Option[Boolean] = Some(false)
 )
 
 case class Email(address: String, enterUrl: String)
