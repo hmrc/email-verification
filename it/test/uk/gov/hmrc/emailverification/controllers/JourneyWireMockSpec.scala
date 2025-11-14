@@ -1188,7 +1188,6 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
     val emailEntryUrl = "/start"
     val accessibilityStatementUrl = "/accessibility"
     val lang = "en"
-    val useNewGovUkServiceNavigation = Some(false)
 
     def verifyEmailPayload(emailAddress: String = emailAddress): JsObject = Json.obj(
       "credId"                    -> credId,
@@ -1201,7 +1200,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         "enterUrl" -> emailEntryUrl
       ),
       "lang"                         -> lang,
-      "useNewGovUkServiceNavigation" -> useNewGovUkServiceNavigation
+      "useNewGovUkServiceNavigation" -> false
     )
 
     def verifyEmailWithLabelsPayload(emailAddress: String = emailAddress, labels: JsObject, lang: String = lang): JsObject = Json.obj(
@@ -1215,8 +1214,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         "enterUrl" -> emailEntryUrl
       ),
       "lang"                         -> lang,
-      "labels"                       -> labels,
-      "useNewGovUkServiceNavigation" -> useNewGovUkServiceNavigation
+      "labels"                       -> labels
     )
   }
 }

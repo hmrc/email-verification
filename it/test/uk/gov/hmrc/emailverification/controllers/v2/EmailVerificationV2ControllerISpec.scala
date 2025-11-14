@@ -63,7 +63,6 @@ class EmailVerificationV2ControllerISpec extends IntegrationBaseSpec with Option
         retrieveVerificationCodeResponse.status shouldBe Status.OK
 
         val verificationCode = (retrieveVerificationCodeResponse.json \ "verificationCode").as[String]
-        println(verificationCode)
 
         val response = resourceRequest(s"/email-verification/v2/verify-code")
           .withHttpHeaders(HeaderNames.USER_AGENT -> "test-user")
