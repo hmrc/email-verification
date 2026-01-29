@@ -123,6 +123,16 @@ object VerificationStatusMongoRepository {
     createdAt: Instant
   )
 
+  object Entity {
+    def unapply(model: Entity) = Some(
+      model.credId,
+      model.emailAddress,
+      model.verified,
+      model.locked,
+      model.createdAt
+    )
+  }
+
   val mongoFormat: OFormat[Entity] = (
     (__ \ "credId").format[String] and
       (__ \ "emailAddress").format[String] and

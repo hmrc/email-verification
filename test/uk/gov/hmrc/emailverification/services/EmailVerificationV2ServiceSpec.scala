@@ -18,6 +18,7 @@ package uk.gov.hmrc.emailverification.services
 
 import config.AppConfig
 import org.mockito.{ArgumentMatchers => AM}
+import org.mockito.Mockito.*
 import play.api.libs.json.JsObject
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{RepositoryBaseSpec, VerificationCodeV2MongoRepository}
@@ -57,7 +58,7 @@ class EmailVerificationV2ServiceSpec extends RepositoryBaseSpec {
 
     implicit val mockAppConfig: AppConfig = mock[AppConfig]
     when(mockAppConfig.appName).thenReturn("test-application")
-    when(mockAppConfig.verificationCodeExpiryMinutes).thenReturn(1)
+    when(mockAppConfig.verificationCodeExpiryMinutes).thenReturn(1.toLong)
 
     val mockVerificationCodeGenerator: PasscodeGenerator = mock[PasscodeGenerator]
     when(mockVerificationCodeGenerator.generate()).thenReturn(testVerificationCode)

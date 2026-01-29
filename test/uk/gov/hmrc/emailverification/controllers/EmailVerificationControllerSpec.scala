@@ -17,7 +17,8 @@
 package uk.gov.hmrc.emailverification.controllers
 
 import config.AppConfig
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{AnyContentAsEmpty, Result}

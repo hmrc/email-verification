@@ -25,6 +25,7 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.http.{HeaderNames, Status}
 import play.api.libs.json.Json
 import support.IntegrationBaseSpec
+import play.api.libs.ws.writeableOf_JsValue
 
 class EmailVerificationV2ControllerISpec extends IntegrationBaseSpec with OptionValues with GuiceOneServerPerSuite with ScalaFutures {
 

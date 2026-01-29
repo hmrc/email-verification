@@ -18,11 +18,14 @@ package uk.gov.hmrc.emailverification.services
 
 import com.typesafe.config.Config
 import config.AppConfig
+import org.mockito.Mockito.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Configuration
 import uk.gov.hmrc.crypto.{Decrypter, Encrypter}
 import uk.gov.hmrc.emailverification.models.ForwardUrl
 import uk.gov.hmrc.emailverification.support.UnitSpec
+
+import scala.jdk.CollectionConverters.*
 
 class VerificationLinkServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
   "createVerificationLink" should {
@@ -45,7 +48,7 @@ class VerificationLinkServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
     val configuration: Configuration = mock[Configuration]
     when(configuration.underlying).thenReturn(config)
     when(config.getString("token.encryption.key")) thenReturn "gvBoGdgzqG1AarzF1LY0zQ=="
-    when(config.getStringList("token.encryption.previousKeys")).isLenient()
+    lenient().when(config.getStringList("token.encryption.previousKeys")) thenReturn List().asJava
 
     val underTest = new VerificationLinkService()(mockAppConfig, configuration)
 

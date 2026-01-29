@@ -16,7 +16,9 @@
 
 package uk.gov.hmrc.emailverification.services
 
-import org.mockito.captor.{ArgCaptor, Captor}
+import org.mockito.ArgumentCaptor
+import org.mockito.Mockito.*
+import org.mockito.ArgumentMatchers.any
 import org.scalatest.Assertion
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.mvc.AnyContentAsEmpty
@@ -63,9 +65,9 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
   }
 
   def confirmSendEmailWithPasscodeEventFired(details: Map[String, String])(implicit mockAuditConnector: AuditConnector): Assertion = {
-    val dataEventCaptor = ArgCaptor[DataEvent]
+    val dataEventCaptor: ArgumentCaptor[DataEvent] = ArgumentCaptor.captor()
     verify(mockAuditConnector).sendEvent(dataEventCaptor.capture)(any, any)
-    val dataEvent: DataEvent = dataEventCaptor.value
+    val dataEvent: DataEvent = dataEventCaptor.getValue
 
     dataEvent.auditType shouldBe "SendEmailWithPasscode"
     confirmDataEventSourceAndTags(dataEvent, expectedTransactionName = "HMRC Gateway - Email Verification - Send out passcode via Email")
@@ -73,9 +75,9 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
   }
 
   def confirmCheckEmailVerifiedEvent(details: Map[String, String])(implicit mockAuditConnector: AuditConnector): Assertion = {
-    val dataEventCaptor = ArgCaptor[DataEvent]
+    val dataEventCaptor: ArgumentCaptor[DataEvent] = ArgumentCaptor.captor()
     verify(mockAuditConnector).sendEvent(dataEventCaptor.capture)(any, any)
-    val dataEvent: DataEvent = dataEventCaptor.value
+    val dataEvent: DataEvent = dataEventCaptor.getValue
 
     dataEvent.auditType shouldBe "CheckEmailVerified"
     confirmDataEventSourceAndTags(dataEvent, expectedTransactionName = "HMRC Gateway - Email Verification - Check Email is verified")
@@ -83,9 +85,9 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
   }
 
   def confirmPasscodeVerificationRequestEvent(details: Map[String, String], expectedTransactionName: String)(implicit mockAuditConnector: AuditConnector): Assertion = {
-    val dataEventCaptor = ArgCaptor[DataEvent]
+    val dataEventCaptor: ArgumentCaptor[DataEvent] = ArgumentCaptor.captor()
     verify(mockAuditConnector).sendEvent(dataEventCaptor.capture)(any, any)
-    val dataEvent: DataEvent = dataEventCaptor.value
+    val dataEvent: DataEvent = dataEventCaptor.getValue
 
     dataEvent.auditType shouldBe "PasscodeVerificationRequest"
     confirmDataEventSourceAndTags(dataEvent, expectedTransactionName)
@@ -93,9 +95,9 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
   }
 
   def confirmPasscodeVerificationResponseEvent(details: Map[String, String], expectedTransactionName: String)(implicit mockAuditConnector: AuditConnector): Assertion = {
-    val dataEventCaptor = ArgCaptor[DataEvent]
+    val dataEventCaptor: ArgumentCaptor[DataEvent] = ArgumentCaptor.captor()
     verify(mockAuditConnector).sendEvent(dataEventCaptor.capture)(any, any)
-    val dataEvent: DataEvent = dataEventCaptor.value
+    val dataEvent: DataEvent = dataEventCaptor.getValue
 
     dataEvent.auditType shouldBe "PasscodeVerificationResponse"
     confirmDataEventSourceAndTags(dataEvent, expectedTransactionName)
@@ -344,9 +346,9 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
 
       auditService.sendLinkBasedVerificationRequestEvent("TransactionName")(requestWithUserAgent)
 
-      val dataEventCaptor: Captor[ExtendedDataEvent] = ArgCaptor[ExtendedDataEvent]
+      val dataEventCaptor: ArgumentCaptor[ExtendedDataEvent] = ArgumentCaptor.captor()
       verify(mockAuditConnector).sendExtendedEvent(dataEventCaptor.capture)(any, any)
-      val dataEvent: ExtendedDataEvent = dataEventCaptor.value
+      val dataEvent: ExtendedDataEvent = dataEventCaptor.getValue
 
       dataEvent.auditType                               shouldBe "LinkBasedVerificationRequest"
       dataEvent.tags("transactionName")                 shouldBe "TransactionName"
@@ -359,9 +361,9 @@ class AuditServiceSpec extends UnitSpec with GuiceOneAppPerSuite {
 
       auditService.sendLinkBasedVerificationRequestEvent("TransactionName")(requestWithoutUserAgent)
 
-      val dataEventCaptor: Captor[ExtendedDataEvent] = ArgCaptor[ExtendedDataEvent]
+      val dataEventCaptor: ArgumentCaptor[ExtendedDataEvent] = ArgumentCaptor.captor()
       verify(mockAuditConnector).sendExtendedEvent(dataEventCaptor.capture)(any, any)
-      val dataEvent: ExtendedDataEvent = dataEventCaptor.value
+      val dataEvent: ExtendedDataEvent = dataEventCaptor.getValue
 
       dataEvent.auditType                               shouldBe "LinkBasedVerificationRequest"
       dataEvent.tags("transactionName")                 shouldBe "TransactionName"

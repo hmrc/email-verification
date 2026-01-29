@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.emailverification.services
 
+import org.mockito.Mockito.*
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.ArgumentCaptor
 import config.AppConfig
-import org.mockito.captor.{ArgCaptor, Captor}
 import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.emailverification.models._
 import uk.gov.hmrc.emailverification.repositories.{JourneyRepository, VerificationStatusRepository}
@@ -35,13 +37,13 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
 
-        val captor: Captor[Journey] = ArgCaptor[Journey]
+        val captor: ArgumentCaptor[Journey] = ArgumentCaptor.captor()
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
         when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(origin), eqTo(English))(any, any)).thenReturn(Future.unit)
 
         val res: String = await(journeyService.initialise(verifyEmailRequest)(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
+        res shouldBe s"/email-verification/journey/${captor.getValue.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
       }
     }
 
@@ -52,14 +54,14 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
 
-        val captor: Captor[Journey] = ArgCaptor[Journey]
+        val captor: ArgumentCaptor[Journey] = ArgumentCaptor.captor()
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
 
         when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(serviceName), eqTo(English))(any, any)).thenReturn(Future.unit)
 
         val res: String = await(journeyService.initialise(verifyEmailRequest.copy(deskproServiceName = Some(serviceName)))(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
+        res shouldBe s"/email-verification/journey/${captor.getValue.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
       }
     }
 
@@ -73,14 +75,14 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
 
-        val captor: Captor[Journey] = ArgCaptor[Journey]
+        val captor: ArgumentCaptor[Journey] = ArgumentCaptor.captor()
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
 
         when(mockEmailService.sendPasscodeEmail(any, any, any, any)(any, any)).thenReturn(Future.unit)
 
         val res: String = await(journeyService.initialise(request)(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
+        res shouldBe s"/email-verification/journey/${captor.getValue.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
 
         verify(mockEmailService).sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(englishTeamName), eqTo(English))(any, any)
       }
@@ -93,14 +95,14 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
 
-        val captor: Captor[Journey] = ArgCaptor[Journey]
+        val captor: ArgumentCaptor[Journey] = ArgumentCaptor.captor()
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
 
         val res: String = await(journeyService.initialise(verifyEmailRequest.copy(email = None).copy(deskproServiceName = Some(serviceName)))(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/email?continueUrl=$continueUrl&origin=$origin"
+        res shouldBe s"/email-verification/journey/${captor.getValue.journeyId}/email?continueUrl=$continueUrl&origin=$origin"
 
-        verifyZeroInteractions(mockEmailService)
+        verifyNoInteractions(mockEmailService)
       }
     }
 
@@ -108,14 +110,14 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
       "store the journey without sending an email return email-verification-frontend journey url" in new Setup {
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
 
-        val captor: Captor[Journey] = ArgCaptor[Journey]
+        val captor: ArgumentCaptor[Journey] = ArgumentCaptor.captor()
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
 
         val res: String = await(journeyService.initialise(verifyEmailRequest.copy(email = None))(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.value.journeyId}/email?continueUrl=$continueUrl&origin=$origin"
+        res shouldBe s"/email-verification/journey/${captor.getValue.journeyId}/email?continueUrl=$continueUrl&origin=$origin"
 
-        verifyZeroInteractions(mockEmailService)
+        verifyNoInteractions(mockEmailService)
 
       }
     }
@@ -145,7 +147,7 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
 
         a[Exception] shouldBe thrownBy(res)
 
-        verifyZeroInteractions(mockEmailService)
+        verifyNoInteractions(mockEmailService)
       }
     }
   }

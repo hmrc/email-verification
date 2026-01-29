@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.emailverification.services
 
+import org.mockito.Mockito.*
 import config.AppConfig
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import uk.gov.hmrc.emailverification.repositories.{RepositoryBaseSpec, VerifiedHashedEmailMongoRepository}

@@ -19,11 +19,11 @@ package uk.gov.hmrc.emailverification.connectors
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
-import play.api.mvc.ControllerHelpers.TODO.executionContext
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.IntegrationBaseSpec
 import uk.gov.hmrc.emailverification.models.SendEmailRequest
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import scala.concurrent.ExecutionContext.global
 
 class EmailConnectorISpec extends IntegrationBaseSpec with ScalaFutures  {
 
@@ -46,7 +46,7 @@ class EmailConnectorISpec extends IntegrationBaseSpec with ScalaFutures  {
       )
 
       // when
-      val result: HttpResponse = await(connector.sendEmail(recipient, templateId, params)(HeaderCarrier(), executionContext))
+      val result: HttpResponse = await(connector.sendEmail(recipient, templateId, params)(HeaderCarrier(), global))
 
       // then
       result.status shouldBe 202

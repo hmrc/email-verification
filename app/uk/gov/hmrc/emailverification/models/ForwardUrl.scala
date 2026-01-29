@@ -16,20 +16,18 @@
 
 package uk.gov.hmrc.emailverification.models
 
+import play.api.libs.json.*
+
 import java.net.URI
-
-import config.AppConfig
-import play.api.libs.json._
-
 import scala.util.Try
 
 case class ForwardUrl(url: String)
 
 object ForwardUrl {
 
-  implicit def reads(implicit appConfig: AppConfig): Reads[ForwardUrl] = (json: JsValue) => {
+  implicit def reads: Reads[ForwardUrl] = (json: JsValue) => {
     val url = json.as[String]
-    validate(url, appConfig) match {
+    validate(url) match {
       case Left(message)     => JsError(error = message)
       case Right(forwardUrl) => JsSuccess(forwardUrl)
     }
@@ -37,7 +35,7 @@ object ForwardUrl {
 
   implicit val writes: Writes[ForwardUrl] = (url: ForwardUrl) => JsString(url.url)
 
-  private def validate(potentialUrl: String, appConfig: AppConfig): Either[String, ForwardUrl] = {
+  private def validate(potentialUrl: String): Either[String, ForwardUrl] = {
     Try(new URI(potentialUrl)).map(uri => Right(ForwardUrl(uri.toString))).getOrElse(Left("URL could not be parsed"))
   }
 

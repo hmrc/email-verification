@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
+import org.mongodb.scala.ObservableFuture
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Seconds, Span}

@@ -16,23 +16,25 @@
 
 package uk.gov.hmrc.emailverification.controllers
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import org.mongodb.scala.SingleObservableFuture
 import org.mongodb.scala.result.InsertOneResult
 import org.scalatest.concurrent.Eventually
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.{AUTHORIZATION, await, defaultAwaitTimeout}
 import play.api.test.Injecting
 import support.IntegrationBaseSpec
-import uk.gov.hmrc.emailverification.models._
+import uk.gov.hmrc.emailverification.models.*
 import uk.gov.hmrc.emailverification.repositories.{JourneyMongoRepository, VerificationStatusMongoRepository}
 import uk.gov.hmrc.emailverification.support.WireMockHelper.wireMockPort
 
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.Future
+import play.api.libs.ws.writeableOf_JsValue
 
 class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
 

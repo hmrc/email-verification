@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.emailverification.services
 
+import org.mockito.Mockito.*
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import uk.gov.hmrc.emailverification.connectors.EmailConnector
 import uk.gov.hmrc.emailverification.models.{English, Welsh}
 import uk.gov.hmrc.emailverification.support.UnitSpec
