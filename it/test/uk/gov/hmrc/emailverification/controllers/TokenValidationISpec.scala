@@ -23,6 +23,7 @@ import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.EmailStub._
 import support.IntegrationBaseSpec
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
+import play.api.libs.ws.writeableOf_JsValue
 
 class TokenValidationISpec extends IntegrationBaseSpec {
 

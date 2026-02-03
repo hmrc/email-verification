@@ -22,6 +22,7 @@ import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.EmailStub._
 import support.IntegrationBaseSpec
+import play.api.libs.ws.writeableOf_JsValue
 
 class PayloadHandlingISpec extends IntegrationBaseSpec {
 

@@ -17,13 +17,15 @@
 package uk.gov.hmrc.emailverification.controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.mongodb.client.result.InsertOneResult
+import org.mongodb.scala.SingleObservableFuture
 import org.scalatest.Assertion
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status.{ACCEPTED, CREATED, NOT_FOUND}
 import play.api.libs.json.{JsDefined, JsString, JsValue, Json}
+import play.api.libs.ws.DefaultBodyReadables.readableAsString
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.EmailStub.{expectEmailServiceToRespond, expectEmailToBeSent, lastPasscodeEmailed, passcodeRequest, passcodeVerificationRequest, verifyEmailSentWithPasscode, verifyNoEmailSent}
@@ -37,6 +39,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.concurrent.Future
+import play.api.libs.ws.writeableOf_JsValue
 
 class EmailPasscodeControllerISpec extends IntegrationBaseSpec with ScalaFutures {
 

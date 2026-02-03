@@ -39,7 +39,7 @@ class VerifiedHashedEmailMongoRepository @Inject() (mongoComponent: MongoCompone
       domainFormat = VerifiedHashedEmail.format,
       indexes = Seq(
         IndexModel(Indexes.ascending("hashedEmail"), IndexOptions().name("emailUnique").unique(true)),
-        IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl").expireAfter(appConfig.verifiedEmailRepoTTLDays, TimeUnit.DAYS))
+        IndexModel(Indexes.ascending("createdAt"), IndexOptions().name("ttl").expireAfter(appConfig.verifiedEmailRepoTTLDays.toLong, TimeUnit.DAYS))
       ),
       replaceIndexes = appConfig.verifiedEmailRepoReplaceIndex
     )

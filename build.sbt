@@ -1,16 +1,13 @@
 import uk.gov.hmrc.DefaultBuildSettings
 
-ThisBuild / majorVersion := 1
-ThisBuild / scalaVersion := "2.13.16"
+ThisBuild / majorVersion := 2
+ThisBuild / scalaVersion := "3.3.7"
 
 lazy val microservice = Project("email-verification", file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtDistributablesPlugin) *)
   .settings(scalafmtOnCompile := true)
   .settings(ScoverageSettings())
   .settings(scalacOptions ++= Seq(
-    "-feature", "-deprecation",
-    "-Werror",
-    "-Wconf:src=routes/.*&cat=unused-imports:silent",
     "-Wconf:src=routes/.*:s"
   ))
   .settings(

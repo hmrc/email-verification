@@ -189,6 +189,31 @@ object JourneyMongoRepository {
     )
   }
 
+  object Entity {
+    def unapply(model: Entity) = Some(
+      (
+        model.journeyId,
+        model.credId,
+        model.continueUrl,
+        model.origin,
+        model.accessibilityStatementUrl,
+        model.serviceName,
+        model.language,
+        model.emailAddress,
+        model.enterEmailUrl,
+        model.backUrl,
+        model.pageTitle,
+        model.passcode,
+        model.createdAt,
+        model.emailAddressAttempts,
+        model.passcodesSentToEmail,
+        model.passcodeAttempts,
+        model.labels,
+        model.useNewGovUkServiceNavigation
+      )
+    )
+  }
+
   val mongoFormat: OFormat[Entity] = (
     (__ \ "_id").format[String] and
       (__ \ "credId").format[String] and

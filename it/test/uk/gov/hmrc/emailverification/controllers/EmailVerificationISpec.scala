@@ -23,6 +23,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks.forAll
 import org.scalatest.prop.Tables.Table
 import play.api.Configuration
 import play.api.libs.json.{JsValue, Json}
+import play.api.libs.ws.DefaultBodyReadables.readableAsString
 import play.api.libs.ws.WSResponse
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.EmailStub.{decryptedToken, expectEmailServiceToRespond, expectEmailToBeSent, lastVerificationEmail, verificationRequest, verifyEmailSentWithContinueUrl}
@@ -31,6 +32,7 @@ import uk.gov.hmrc.emailverification.models.Journey
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContextExecutor, Future}
+import play.api.libs.ws.writeableOf_JsValue
 
 class EmailVerificationISpec extends IntegrationBaseSpec with ScalaFutures {
 

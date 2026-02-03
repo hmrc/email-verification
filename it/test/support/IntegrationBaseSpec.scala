@@ -19,6 +19,7 @@ package support
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{noContent, post, stubFor}
 import config.AppConfig
+import org.mongodb.scala.SingleObservableFuture
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}

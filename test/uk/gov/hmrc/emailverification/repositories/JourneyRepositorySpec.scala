@@ -51,7 +51,7 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         useNewGovUkServiceNavigation = Some(false)
       )
 
-      whenReady(repository.initialise(testJourney)) { value =>
+      whenReady(repository.initialise(testJourney)) { _ =>
         whenReady(repository.recordPasscodeAttempt(journeyId)) { journey =>
           journey shouldBe Some(testJourney)
           whenReady(repository.get(journeyId))(journey => journey shouldBe Some(testJourney.copy(passcodeAttempts = 1)))
@@ -84,7 +84,7 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         useNewGovUkServiceNavigation = Some(false)
       )
 
-      whenReady(repository.initialise(testJourney)) { value =>
+      whenReady(repository.initialise(testJourney)) { _ =>
         whenReady(repository.submitEmail(journeyId, email))(journey => journey shouldBe Some(testJourney.copy(passcodesSentToEmail = 2)))
       }
     }
@@ -113,7 +113,7 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         useNewGovUkServiceNavigation = Some(false)
       )
 
-      whenReady(repository.initialise(testJourney)) { value =>
+      whenReady(repository.initialise(testJourney)) { _ =>
         whenReady(repository.submitEmail(journeyId, someOtherEmail)) { journey =>
           journey shouldBe Some(testJourney.copy(emailAddress = Some(someOtherEmail), passcodesSentToEmail = 1, emailAddressAttempts = 2))
         }

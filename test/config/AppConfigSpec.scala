@@ -65,7 +65,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers {
     }
   }
 
-  private class Setup(testConfig: Map[String, Any] = Map.empty, env: String = "Test") {
+  private class Setup(testConfig: Map[String, Any] = Map.empty) {
     val appConfig = new AppConfig(Configuration.from(testConfig))
   }
 }

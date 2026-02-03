@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.emailverification.repositories
 
+import org.mockito.Mockito.*
 import config.AppConfig
 import uk.gov.hmrc.emailverification.models.PasscodeDoc
 import uk.gov.hmrc.http.SessionId

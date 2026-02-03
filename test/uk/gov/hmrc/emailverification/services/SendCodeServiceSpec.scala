@@ -129,7 +129,7 @@ class SendCodeServiceSpec extends AnyWordSpec with Matchers with MockitoSugar wi
 
     implicit val appConfigMock: AppConfig = mock[AppConfig]
     when(appConfigMock.appName).thenReturn("test-application")
-    when(appConfigMock.verificationCodeExpiryMinutes).thenReturn(1)
+    when(appConfigMock.verificationCodeExpiryMinutes).thenReturn(1.toLong)
 
     val expectedVerificationCode = "ABCDEFG"
     val passcodeGeneratorMock: PasscodeGenerator = mock[PasscodeGenerator]

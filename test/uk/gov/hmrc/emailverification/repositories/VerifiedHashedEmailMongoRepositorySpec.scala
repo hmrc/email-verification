@@ -18,6 +18,8 @@ package uk.gov.hmrc.emailverification.repositories
 
 import com.mongodb.MongoException
 import config.AppConfig
+import org.mockito.Mockito.*
+import org.mongodb.scala.ObservableFuture
 import org.mongodb.scala.bson.{BsonBoolean, BsonString}
 import uk.gov.hmrc.emailverification.models.VerifiedEmail
 import uk.gov.hmrc.http.HeaderCarrier
