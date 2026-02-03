@@ -53,3 +53,41 @@ class EmailConnectorISpec extends IntegrationBaseSpec with ScalaFutures  {
     }
   }
 }
+
+class EmailConnectorStubISpec extends IntegrationBaseSpec with ScalaFutures  {
+
+  override def serviceConfig: Map[String, Any] = {
+    super.serviceConfig ++ Map(
+      "microservice.services.email.path" -> "/email-verification-stub"
+    )
+  }
+
+  "when the stub path is set" should {
+
+    "send email" should {
+
+      "submit request to email stub micro service to send email and get successful response status" in {
+
+        val params: Map[String, String] = Map("p1" -> "v1")
+        val templateId = "my-template"
+        val recipient = "user@example.com"
+
+        val connector = app.injector.instanceOf[EmailConnector]
+
+        // given
+        val requestBody: SendEmailRequest = SendEmailRequest(Seq(recipient), templateId, params)
+
+        stubFor(post("/email-verification-stub/hmrc/email")
+          .withRequestBody(equalToJson(Json.toJson(requestBody).toString))
+          .willReturn(aResponse().withStatus(202).withBody(""))
+        )
+
+        // when
+        val result: HttpResponse = await(connector.sendEmail(recipient, templateId, params)(HeaderCarrier(), global))
+
+        // then
+        result.status shouldBe 202
+      }
+    }
+  }
+}

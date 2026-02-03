@@ -33,14 +33,18 @@ class EmailConnector @Inject() (
   httpClient: HttpClientV2,
   servicesConfig: ServicesConfig
 ) {
-  private lazy val servicePath: String = appConfig.emailServicePath
 
   private lazy val baseServiceUrl: String = servicesConfig.baseUrl("email")
+
+  private lazy val url = appConfig.emailServicePath match {
+    case path if path != "" => url"$baseServiceUrl/${path.replace("/", "")}/hmrc/email"
+    case _                  => url"$baseServiceUrl/hmrc/email"
+  }
 
   def sendEmail(to: String, templateId: String, params: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val body = Json.toJson(SendEmailRequest(Seq(to), templateId, params))
     httpClient
-      .post(url"$baseServiceUrl$servicePath/hmrc/email")
+      .post(url)
       .withBody(body)
       .execute[Either[UpstreamErrorResponse, HttpResponse]]
       .map {
