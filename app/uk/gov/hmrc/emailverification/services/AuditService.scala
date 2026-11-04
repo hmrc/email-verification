@@ -40,8 +40,8 @@ class AuditService @Inject() (
     val continueUrl: String = (request.body match {
       case EmailVerificationRequest(_, _, _, _, continueUrl) =>
         Some(continueUrl.url)
-      case VerifyEmailRequest(_, continueUrl, _, _, _, _, _, _, _, _, _) =>
-        Some(continueUrl)
+      case verifyEmailRequest: VerifyEmailRequest =>
+        Some(verifyEmailRequest.continueUrl)
       case _ =>
         None
     }).collect {

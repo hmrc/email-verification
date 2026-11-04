@@ -34,6 +34,12 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
   "initialise" when {
     "given a request with an email address present and no Deskpro service name" should {
       "store the journey and send a passcode to the email address and return email-verification-frontend journey url" in new Setup {
+        val request = verifyEmailRequest.copy(
+          showPhaseBanner = Some(true),
+          alphaPhase = Some(true),
+          phaseFeedbackLink = Some("/feedback"),
+          includeHMRCBranding = Some(true)
+        )
         when(mockPasscodeGenerator.generate()).thenReturn(passcode)
         when(mockVerificationStatusRepository.initialise(eqTo(credId), eqTo(emailAddress))).thenReturn(Future.unit)
 
@@ -41,9 +47,13 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         when(mockJourneyRepository.initialise(captor)).thenReturn(Future.unit)
         when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(origin), eqTo(English))(any, any)).thenReturn(Future.unit)
 
-        val res: String = await(journeyService.initialise(verifyEmailRequest)(HeaderCarrier()))
+        val res: String = await(journeyService.initialise(request)(HeaderCarrier()))
 
-        res shouldBe s"/email-verification/journey/${captor.getValue.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
+        res                                              shouldBe s"/email-verification/journey/${captor.getValue.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
+        captor.getValue.frontendData.showPhaseBanner     shouldBe Some(true)
+        captor.getValue.frontendData.alphaPhase          shouldBe Some(true)
+        captor.getValue.frontendData.phaseFeedbackLink   shouldBe Some("/feedback")
+        captor.getValue.frontendData.includeHMRCBranding shouldBe Some(true)
       }
     }
 

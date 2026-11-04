@@ -48,7 +48,11 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         passcodesSentToEmail = 1,
         passcodeAttempts = 0,
         labels = None,
-        useNewGovUkServiceNavigation = Some(false)
+        useNewGovUkServiceNavigation = Some(false),
+        showPhaseBanner = Some(true),
+        alphaPhase = Some(true),
+        phaseFeedbackLink = Some("/feedback"),
+        includeHMRCBranding = Some(true)
       )
 
       whenReady(repository.initialise(testJourney)) { _ =>
