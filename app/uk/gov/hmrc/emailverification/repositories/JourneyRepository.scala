@@ -76,7 +76,8 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
           passcodesSentToEmail = journey.passcodesSentToEmail,
           passcodeAttempts = 0,
           labels = journey.labels,
-          useNewGovUkServiceNavigation = journey.useNewGovUkServiceNavigation
+          useNewGovUkServiceNavigation = journey.useNewGovUkServiceNavigation,
+          serviceUrl = journey.serviceUrl
         )
       )
       .toFuture()
@@ -166,7 +167,8 @@ object JourneyMongoRepository {
     passcodesSentToEmail: Int,
     passcodeAttempts: Int,
     labels: Option[Labels], // Added as option for non-breaking backwards compatibility for pre-existing journeys
-    useNewGovUkServiceNavigation: Option[Boolean]
+    useNewGovUkServiceNavigation: Option[Boolean],
+    serviceUrl: Option[String] = None
   ) {
     def toJourney: Journey = Journey(
       journeyId,
@@ -185,7 +187,8 @@ object JourneyMongoRepository {
       passcodesSentToEmail,
       passcodeAttempts,
       labels,
-      useNewGovUkServiceNavigation
+      useNewGovUkServiceNavigation,
+      serviceUrl
     )
   }
 
@@ -209,7 +212,8 @@ object JourneyMongoRepository {
         model.passcodesSentToEmail,
         model.passcodeAttempts,
         model.labels,
-        model.useNewGovUkServiceNavigation
+        model.useNewGovUkServiceNavigation,
+        model.serviceUrl
       )
     )
   }
@@ -232,6 +236,7 @@ object JourneyMongoRepository {
       (__ \ "passcodesSentToEmail").format[Int] and
       (__ \ "passcodeAttempts").format[Int] and
       (__ \ "labels").formatNullable[Labels] and
-      (__ \ "useNewGovUkServiceNavigation").formatNullable[Boolean]
+      (__ \ "useNewGovUkServiceNavigation").formatNullable[Boolean] and
+      (__ \ "serviceUrl").formatNullable[String]
   )(Entity.apply, unlift(Entity.unapply))
 }

@@ -150,7 +150,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         passcodesSentToEmail = 0,
         passcodeAttempts = 0,
         labels = None,
-        useNewGovUkServiceNavigation = Some(false)
+        useNewGovUkServiceNavigation = Some(false),
+        serviceUrl = Some("https://service.example.gov.uk")
       )
 
       expectJourneyToExist(journey.copy(journeyId = UUID.randomUUID().toString, emailAddress = Some(testEmail1)))
@@ -224,7 +225,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         passcodesSentToEmail = 0,
         passcodeAttempts = 0,
         labels = None,
-        useNewGovUkServiceNavigation = Some(false)
+        useNewGovUkServiceNavigation = Some(false),
+        serviceUrl = Some("https://service.example.gov.uk")
       )
 
       expectJourneyToExist(journey)
@@ -237,6 +239,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
         "deskproServiceName"           -> "serviceName",
         "backUrl"                      -> "/back",
         "serviceTitle"                 -> "title",
+        "serviceUrl"                   -> "https://service.example.gov.uk",
         "useNewGovUkServiceNavigation" -> false
       )
     }
@@ -1155,7 +1158,8 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
               passcodesSentToEmail = journey.passcodesSentToEmail,
               passcodeAttempts = journey.passcodeAttempts,
               labels = journey.labels,
-              useNewGovUkServiceNavigation = Some(false)
+              useNewGovUkServiceNavigation = Some(false),
+              serviceUrl = journey.serviceUrl
             )
           )
           .toFuture()
@@ -1185,6 +1189,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
     val credId: String = UUID.randomUUID().toString
     val continueUrl = "/plastic-packaging-tax/start"
     val origin = "ppt"
+    val serviceUrl = "https://service.example.gov.uk"
     val deskproServiceName = "plastic-packaging-tax"
     val emailAddress = "barrywood@hotmail.com"
     val emailEntryUrl = "/start"
@@ -1195,6 +1200,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
       "credId"                    -> credId,
       "continueUrl"               -> continueUrl,
       "origin"                    -> origin,
+      "serviceUrl"                -> serviceUrl,
       "deskproServiceName"        -> deskproServiceName,
       "accessibilityStatementUrl" -> accessibilityStatementUrl,
       "email" -> Json.obj(
@@ -1209,6 +1215,7 @@ class JourneyWireMockSpec extends IntegrationBaseSpec with Injecting {
       "credId"                    -> credId,
       "continueUrl"               -> continueUrl,
       "origin"                    -> origin,
+      "serviceUrl"                -> serviceUrl,
       "deskproServiceName"        -> deskproServiceName,
       "accessibilityStatementUrl" -> accessibilityStatementUrl,
       "email" -> Json.obj(

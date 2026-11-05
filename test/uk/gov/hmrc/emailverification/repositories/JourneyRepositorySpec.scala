@@ -48,7 +48,8 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         passcodesSentToEmail = 1,
         passcodeAttempts = 0,
         labels = None,
-        useNewGovUkServiceNavigation = Some(false)
+        useNewGovUkServiceNavigation = Some(false),
+        serviceUrl = Some("https://service.example.gov.uk")
       )
 
       whenReady(repository.initialise(testJourney)) { _ =>

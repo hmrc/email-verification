@@ -35,3 +35,4 @@ tmp
 .idea_modules
 bin
 /export-versions-for-it-tests
+/project/metals.sbt
