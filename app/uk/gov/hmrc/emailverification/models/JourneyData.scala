@@ -28,7 +28,8 @@ case class JourneyData(
   serviceTitle: Option[String],
   emailAddress: Option[String],
   labels: Option[Labels],
-  useNewGovUkServiceNavigation: Option[Boolean]
+  useNewGovUkServiceNavigation: Option[Boolean],
+  serviceUrl: Option[String] = None
 )
 
 object JourneyData {
