@@ -234,6 +234,7 @@ Replace example values with the appropriate values for your service.
 {
   "credId":"0000000026936462",
   "continueUrl":"/student-tax-checker/verify-email/journey-completed",
+  "serviceUrl":"https://your-service.service.gov.uk", // Optional; homepage linked from the service name
   "origin":"stc", // Will be displayed in email as signature if labels.en.userFacingServiceName is missing
   "deskproServiceName":"student-tax-checker",  // Optional, if absent then 'origin' will be used
   "accessibilityStatementUrl":"/accessibility-statement/stc",
@@ -270,6 +271,7 @@ Replace example values with the appropriate values for your service to recommenc
   "deskproServiceName":"student-tax-checker",  // Optional, if absent then 'origin' will be used
   "accessibilityStatementUrl":"/accessibility-statement/stc",
   "backUrl": "/student-tax-checker/verify-email/journey-start", // Optional; if provided, all pages will contain a "back" link to this URL
+  "serviceUrl":"https://your-service.service.gov.uk", // Optional; homepage linked from the service name
   "email": {
     "address":"johnsmith@hotmail.com",
     "enterUrl":"/student-tax-checker/verify-email/enter-email" // user may get sent here if they cannot verify the provided email, e.g. they misspelled it
