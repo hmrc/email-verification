@@ -48,8 +48,8 @@ class JourneyServiceSpec extends UnitSpec with ScalaFutures {
         when(mockEmailService.sendPasscodeEmail(eqTo(emailAddress), eqTo(passcode), eqTo(origin), eqTo(English))(any, any)).thenReturn(Future.unit)
 
         val serviceUrl = "https://service.example.gov.uk"
-        val request = verifyEmailRequest.copy(serviceUrl = Some(serviceUrl))
-        val res: String = await(journeyService.initialise(request)(HeaderCarrier()))
+        val request1 = request.copy(serviceUrl = Some(serviceUrl))
+        val res: String = await(journeyService.initialise(request1)(HeaderCarrier()))
 
         res                                              shouldBe s"/email-verification/journey/${captor.getValue.journeyId}/passcode?continueUrl=$continueUrl&origin=$origin"
         captor.getValue.serviceUrl                       shouldBe Some(serviceUrl)
