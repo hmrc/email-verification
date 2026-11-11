@@ -228,8 +228,7 @@ object JourneyMongoRepository {
         model.serviceUrl,
         model.showPhaseBanner,
         model.alphaPhase,
-        model.phaseFeedbackLink,
-        model.includeHMRCBranding
+        (model.phaseFeedbackLink, model.includeHMRCBranding)
       )
     )
   }
@@ -253,10 +252,62 @@ object JourneyMongoRepository {
       (__ \ "passcodeAttempts").format[Int] and
       (__ \ "labels").formatNullable[Labels] and
       (__ \ "useNewGovUkServiceNavigation").formatNullable[Boolean] and
-      (__ \ "serviceUrl").formatNullable[String]
+      (__ \ "serviceUrl").formatNullable[String] and
       (__ \ "showPhaseBanner").formatNullable[Boolean] and
       (__ \ "alphaPhase").formatNullable[Boolean] and
-      (__ \ "phaseFeedbackLink").formatNullable[String] and
-      (__ \ "includeHMRCBranding").formatNullable[Boolean]
-  )(Entity.apply, unlift(Entity.unapply))
+      (
+        (__ \ "phaseFeedbackLink").formatNullable[String] and
+          (__ \ "includeHMRCBranding").formatNullable[Boolean]
+      ).tupled
+  )(
+    (journeyId,
+     credId,
+     continueUrl,
+     origin,
+     accessibilityStatementUrl,
+     serviceName,
+     language,
+     emailAddress,
+     enterEmailUrl,
+     backUrl,
+     pageTitle,
+     passcode,
+     createdAt,
+     emailAddressAttempts,
+     passcodesSentToEmail,
+     passcodeAttempts,
+     labels,
+     useNewGovUkServiceNavigation,
+     serviceUrl,
+     showPhaseBanner,
+     alphaPhase,
+     feedbackAndBranding
+    ) =>
+      Entity(
+        journeyId,
+        credId,
+        continueUrl,
+        origin,
+        accessibilityStatementUrl,
+        serviceName,
+        language,
+        emailAddress,
+        enterEmailUrl,
+        backUrl,
+        pageTitle,
+        passcode,
+        createdAt,
+        emailAddressAttempts,
+        passcodesSentToEmail,
+        passcodeAttempts,
+        labels,
+        useNewGovUkServiceNavigation,
+        serviceUrl,
+        showPhaseBanner,
+        alphaPhase,
+        feedbackAndBranding._1,
+        feedbackAndBranding._2
+      ),
+    unlift(Entity.unapply)
+  )
 }
