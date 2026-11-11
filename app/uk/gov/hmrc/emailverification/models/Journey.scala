@@ -38,7 +38,11 @@ case class Journey(
   passcodeAttempts: Int,
   labels: Option[Labels],
   useNewGovUkServiceNavigation: Option[Boolean],
-  serviceUrl: Option[String] = None
+  serviceUrl: Option[String] = None,
+  showPhaseBanner: Option[Boolean] = None,
+  alphaPhase: Option[Boolean] = None,
+  phaseFeedbackLink: Option[String] = None,
+  includeHMRCBranding: Option[Boolean] = None
 ) {
   def frontendData: JourneyData = JourneyData(
     accessibilityStatementUrl,
@@ -49,7 +53,11 @@ case class Journey(
     emailAddress,
     labels,
     useNewGovUkServiceNavigation,
-    serviceUrl
+    serviceUrl,
+    showPhaseBanner,
+    alphaPhase,
+    phaseFeedbackLink,
+    includeHMRCBranding
   )
 }
 
