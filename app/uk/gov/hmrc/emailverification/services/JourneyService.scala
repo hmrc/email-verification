@@ -69,7 +69,11 @@ class JourneyService @Inject() (
       passcodeAttempts = 0,
       labels = verifyEmailRequest.labels,
       useNewGovUkServiceNavigation = verifyEmailRequest.useNewGovUkServiceNavigation,
-      serviceUrl = verifyEmailRequest.serviceUrl
+      serviceUrl = verifyEmailRequest.serviceUrl,
+      showPhaseBanner = verifyEmailRequest.showPhaseBanner,
+      alphaPhase = verifyEmailRequest.alphaPhase,
+      phaseFeedbackLink = verifyEmailRequest.phaseFeedbackLink,
+      includeHMRCBranding = verifyEmailRequest.includeHMRCBranding
     )
     for {
       _ <- journeyRepository.initialise(journey)

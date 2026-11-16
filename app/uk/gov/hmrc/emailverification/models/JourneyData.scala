@@ -29,7 +29,11 @@ case class JourneyData(
   emailAddress: Option[String],
   labels: Option[Labels],
   useNewGovUkServiceNavigation: Option[Boolean],
-  serviceUrl: Option[String] = None
+  serviceUrl: Option[String] = None,
+  showPhaseBanner: Option[Boolean] = None,
+  alphaPhase: Option[Boolean] = None,
+  phaseFeedbackLink: Option[String] = None,
+  includeHMRCBranding: Option[Boolean] = None
 )
 
 object JourneyData {

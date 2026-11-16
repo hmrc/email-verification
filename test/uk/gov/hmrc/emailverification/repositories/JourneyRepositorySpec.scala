@@ -49,7 +49,11 @@ class JourneyRepositorySpec extends RepositoryBaseSpec {
         passcodeAttempts = 0,
         labels = None,
         useNewGovUkServiceNavigation = Some(false),
-        serviceUrl = Some("https://service.example.gov.uk")
+        serviceUrl = Some("https://service.example.gov.uk"),
+        showPhaseBanner = Some(true),
+        alphaPhase = Some(true),
+        phaseFeedbackLink = Some("/feedback"),
+        includeHMRCBranding = Some(true)
       )
 
       whenReady(repository.initialise(testJourney)) { _ =>

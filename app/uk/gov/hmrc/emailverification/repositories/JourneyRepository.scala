@@ -77,7 +77,11 @@ class JourneyMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit
           passcodeAttempts = 0,
           labels = journey.labels,
           useNewGovUkServiceNavigation = journey.useNewGovUkServiceNavigation,
-          serviceUrl = journey.serviceUrl
+          serviceUrl = journey.serviceUrl,
+          showPhaseBanner = journey.showPhaseBanner,
+          alphaPhase = journey.alphaPhase,
+          phaseFeedbackLink = journey.phaseFeedbackLink,
+          includeHMRCBranding = journey.includeHMRCBranding
         )
       )
       .toFuture()
@@ -168,7 +172,11 @@ object JourneyMongoRepository {
     passcodeAttempts: Int,
     labels: Option[Labels], // Added as option for non-breaking backwards compatibility for pre-existing journeys
     useNewGovUkServiceNavigation: Option[Boolean],
-    serviceUrl: Option[String] = None
+    serviceUrl: Option[String] = None,
+    showPhaseBanner: Option[Boolean] = None,
+    alphaPhase: Option[Boolean] = None,
+    phaseFeedbackLink: Option[String] = None,
+    includeHMRCBranding: Option[Boolean] = None
   ) {
     def toJourney: Journey = Journey(
       journeyId,
@@ -188,7 +196,11 @@ object JourneyMongoRepository {
       passcodeAttempts,
       labels,
       useNewGovUkServiceNavigation,
-      serviceUrl
+      serviceUrl,
+      showPhaseBanner,
+      alphaPhase,
+      phaseFeedbackLink,
+      includeHMRCBranding
     )
   }
 
@@ -213,7 +225,10 @@ object JourneyMongoRepository {
         model.passcodeAttempts,
         model.labels,
         model.useNewGovUkServiceNavigation,
-        model.serviceUrl
+        model.serviceUrl,
+        model.showPhaseBanner,
+        model.alphaPhase,
+        (model.phaseFeedbackLink, model.includeHMRCBranding)
       )
     )
   }
@@ -237,6 +252,62 @@ object JourneyMongoRepository {
       (__ \ "passcodeAttempts").format[Int] and
       (__ \ "labels").formatNullable[Labels] and
       (__ \ "useNewGovUkServiceNavigation").formatNullable[Boolean] and
-      (__ \ "serviceUrl").formatNullable[String]
-  )(Entity.apply, unlift(Entity.unapply))
+      (__ \ "serviceUrl").formatNullable[String] and
+      (__ \ "showPhaseBanner").formatNullable[Boolean] and
+      (__ \ "alphaPhase").formatNullable[Boolean] and
+      (
+        (__ \ "phaseFeedbackLink").formatNullable[String] and
+          (__ \ "includeHMRCBranding").formatNullable[Boolean]
+      ).tupled
+  )(
+    (journeyId,
+     credId,
+     continueUrl,
+     origin,
+     accessibilityStatementUrl,
+     serviceName,
+     language,
+     emailAddress,
+     enterEmailUrl,
+     backUrl,
+     pageTitle,
+     passcode,
+     createdAt,
+     emailAddressAttempts,
+     passcodesSentToEmail,
+     passcodeAttempts,
+     labels,
+     useNewGovUkServiceNavigation,
+     serviceUrl,
+     showPhaseBanner,
+     alphaPhase,
+     feedbackAndBranding
+    ) =>
+      Entity(
+        journeyId,
+        credId,
+        continueUrl,
+        origin,
+        accessibilityStatementUrl,
+        serviceName,
+        language,
+        emailAddress,
+        enterEmailUrl,
+        backUrl,
+        pageTitle,
+        passcode,
+        createdAt,
+        emailAddressAttempts,
+        passcodesSentToEmail,
+        passcodeAttempts,
+        labels,
+        useNewGovUkServiceNavigation,
+        serviceUrl,
+        showPhaseBanner,
+        alphaPhase,
+        feedbackAndBranding._1,
+        feedbackAndBranding._2
+      ),
+    unlift(Entity.unapply)
+  )
 }

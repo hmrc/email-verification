@@ -30,7 +30,11 @@ case class VerifyEmailRequest(
   pageTitle: Option[String],
   labels: Option[Labels],
   useNewGovUkServiceNavigation: Option[Boolean] = Some(false),
-  serviceUrl: Option[String] = None
+  serviceUrl: Option[String] = None,
+  showPhaseBanner: Option[Boolean] = None,
+  alphaPhase: Option[Boolean] = None,
+  phaseFeedbackLink: Option[String] = None,
+  includeHMRCBranding: Option[Boolean] = None
 )
 
 case class Email(address: String, enterUrl: String)
